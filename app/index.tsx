@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, Alert, FlatList, StyleSheet } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import * as SecureStore from 'expo-secure-store';
-import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
-const baseUrl = 'https://cmm-leroyfischer.replit.app'; // 💡 Stelle sicher: https:// + richtige URL
-
+const baseUrl = 'https://cmm-leroyfischer.replit.app';
 const Tab = createBottomTabNavigator();
 
 function StatusScreen({ userPhone, onLogout }) {
@@ -34,9 +32,7 @@ function StatusScreen({ userPhone, onLogout }) {
   return (
     <View style={styles.screenContainer}>
       <Text style={styles.title}>Status</Text>
-      <Text style={styles.statusText}>
-        {isAvailable ? '✅ erreichbar' : '❌ nicht erreichbar'}
-      </Text>
+      <Text style={styles.statusText}>{isAvailable ? '✅ erreichbar' : '❌ nicht erreichbar'}</Text>
       <Button title={isAvailable ? 'Nicht erreichbar' : 'Erreichbar'} onPress={toggleStatus} />
       <View style={{ marginTop: 20 }}>
         <Button title="Abmelden" color="red" onPress={onLogout} />
@@ -105,7 +101,7 @@ function ContactsScreen({ userPhone }) {
         keyExtractor={(item) => item.phone}
         renderItem={({ item }) => (
           <View style={styles.contactItem}>
-            <View style={[styles.avatar, item.isAvailable === null && { backgroundColor: '#ccc' }]}>
+            <View style={[styles.avatar, item.isAvailable === null && { backgroundColor: '#ccc' }]}> 
               <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
             </View>
             <View>
@@ -150,6 +146,7 @@ export default function App() {
   const [userPhone, setUserPhone] = useState(null);
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
+  const [codeRequested, setCodeRequested] = useState(false);
 
   useEffect(() => {
     SecureStore.getItemAsync('userPhone').then(saved => {
@@ -164,8 +161,12 @@ export default function App() {
       body: JSON.stringify({ phone })
     });
     const data = await res.json();
-    if (data.success) Alert.alert('Code gesendet');
-    else Alert.alert('Fehler', data.error);
+    if (data.success) {
+      Alert.alert('Code gesendet');
+      setCodeRequested(true);
+    } else {
+      Alert.alert('Fehler', data.error);
+    }
   };
 
   const checkCode = async () => {
@@ -191,66 +192,54 @@ export default function App() {
   const logout = async () => {
     await SecureStore.deleteItemAsync('userPhone');
     setUserPhone(null);
+    setCodeRequested(false);
   };
 
   if (!userPhone) {
-  return (
-    <View style={styles.loginContainer}>
-      <Text style={styles.loginTitle}>📱 Registrierung</Text>
+    return (
+      <View style={styles.loginContainer}>
+        <Text style={styles.loginTitle}>📱 Registrierung</Text>
 
-      <Text style={styles.label}>Deine Nummer</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="+49..."
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-      />
-      <Button title="Code senden" onPress={startVerification} />
+        {!codeRequested && (
+          <>
+            <Text style={styles.label}>Deine Nummer</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="+49..."
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
+            <Button title="Code senden" onPress={startVerification} />
+          </>
+        )}
 
-      {phone.length > 0 && (
-        <>
-          <Text style={styles.label}>Bestätigungscode</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Code"
-            value={code}
-            onChangeText={setCode}
-            keyboardType="number-pad"
-          />
-          <Button title="Code prüfen" onPress={checkCode} />
-        </>
-      )}
-    </View>
-  );
-}
+        {codeRequested && (
+          <>
+            <Text style={styles.label}>Bestätigungscode</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Code"
+              value={code}
+              onChangeText={setCode}
+              keyboardType="number-pad"
+            />
+            <Button title="Code prüfen" onPress={checkCode} />
+          </>
+        )}
+      </View>
+    );
+  }
 
-  return (
-      <MainApp userPhone={userPhone} onLogout={logout} />
-  );
+  return <MainApp userPhone={userPhone} onLogout={logout} />;
 }
 
 const styles = StyleSheet.create({
   screenContainer: { flex: 1, padding: 20, paddingTop: 50 },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
+  loginContainer: { flex: 1, padding: 20, paddingTop: 80, backgroundColor: '#f9f9f9' },
+  loginTitle: { fontSize: 26, fontWeight: 'bold', marginBottom: 30, textAlign: 'center' },
+  label: { marginTop: 20, fontWeight: '600', fontSize: 16 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, marginBottom: 10 },
-loginContainer: {
-  flex: 1,
-  padding: 20,
-  paddingTop: 80,
-  backgroundColor: '#f9f9f9',
-},
-loginTitle: {
-  fontSize: 26,
-  fontWeight: 'bold',
-  marginBottom: 30,
-  textAlign: 'center',
-},
-label: {
-  marginTop: 20,
-  fontWeight: '600',
-  fontSize: 16,
-},
   statusText: { fontSize: 18, marginBottom: 10 },
   contactItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#eee' },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#007AFF', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
