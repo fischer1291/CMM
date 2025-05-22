@@ -9,7 +9,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
-const baseUrl = 'https://328db44f-27d0-4f32-afab-03b66a1d1e6c-00-1kg91bu2woxpi.worf.replit.dev';
+const baseUrl = 'https://cmm-leroyfischer.replit.app/';
 
 const Tab = createBottomTabNavigator();
 
