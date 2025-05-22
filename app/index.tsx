@@ -1,15 +1,12 @@
-// 📦 Wichtig: Du musst zuerst folgende Pakete installieren:
-// npm install @react-navigation/native @react-navigation/bottom-tabs react-native-screens react-native-safe-area-context react-native-gesture-handler react-native-reanimated react-native-vector-icons expo-contacts expo-secure-store
-
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Alert, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, Alert, FlatList, StyleSheet } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import * as SecureStore from 'expo-secure-store';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
-const baseUrl = 'https://cmm-leroyfischer.replit.app/';
+const baseUrl = 'https://cmm-leroyfischer.replit.app'; // 💡 Stelle sicher: https:// + richtige URL
 
 const Tab = createBottomTabNavigator();
 
@@ -36,9 +33,11 @@ function StatusScreen({ userPhone, onLogout }) {
 
   return (
     <View style={styles.screenContainer}>
-      <Text style={styles.title}>Dein Status</Text>
-      <Text style={styles.statusText}>{isAvailable ? '✅ erreichbar' : '❌ nicht erreichbar'}</Text>
-      <Button title={isAvailable ? 'Ich bin NICHT erreichbar' : 'Ich bin erreichbar'} onPress={toggleStatus} />
+      <Text style={styles.title}>Status</Text>
+      <Text style={styles.statusText}>
+        {isAvailable ? '✅ erreichbar' : '❌ nicht erreichbar'}
+      </Text>
+      <Button title={isAvailable ? 'Nicht erreichbar' : 'Erreichbar'} onPress={toggleStatus} />
       <View style={{ marginTop: 20 }}>
         <Button title="Abmelden" color="red" onPress={onLogout} />
       </View>
@@ -75,16 +74,18 @@ function ContactsScreen({ userPhone }) {
     if (result.success) {
       const all = phones.map(p => {
         const match = result.matched.find(m => m.phone === p);
-        return { phone: p, name: phoneNameMap[p] || p, isAvailable: match ? match.isAvailable : null };
+        return {
+          phone: p,
+          name: phoneNameMap[p] || p,
+          isAvailable: match ? match.isAvailable : null
+        };
       });
       setContacts(all);
       setFiltered(all);
     }
   };
 
-  useEffect(() => {
-    getDeviceContacts();
-  }, []);
+  useEffect(() => { getDeviceContacts(); }, []);
 
   useEffect(() => {
     const f = contacts.filter(c => c.name.toLowerCase().includes(query.toLowerCase()));
@@ -94,17 +95,17 @@ function ContactsScreen({ userPhone }) {
   return (
     <View style={styles.screenContainer}>
       <TextInput
-        style={styles.searchInput}
-        placeholder="Suche Kontakt..."
+        style={styles.input}
+        placeholder="Suche Kontakt"
         value={query}
         onChangeText={setQuery}
       />
       <FlatList
-        data={filtered.sort((a, b) => a.name.localeCompare(b.name))}
+        data={filtered}
         keyExtractor={(item) => item.phone}
         renderItem={({ item }) => (
           <View style={styles.contactItem}>
-            <View style={[styles.avatar, item.isAvailable === null && { backgroundColor: '#ccc' }]}> 
+            <View style={[styles.avatar, item.isAvailable === null && { backgroundColor: '#ccc' }]}>
               <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
             </View>
             <View>
@@ -122,28 +123,26 @@ function ContactsScreen({ userPhone }) {
 
 function MainApp({ userPhone, onLogout }) {
   return (
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ color, size }) => {
-            let iconName = 'ellipse';
-            if (route.name === 'Status') iconName = 'person-circle';
-            if (route.name === 'Kontakte') iconName = 'people';
-            if (route.name === 'Einstellungen') iconName = 'settings';
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          headerShown: false
-        })}
-      >
-        <Tab.Screen name="Status">
-          {() => <StatusScreen userPhone={userPhone} onLogout={onLogout} />}
-        </Tab.Screen>
-        <Tab.Screen name="Kontakte">
-          {() => <ContactsScreen userPhone={userPhone} />}
-        </Tab.Screen>
-        <Tab.Screen name="Einstellungen">
-          {() => <View style={styles.screenContainer}><Text>Coming soon...</Text></View>}
-        </Tab.Screen>
-      </Tab.Navigator>
+    <Tab.Navigator screenOptions={({ route }) => ({
+      tabBarIcon: ({ color, size }) => {
+        let iconName = 'ellipse';
+        if (route.name === 'Status') iconName = 'person-circle';
+        if (route.name === 'Kontakte') iconName = 'people';
+        if (route.name === 'Einstellungen') iconName = 'settings';
+        return <Ionicons name={iconName} size={size} color={color} />;
+      },
+      headerShown: false
+    })}>
+      <Tab.Screen name="Status">
+        {() => <StatusScreen userPhone={userPhone} onLogout={onLogout} />}
+      </Tab.Screen>
+      <Tab.Screen name="Kontakte">
+        {() => <ContactsScreen userPhone={userPhone} />}
+      </Tab.Screen>
+      <Tab.Screen name="Einstellungen">
+        {() => <View style={styles.screenContainer}><Text>Coming soon...</Text></View>}
+      </Tab.Screen>
+    </Tab.Navigator>
   );
 }
 
@@ -166,7 +165,7 @@ export default function App() {
     });
     const data = await res.json();
     if (data.success) Alert.alert('Code gesendet');
-    else Alert.alert("Fehler", data.error);
+    else Alert.alert('Fehler', data.error);
   };
 
   const checkCode = async () => {
@@ -185,7 +184,7 @@ export default function App() {
       await SecureStore.setItemAsync('userPhone', phone);
       setUserPhone(phone);
     } else {
-      Alert.alert("Fehler", data.error);
+      Alert.alert('Fehler', data.error);
     }
   };
 
@@ -195,26 +194,64 @@ export default function App() {
   };
 
   if (!userPhone) {
-    return (
-      <View style={styles.screenContainer}>
-        <Text style={styles.title}>Login</Text>
-        <TextInput style={styles.input} placeholder="+49..." value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-        <Button title="Code senden" onPress={startVerification} />
-        <TextInput style={styles.input} placeholder="Code" value={code} onChangeText={setCode} keyboardType="number-pad" />
-        <Button title="Code prüfen" onPress={checkCode} />
-      </View>
-    );
-  }
+  return (
+    <View style={styles.loginContainer}>
+      <Text style={styles.loginTitle}>📱 Registrierung</Text>
 
-  return <MainApp userPhone={userPhone} onLogout={logout} />;
+      <Text style={styles.label}>Deine Nummer</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="+49..."
+        value={phone}
+        onChangeText={setPhone}
+        keyboardType="phone-pad"
+      />
+      <Button title="Code senden" onPress={startVerification} />
+
+      {phone.length > 0 && (
+        <>
+          <Text style={styles.label}>Bestätigungscode</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Code"
+            value={code}
+            onChangeText={setCode}
+            keyboardType="number-pad"
+          />
+          <Button title="Code prüfen" onPress={checkCode} />
+        </>
+      )}
+    </View>
+  );
+}
+
+  return (
+      <MainApp userPhone={userPhone} onLogout={logout} />
+  );
 }
 
 const styles = StyleSheet.create({
   screenContainer: { flex: 1, padding: 20, paddingTop: 50 },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, marginBottom: 10 },
+loginContainer: {
+  flex: 1,
+  padding: 20,
+  paddingTop: 80,
+  backgroundColor: '#f9f9f9',
+},
+loginTitle: {
+  fontSize: 26,
+  fontWeight: 'bold',
+  marginBottom: 30,
+  textAlign: 'center',
+},
+label: {
+  marginTop: 20,
+  fontWeight: '600',
+  fontSize: 16,
+},
   statusText: { fontSize: 18, marginBottom: 10 },
-  searchInput: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, marginBottom: 10 },
   contactItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#eee' },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#007AFF', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
   avatarText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
