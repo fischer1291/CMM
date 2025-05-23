@@ -3,6 +3,7 @@ import { View, Text, TextInput, SectionList, TouchableOpacity, StyleSheet, Linki
 import * as Contacts from 'expo-contacts';
 import { Ionicons } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
+import theme from '../theme';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 const socket = io(baseUrl, { transports: ['websocket'], secure: true });
@@ -97,6 +98,7 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
             <TextInput
                 style={styles.input}
                 placeholder="🔍 Suche Kontakt..."
+                placeholderTextColor={theme.colors.gray}
                 value={query}
                 onChangeText={setQuery}
             />
@@ -112,9 +114,9 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                         <View style={styles.contactItem}>
                             <View style={[
                                 styles.avatar,
-                                item.isAvailable === true && { backgroundColor: '#34c759' },
-                                item.isAvailable === false && { backgroundColor: '#ff3b30' },
-                                item.isAvailable === null && { backgroundColor: '#ccc' }
+                                item.isAvailable === true && { backgroundColor: theme.colors.success },
+                                item.isAvailable === false && { backgroundColor: theme.colors.error },
+                                item.isAvailable === null && { backgroundColor: theme.colors.muted }
                             ]}>
                                 <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
                             </View>
@@ -122,10 +124,10 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                                 <Text style={styles.contactName}>{item.name}</Text>
                                 <Text style={{
                                     color: item.isAvailable === true
-                                        ? '#34c759'
+                                        ? theme.colors.success
                                         : item.isAvailable === false
-                                            ? '#ff3b30'
-                                            : '#aaa'
+                                            ? theme.colors.error
+                                            : theme.colors.gray
                                 }}>
                                     {item.isAvailable === true
                                         ? 'Erreichbar'
@@ -153,39 +155,40 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
         paddingTop: 60,
-        backgroundColor: '#fff',
+        backgroundColor: theme.colors.background,
     },
     sectionHeader: {
         fontSize: 16,
         fontWeight: 'bold',
         marginTop: 20,
         marginBottom: 10,
-        color: '#333',
+        color: theme.colors.text,
     },
     emptyMessage: {
-        color: '#999',
+        color: theme.colors.gray,
         fontStyle: 'italic',
         marginBottom: 10,
     },
     input: {
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: theme.colors.border,
         borderRadius: 8,
         padding: 10,
         marginBottom: 16,
+        color: theme.colors.text,
     },
     contactItem: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 10,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: theme.colors.border,
     },
     avatar: {
         width: 42,
         height: 42,
         borderRadius: 21,
-        backgroundColor: '#ccc',
+        backgroundColor: theme.colors.muted,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
@@ -198,5 +201,6 @@ const styles = StyleSheet.create({
     contactName: {
         fontSize: 16,
         fontWeight: '500',
+        color: theme.colors.text,
     },
 });
