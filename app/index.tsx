@@ -1,191 +1,95 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Alert, FlatList, StyleSheet } from 'react-native';
-import * as Contacts from 'expo-contacts';
+import { View, Text, TextInput, Button, Alert, StyleSheet, useColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
 
 const baseUrl = 'https://cmm-leroyfischer.replit.app';
-const Tab = createBottomTabNavigator();
 
-function StatusScreen({ userPhone, onLogout }) {
+export default function IndexScreen() {
+  const [userPhone, setUserPhone] = useState<string | null>(null);
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
+  const [codeRequested, setCodeRequested] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
+  const theme = useColorScheme();
 
   useEffect(() => {
-    fetch(`${baseUrl}/status/get?phone=${userPhone}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data?.isAvailable !== undefined) setIsAvailable(data.isAvailable);
-      });
+    SecureStore.getItemAsync('userPhone').then(saved => {
+      if (saved) {
+        setUserPhone(saved);
+        fetchStatus(saved);
+      }
+    });
   }, []);
+
+  const fetchStatus = async (phone: string) => {
+    try {
+      const res = await fetch(`${baseUrl}/status/get?phone=${phone}`);
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (data?.isAvailable !== undefined) setIsAvailable(data.isAvailable);
+    } catch (e) {
+      console.error('Fehler bei fetchStatus:', e);
+    }
+  };
 
   const toggleStatus = async () => {
     const newStatus = !isAvailable;
     setIsAvailable(newStatus);
-    await fetch(`${baseUrl}/status/set`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: userPhone, isAvailable: newStatus })
-    });
-  };
-
-  return (
-    <View style={styles.screenContainer}>
-      <Text style={styles.title}>Status</Text>
-      <Text style={styles.statusText}>{isAvailable ? '✅ erreichbar' : '❌ nicht erreichbar'}</Text>
-      <Button title={isAvailable ? 'Nicht erreichbar' : 'Erreichbar'} onPress={toggleStatus} />
-      <View style={{ marginTop: 20 }}>
-        <Button title="Abmelden" color="red" onPress={onLogout} />
-      </View>
-    </View>
-  );
-}
-
-function ContactsScreen({ userPhone }) {
-  const [contacts, setContacts] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [query, setQuery] = useState('');
-
-  const normalizePhone = (num) => num.replace(/\s+/g, '').replace(/[^+\d]/g, '').replace(/^00/, '+');
-
-  const getDeviceContacts = async () => {
-    const { status } = await Contacts.requestPermissionsAsync();
-    if (status !== 'granted') return;
-
-    const { data } = await Contacts.getContactsAsync({ fields: [Contacts.Fields.PhoneNumbers] });
-    const phoneNameMap = {};
-    data.forEach(c => {
-      (c.phoneNumbers || []).forEach(p => {
-        const num = normalizePhone(p.number);
-        if (num) phoneNameMap[num] = c.name;
+    try {
+      await fetch(`${baseUrl}/status/set`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: userPhone, isAvailable: newStatus })
       });
-    });
-    const phones = Object.keys(phoneNameMap);
-    const res = await fetch(`${baseUrl}/contacts/match`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phones })
-    });
-    const result = await res.json();
-    if (result.success) {
-      const all = phones.map(p => {
-        const match = result.matched.find(m => m.phone === p);
-        return {
-          phone: p,
-          name: phoneNameMap[p] || p,
-          isAvailable: match ? match.isAvailable : null
-        };
-      });
-      setContacts(all);
-      setFiltered(all);
+    } catch (e) {
+      console.error('Fehler beim Status setzen:', e);
     }
   };
-
-  useEffect(() => { getDeviceContacts(); }, []);
-
-  useEffect(() => {
-    const f = contacts.filter(c => c.name.toLowerCase().includes(query.toLowerCase()));
-    setFiltered(f);
-  }, [query]);
-
-  return (
-    <View style={styles.screenContainer}>
-      <TextInput
-        style={styles.input}
-        placeholder="Suche Kontakt"
-        value={query}
-        onChangeText={setQuery}
-      />
-      <FlatList
-        data={filtered}
-        keyExtractor={(item) => item.phone}
-        renderItem={({ item }) => (
-          <View style={styles.contactItem}>
-            <View style={[styles.avatar, item.isAvailable === null && { backgroundColor: '#ccc' }]}> 
-              <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
-            </View>
-            <View>
-              <Text style={styles.contactName}>{item.name}</Text>
-              <Text style={{ color: item.isAvailable === true ? 'green' : item.isAvailable === false ? 'red' : 'gray' }}>
-                {item.isAvailable === true ? 'Erreichbar' : item.isAvailable === false ? 'Nicht erreichbar' : 'Nicht registriert'}
-              </Text>
-            </View>
-          </View>
-        )}
-      />
-    </View>
-  );
-}
-
-function MainApp({ userPhone, onLogout }) {
-  return (
-    <Tab.Navigator screenOptions={({ route }) => ({
-      tabBarIcon: ({ color, size }) => {
-        let iconName = 'ellipse';
-        if (route.name === 'Status') iconName = 'person-circle';
-        if (route.name === 'Kontakte') iconName = 'people';
-        if (route.name === 'Einstellungen') iconName = 'settings';
-        return <Ionicons name={iconName} size={size} color={color} />;
-      },
-      headerShown: false
-    })}>
-      <Tab.Screen name="Status">
-        {() => <StatusScreen userPhone={userPhone} onLogout={onLogout} />}
-      </Tab.Screen>
-      <Tab.Screen name="Kontakte">
-        {() => <ContactsScreen userPhone={userPhone} />}
-      </Tab.Screen>
-      <Tab.Screen name="Einstellungen">
-        {() => <View style={styles.screenContainer}><Text>Coming soon...</Text></View>}
-      </Tab.Screen>
-    </Tab.Navigator>
-  );
-}
-
-export default function App() {
-  const [userPhone, setUserPhone] = useState(null);
-  const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
-  const [codeRequested, setCodeRequested] = useState(false);
-
-  useEffect(() => {
-    SecureStore.getItemAsync('userPhone').then(saved => {
-      if (saved) setUserPhone(saved);
-    });
-  }, []);
 
   const startVerification = async () => {
-    const res = await fetch(`${baseUrl}/verify/start`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone })
-    });
-    const data = await res.json();
-    if (data.success) {
-      Alert.alert('Code gesendet');
-      setCodeRequested(true);
-    } else {
-      Alert.alert('Fehler', data.error);
-    }
-  };
-
-  const checkCode = async () => {
-    const res = await fetch(`${baseUrl}/verify/check`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, code })
-    });
-    const data = await res.json();
-    if (data.success) {
-      await fetch(`${baseUrl}/auth/register`, {
+    try {
+      const res = await fetch(`${baseUrl}/verify/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone })
       });
-      await SecureStore.setItemAsync('userPhone', phone);
-      setUserPhone(phone);
-    } else {
-      Alert.alert('Fehler', data.error);
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (data.success) {
+        Alert.alert('Code gesendet');
+        setCodeRequested(true);
+      } else {
+        Alert.alert('Fehler', data.error);
+      }
+    } catch (e) {
+      console.error('Fehler bei startVerification:', e);
+      Alert.alert('Fehler', 'Keine gültige Serverantwort erhalten.');
+    }
+  };
+
+  const checkCode = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/verify/check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code })
+      });
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (data.success) {
+        await fetch(`${baseUrl}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone })
+        });
+        await SecureStore.setItemAsync('userPhone', phone);
+        setUserPhone(phone);
+      } else {
+        Alert.alert('Fehler', data.error);
+      }
+    } catch (e) {
+      console.error('Fehler bei checkCode:', e);
+      Alert.alert('Fehler', 'Keine gültige Serverantwort erhalten.');
     }
   };
 
@@ -197,33 +101,18 @@ export default function App() {
 
   if (!userPhone) {
     return (
-      <View style={styles.loginContainer}>
-        <Text style={styles.loginTitle}>📱 Registrierung</Text>
-
-        {!codeRequested && (
+      <View style={[styles.container, theme === 'dark' && { backgroundColor: '#000' }]}> 
+        <Text style={styles.title}>📱 Registrierung</Text>
+        {!codeRequested ? (
           <>
             <Text style={styles.label}>Deine Nummer</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="+49..."
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-            />
+            <TextInput style={styles.input} placeholder="+49..." value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
             <Button title="Code senden" onPress={startVerification} />
           </>
-        )}
-
-        {codeRequested && (
+        ) : (
           <>
             <Text style={styles.label}>Bestätigungscode</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Code"
-              value={code}
-              onChangeText={setCode}
-              keyboardType="number-pad"
-            />
+            <TextInput style={styles.input} placeholder="Code" value={code} onChangeText={setCode} keyboardType="number-pad" />
             <Button title="Code prüfen" onPress={checkCode} />
           </>
         )}
@@ -231,18 +120,22 @@ export default function App() {
     );
   }
 
-  return <MainApp userPhone={userPhone} onLogout={logout} />;
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>👋 Hallo, du bist aktuell:</Text>
+      <Text style={styles.statusText}>{isAvailable ? '✅ erreichbar' : '❌ nicht erreichbar'}</Text>
+      <Button title={isAvailable ? 'Nicht erreichbar' : 'Erreichbar'} onPress={toggleStatus} color={isAvailable ? '#ff3b30' : '#34c759'} />
+      <View style={{ marginTop: 20 }}>
+        <Button title="Abmelden" color="gray" onPress={logout} />
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  screenContainer: { flex: 1, padding: 20, paddingTop: 50 },
-  loginContainer: { flex: 1, padding: 20, paddingTop: 80, backgroundColor: '#f9f9f9' },
-  loginTitle: { fontSize: 26, fontWeight: 'bold', marginBottom: 30, textAlign: 'center' },
+  container: { flex: 1, padding: 20, justifyContent: 'center' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   label: { marginTop: 20, fontWeight: '600', fontSize: 16 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, marginBottom: 10 },
-  statusText: { fontSize: 18, marginBottom: 10 },
-  contactItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#eee' },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#007AFF', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  avatarText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-  contactName: { fontSize: 16, fontWeight: '500' }
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginBottom: 10, fontSize: 16 },
+  statusText: { fontSize: 18, marginVertical: 20, textAlign: 'center' }
 });
