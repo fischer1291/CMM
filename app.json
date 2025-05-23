@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.schly21.kontaktlisteapp",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSContactsUsageDescription": "Diese App benötigt Zugriff auf deine Kontakte, um dir anzuzeigen, wer bereits registriert ist."
       }
     },
     "android": {
