@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet, useColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-const baseUrl = 'https://cmm-leroyfischer.replit.app';
+const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 
 export default function IndexScreen() {
   const [userPhone, setUserPhone] = useState<string | null>(null);
@@ -23,12 +23,11 @@ export default function IndexScreen() {
 
   const fetchStatus = async (phone: string) => {
     try {
-      const res = await fetch(`${baseUrl}/status/get?phone=${phone}`);
-      const text = await res.text();
-      const data = JSON.parse(text);
+      const res = await fetch(`${baseUrl}/status/get?phone=${encodeURIComponent(phone)}`);
+      const data = await res.json();
       if (data?.isAvailable !== undefined) setIsAvailable(data.isAvailable);
     } catch (e) {
-      console.error('Fehler bei fetchStatus:', e);
+      console.error('❌ Fehler bei fetchStatus:', e);
     }
   };
 
@@ -42,27 +41,30 @@ export default function IndexScreen() {
         body: JSON.stringify({ phone: userPhone, isAvailable: newStatus })
       });
     } catch (e) {
-      console.error('Fehler beim Status setzen:', e);
+      console.error('❌ Fehler beim Status setzen:', e);
     }
   };
 
   const startVerification = async () => {
+    if (!phone.startsWith('+')) {
+      Alert.alert('Ungültige Nummer', 'Bitte gib eine Nummer im Format +49... ein.');
+      return;
+    }
     try {
       const res = await fetch(`${baseUrl}/verify/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone })
       });
-      const text = await res.text();
-      const data = JSON.parse(text);
+      const data = await res.json();
       if (data.success) {
         Alert.alert('Code gesendet');
         setCodeRequested(true);
       } else {
-        Alert.alert('Fehler', data.error);
+        Alert.alert('Fehler', data.error || 'Unbekannter Fehler');
       }
     } catch (e) {
-      console.error('Fehler bei startVerification:', e);
+      console.error('❌ Fehler bei startVerification:', e);
       Alert.alert('Fehler', 'Keine gültige Serverantwort erhalten.');
     }
   };
@@ -74,8 +76,7 @@ export default function IndexScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, code })
       });
-      const text = await res.text();
-      const data = JSON.parse(text);
+      const data = await res.json();
       if (data.success) {
         await fetch(`${baseUrl}/auth/register`, {
           method: 'POST',
@@ -85,10 +86,10 @@ export default function IndexScreen() {
         await SecureStore.setItemAsync('userPhone', phone);
         setUserPhone(phone);
       } else {
-        Alert.alert('Fehler', data.error);
+        Alert.alert('Fehler', data.error || 'Code ungültig');
       }
     } catch (e) {
-      console.error('Fehler bei checkCode:', e);
+      console.error('❌ Fehler bei checkCode:', e);
       Alert.alert('Fehler', 'Keine gültige Serverantwort erhalten.');
     }
   };
@@ -101,34 +102,51 @@ export default function IndexScreen() {
 
   if (!userPhone) {
     return (
-      <View style={[styles.container, theme === 'dark' && { backgroundColor: '#000' }]}> 
-        <Text style={styles.title}>📱 Registrierung</Text>
-        {!codeRequested ? (
-          <>
-            <Text style={styles.label}>Deine Nummer</Text>
-            <TextInput style={styles.input} placeholder="+49..." value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-            <Button title="Code senden" onPress={startVerification} />
-          </>
-        ) : (
-          <>
-            <Text style={styles.label}>Bestätigungscode</Text>
-            <TextInput style={styles.input} placeholder="Code" value={code} onChangeText={setCode} keyboardType="number-pad" />
-            <Button title="Code prüfen" onPress={checkCode} />
-          </>
-        )}
-      </View>
+        <View style={[styles.container, theme === 'dark' && { backgroundColor: '#000' }]}>
+          <Text style={styles.title}>📱 Registrierung</Text>
+          {!codeRequested ? (
+              <>
+                <Text style={styles.label}>Deine Nummer</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="+49..."
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                    autoComplete="tel"
+                />
+                <Button title="Code senden" onPress={startVerification} />
+              </>
+          ) : (
+              <>
+                <Text style={styles.label}>Bestätigungscode</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Code"
+                    value={code}
+                    onChangeText={setCode}
+                    keyboardType="number-pad"
+                />
+                <Button title="Code prüfen" onPress={checkCode} />
+              </>
+          )}
+        </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>👋 Hallo, du bist aktuell:</Text>
-      <Text style={styles.statusText}>{isAvailable ? '✅ erreichbar' : '❌ nicht erreichbar'}</Text>
-      <Button title={isAvailable ? 'Nicht erreichbar' : 'Erreichbar'} onPress={toggleStatus} color={isAvailable ? '#ff3b30' : '#34c759'} />
-      <View style={{ marginTop: 20 }}>
-        <Button title="Abmelden" color="gray" onPress={logout} />
+      <View style={styles.container}>
+        <Text style={styles.title}>👋 Hallo, du bist aktuell:</Text>
+        <Text style={styles.statusText}>{isAvailable ? '✅ erreichbar' : '❌ nicht erreichbar'}</Text>
+        <Button
+            title={isAvailable ? 'Nicht erreichbar' : 'Erreichbar'}
+            onPress={toggleStatus}
+            color={isAvailable ? '#ff3b30' : '#34c759'}
+        />
+        <View style={{ marginTop: 20 }}>
+          <Button title="Abmelden" color="gray" onPress={logout} />
+        </View>
       </View>
-    </View>
   );
 }
 
@@ -136,6 +154,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, justifyContent: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   label: { marginTop: 20, fontWeight: '600', fontSize: 16 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginBottom: 10, fontSize: 16 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    fontSize: 16
+  },
   statusText: { fontSize: 18, marginVertical: 20, textAlign: 'center' }
 });

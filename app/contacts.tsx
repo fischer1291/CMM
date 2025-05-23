@@ -4,8 +4,8 @@ import * as Contacts from 'expo-contacts';
 import { Ionicons } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
 
-const baseUrl = 'https://cmm-leroyfischer.replit.app';
-const socket = io(baseUrl);
+const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
+const socket = io(baseUrl, { transports: ['websocket'], secure: true });
 
 function normalizePhone(num: string) {
     return num.replace(/\s+/g, '').replace(/[^+\d]/g, '').replace(/^00/, '+');
@@ -83,21 +83,9 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
     const unregistered = filtered.filter((c) => c.isAvailable === null);
 
     const sections = [
-        {
-            title: '✅ Erreichbar',
-            data: available,
-            empty: 'Niemand ist aktuell erreichbar.',
-        },
-        {
-            title: '❌ Nicht erreichbar',
-            data: unavailable,
-            empty: 'Niemand ist registriert aber offline.',
-        },
-        {
-            title: '⚪️ Nicht registriert',
-            data: unregistered,
-            empty: 'Alle deine Kontakte sind registriert 🎉',
-        },
+        { title: '✅ Erreichbar', data: available, empty: 'Niemand ist aktuell erreichbar.' },
+        { title: '❌ Nicht erreichbar', data: unavailable, empty: 'Niemand ist registriert aber offline.' },
+        { title: '⚪️ Nicht registriert', data: unregistered, empty: 'Alle deine Kontakte sind registriert 🎉' },
     ];
 
     const handleCall = (phone: string) => {
