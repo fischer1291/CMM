@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, SectionList, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import {
+    View,
+    Text,
+    TextInput,
+    SectionList,
+    TouchableOpacity,
+    StyleSheet,
+    Linking,
+    Image
+} from 'react-native';
 import * as Contacts from 'expo-contacts';
-import { Ionicons } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
 import { useTheme } from '../theme';
 
@@ -48,6 +56,7 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                     phone: p,
                     name: phoneNameMap[p] || p,
                     isAvailable: match ? match.isAvailable : null,
+                    avatarUrl: null // Optional: später durch Kontakte-API erweitern
                 };
             });
 
@@ -66,7 +75,9 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
 
         socket.on('statusUpdate', (payload: { phone: string; isAvailable: boolean }) => {
             setContacts((prev) =>
-                prev.map((c) => (c.phone === payload.phone ? { ...c, isAvailable: payload.isAvailable } : c))
+                prev.map((c) =>
+                    c.phone === payload.phone ? { ...c, isAvailable: payload.isAvailable } : c
+                )
             );
         });
 
@@ -76,7 +87,10 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
         };
     }, []);
 
-    const filtered = contacts.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
+    const filtered = contacts.filter((c) =>
+        c.name.toLowerCase().includes(query.toLowerCase())
+    );
+
     const available = filtered.filter((c) => c.isAvailable === true);
     const unavailable = filtered.filter((c) => c.isAvailable === false);
     const unregistered = filtered.filter((c) => c.isAvailable === null);
@@ -109,24 +123,17 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                         onPress={() => item.isAvailable === true && handleCall(item.phone)}
                         disabled={item.isAvailable !== true}
                     >
-                        <View style={styles.contactItem}>
-                            <View
-                                style={[
-                                    styles.avatar,
-                                    {
-                                        backgroundColor:
-                                            item.isAvailable === true
-                                                ? colors.success
-                                                : item.isAvailable === false
-                                                    ? colors.error
-                                                    : colors.muted || '#ccc',
-                                    },
-                                ]}
-                            >
-                                <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
-                            </View>
-                            <View>
-                                <Text style={[styles.contactName, { color: colors.text }]}>{item.name}</Text>
+                        <View style={styles.card}>
+                            <Image
+                                source={{
+                                    uri:
+                                        item.avatarUrl ||
+                                        `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=cccccc&color=ffffff&rounded=true&size=64`,
+                                }}
+                                style={styles.avatar}
+                            />
+                            <View style={{ flex: 1 }}>
+                                <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
                                 <Text
                                     style={{
                                         color:
@@ -135,20 +142,21 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                                                 : item.isAvailable === false
                                                     ? colors.error
                                                     : colors.gray,
+                                        fontSize: 14,
                                     }}
                                 >
                                     {item.isAvailable === true
-                                        ? 'Erreichbar'
+                                        ? 'Available'
                                         : item.isAvailable === false
-                                            ? 'Nicht erreichbar'
-                                            : 'Nicht registriert'}
+                                            ? 'Not Available'
+                                            : 'Not Registered'}
                                 </Text>
                             </View>
                         </View>
                     </TouchableOpacity>
                 )}
                 renderSectionHeader={({ section: { title, data, empty } }) => (
-                    <View>
+                    <View style={{ marginTop: 24 }}>
                         <Text style={[styles.sectionHeader, { color: colors.text }]}>{title}</Text>
                         {data.length === 0 && (
                             <Text style={[styles.emptyMessage, { color: colors.gray }]}>{empty}</Text>
@@ -166,44 +174,40 @@ const styles = StyleSheet.create({
         padding: 16,
         paddingTop: 60,
     },
-    sectionHeader: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginTop: 20,
-        marginBottom: 10,
-    },
-    emptyMessage: {
-        fontStyle: 'italic',
-        marginBottom: 10,
-    },
     input: {
         borderWidth: 1,
-        borderRadius: 8,
-        padding: 10,
+        borderRadius: 12,
+        padding: 12,
         marginBottom: 16,
         fontSize: 16,
     },
-    contactItem: {
+    sectionHeader: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    emptyMessage: {
+        fontSize: 14,
+        fontStyle: 'italic',
+        marginBottom: 12,
+    },
+    card: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 10,
-        borderBottomWidth: 1,
+        backgroundColor: '#fff',
+        padding: 12,
+        marginBottom: 10,
+        borderRadius: 12,
+        gap: 12,
     },
     avatar: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: '#ccc',
     },
-    avatarText: {
-        color: 'white',
-        fontWeight: 'bold',
+    name: {
         fontSize: 16,
-    },
-    contactName: {
-        fontSize: 16,
-        fontWeight: '500',
+        fontWeight: '600',
     },
 });

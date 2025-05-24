@@ -27,7 +27,6 @@ export default function Layout() {
                         color: colors.text,
                     },
                     headerTitleAlign: 'center',
-                    headerTitle: 'Call Me Maybe',
                     headerShown: true,
                 };
             }}

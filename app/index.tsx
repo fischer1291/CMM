@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  Alert,
+  StyleSheet,
+  Image,
+  Switch
+} from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
@@ -13,27 +22,22 @@ export default function IndexScreen() {
   const [code, setCode] = useState('');
   const [codeRequested, setCodeRequested] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
-  const { colors, fonts, mode } = useTheme();
+
+  const { colors, fonts } = useTheme();
 
   useEffect(() => {
     const init = async () => {
-      // Berechtigung für Notifications
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        if (status !== 'granted') {
-          console.warn('📵 Push-Benachrichtigungen wurden nicht erlaubt');
-        }
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') {
+        await Notifications.requestPermissionsAsync();
       }
 
-      // Lokale Nummer prüfen
       const saved = await SecureStore.getItemAsync('userPhone');
       if (saved) {
         setUserPhone(saved);
         fetchStatus(saved);
       }
     };
-
     init();
   }, []);
 
@@ -63,17 +67,8 @@ export default function IndexScreen() {
 
   const registerForPushNotificationsAsync = async (): Promise<string | null> => {
     if (!Device.isDevice) return null;
-
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    if (finalStatus !== 'granted') return null;
-
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') return null;
     const token = (await Notifications.getExpoPushTokenAsync()).data;
     return token;
   };
@@ -83,6 +78,7 @@ export default function IndexScreen() {
       Alert.alert('Ungültige Nummer', 'Bitte gib eine Nummer im Format +49... ein.');
       return;
     }
+
     try {
       const res = await fetch(`${baseUrl}/verify/start`, {
         method: 'POST',
@@ -98,7 +94,6 @@ export default function IndexScreen() {
       }
     } catch (e) {
       console.error('❌ Fehler bei startVerification:', e);
-      Alert.alert('Fehler', 'Keine gültige Serverantwort erhalten.');
     }
   };
 
@@ -134,88 +129,74 @@ export default function IndexScreen() {
       }
     } catch (e) {
       console.error('❌ Fehler bei checkCode:', e);
-      Alert.alert('Fehler', 'Keine gültige Serverantwort erhalten.');
     }
   };
 
-  const logout = async () => {
-    await SecureStore.deleteItemAsync('userPhone');
-    setUserPhone(null);
-    setCodeRequested(false);
-  };
+  if (!userPhone) {
+    return (
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
+          <Text style={[styles.title, { color: colors.text }]}>📱 Registrierung</Text>
+          {!codeRequested ? (
+              <>
+                <Text style={[styles.label, { color: colors.text }]}>Deine Nummer</Text>
+                <TextInput
+                    style={[styles.input, { borderColor: colors.border, color: colors.text }]}
+                    placeholder="+49..."
+                    placeholderTextColor={colors.placeholder}
+                    value={phone}
+                    onChangeText={setPhone}
+                    keyboardType="phone-pad"
+                />
+                <Button title="Code senden" onPress={startVerification} />
+              </>
+          ) : (
+              <>
+                <Text style={[styles.label, { color: colors.text }]}>Bestätigungscode</Text>
+                <TextInput
+                    style={[styles.input, { borderColor: colors.border, color: colors.text }]}
+                    placeholder="Code"
+                    placeholderTextColor={colors.placeholder}
+                    value={code}
+                    onChangeText={setCode}
+                    keyboardType="number-pad"
+                />
+                <Button title="Code prüfen" onPress={checkCode} />
+              </>
+          )}
+        </View>
+    );
+  }
 
   return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {!userPhone ? (
-            <>
-              <Text style={[styles.title, { color: colors.text }]}>📱 Registrierung</Text>
-              {!codeRequested ? (
-                  <>
-                    <Text style={[styles.label, { color: colors.text }]}>Deine Nummer</Text>
-                    <TextInput
-                        style={[styles.input, { borderColor: colors.border, color: colors.text }]}
-                        placeholder="+49..."
-                        placeholderTextColor={colors.placeholder}
-                        value={phone}
-                        onChangeText={setPhone}
-                        keyboardType="phone-pad"
-                        autoComplete="tel"
-                    />
-                    <Button title="Code senden" onPress={startVerification} />
-                  </>
-              ) : (
-                  <>
-                    <Text style={[styles.label, { color: colors.text }]}>Bestätigungscode</Text>
-                    <TextInput
-                        style={[styles.input, { borderColor: colors.border, color: colors.text }]}
-                        placeholder="Code"
-                        placeholderTextColor={colors.placeholder}
-                        value={code}
-                        onChangeText={setCode}
-                        keyboardType="number-pad"
-                    />
-                    <Button title="Code prüfen" onPress={checkCode} />
-                  </>
-              )}
-            </>
-        ) : (
-            <>
-              <Text style={[styles.title, { color: colors.text }]}>👋 Hallo, du bist aktuell:</Text>
-              <Text style={[styles.statusText, { color: colors.text }]}>
-                {isAvailable ? '✅ erreichbar' : '❌ nicht erreichbar'}
-              </Text>
-              <Button
-                  title={isAvailable ? 'Nicht erreichbar' : 'Erreichbar'}
-                  onPress={toggleStatus}
-                  color={isAvailable ? colors.error : colors.success}
-              />
-              <View style={{ marginTop: 20 }}>
-                <Button title="Abmelden" color={colors.gray} onPress={logout} />
-              </View>
-            </>
-        )}
+        <View style={styles.profileSection}>
+          <Image
+              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDy9vJcd7MwHTueWR7UkfpzCQpg6OokIs_6K-Jhe21d62QBq5tgt9H-kBv4fkIUB2jwDpq1BU_ips9QCfIW7_CzfH5sWJfEo7omg62nv0I8ilbRtd9p3dnugYHj0Pds9S-GtfZQWJYm7H2CaVNfXnOCVHvkCSCCZ9PtDfNMfh-5_D6Z3lkeC2PIhyxFXCFqH-oQ1bZfir9Zg4LJBG65Ew8FE6TSZ3iCt3Sq4mmQpOlIR90s2GYJNIRAH9T7or5tr3BVttUAKHUR4EA' }}
+              style={styles.avatar}
+          />
+          <Text style={[styles.name, { color: colors.text }]}>Ava Harper</Text>
+          <Text style={[styles.subtitle, { color: colors.gray }]}>Software Engineer</Text>
+        </View>
+
+        <View style={styles.statusRow}>
+          <Text style={[styles.statusLabel, { color: colors.text }]}>
+            {isAvailable ? '✅ Du bist erreichbar' : '❌ Du bist nicht erreichbar'}
+          </Text>
+          <Switch
+              value={isAvailable}
+              onValueChange={toggleStatus}
+              trackColor={{ false: colors.border, true: colors.success }}
+              thumbColor="#fff"
+          />
+        </View>
       </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    fontFamily: 'System',
-  },
-  label: {
-    marginTop: 20,
-    fontWeight: '600',
-    fontSize: 16,
-  },
+  container: { flex: 1, padding: 20, justifyContent: 'center' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  label: { marginTop: 20, fontWeight: '600', fontSize: 16 },
   input: {
     borderWidth: 1,
     borderRadius: 8,
@@ -223,9 +204,35 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     fontSize: 16,
   },
-  statusText: {
-    fontSize: 18,
-    marginVertical: 20,
-    textAlign: 'center',
+  profileSection: {
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 32,
+  },
+  avatar: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    marginBottom: 8,
+  },
+  name: {
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  subtitle: {
+    fontSize: 16,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  statusLabel: {
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
