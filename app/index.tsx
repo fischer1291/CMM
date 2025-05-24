@@ -16,12 +16,25 @@ export default function IndexScreen() {
   const mode = useColorScheme();
 
   useEffect(() => {
-    SecureStore.getItemAsync('userPhone').then(saved => {
+    const init = async () => {
+      // Push-Berechtigung anfragen
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status !== 'granted') {
+          console.warn('📵 Push-Benachrichtigungen wurden nicht erlaubt');
+        }
+      }
+
+      // Nummer aus SecureStore laden
+      const saved = await SecureStore.getItemAsync('userPhone');
       if (saved) {
         setUserPhone(saved);
         fetchStatus(saved);
       }
-    });
+    };
+
+    init();
   }, []);
 
   const fetchStatus = async (phone: string) => {
