@@ -1,18 +1,30 @@
 {
   "cli": {
-    "version": ">= 16.6.2",
+    "version": ">= 6.0.0",
     "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "development",
+      "cache": {
+        "key": "dev-v1"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "preview",
+      "cache": {
+        "key": "preview-v1"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "channel": "production",
+      "cache": {
+        "key": "prod-v1"
+      }
     }
   },
   "submit": {
