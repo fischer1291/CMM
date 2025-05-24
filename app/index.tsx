@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, Alert, StyleSheet, useColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import theme from '../theme';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
@@ -46,6 +48,23 @@ export default function IndexScreen() {
     }
   };
 
+  const registerForPushNotificationsAsync = async (): Promise<string | null> => {
+    if (!Device.isDevice) return null;
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') return null;
+
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    return token;
+  };
+
   const startVerification = async () => {
     if (!phone.startsWith('+')) {
       Alert.alert('Ungültige Nummer', 'Bitte gib eine Nummer im Format +49... ein.');
@@ -84,8 +103,19 @@ export default function IndexScreen() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone })
         });
+
         await SecureStore.setItemAsync('userPhone', phone);
         setUserPhone(phone);
+
+        const pushToken = await registerForPushNotificationsAsync();
+        if (pushToken) {
+          await fetch(`${baseUrl}/auth/push-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, pushToken }),
+          });
+        }
+
       } else {
         Alert.alert('Fehler', data.error || 'Code ungültig');
       }
@@ -138,7 +168,9 @@ export default function IndexScreen() {
         ) : (
             <>
               <Text style={styles.title}>👋 Hallo, du bist aktuell:</Text>
-              <Text style={styles.statusText}>{isAvailable ? '✅ erreichbar' : '❌ nicht erreichbar'}</Text>
+              <Text style={styles.statusText}>
+                {isAvailable ? '✅ erreichbar' : '❌ nicht erreichbar'}
+              </Text>
               <Button
                   title={isAvailable ? 'Nicht erreichbar' : 'Erreichbar'}
                   onPress={toggleStatus}

@@ -13,7 +13,11 @@
       "bundleIdentifier": "com.schly21.kontaktlisteapp",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSContactsUsageDescription": "Diese App benötigt Zugriff auf deine Kontakte, um dir anzuzeigen, wer bereits registriert ist."
+        "NSContactsUsageDescription": "Diese App benötigt Zugriff auf deine Kontakte, um dir anzuzeigen, wer bereits registriert ist.",
+        "NSUserTrackingUsageDescription": "Diese App verwendet Benachrichtigungen, um dich über den Status deiner Kontakte zu informieren.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -21,7 +25,18 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "USE_FINGERPRINT",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "com.google.android.c2dm.permission.RECEIVE",
+        "USE_FINGERPRINT",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "com.google.android.c2dm.permission.RECEIVE"
+      ],
+      "package": "com.schly21.kontaktlisteapp"
     },
     "web": {
       "bundler": "metro",
@@ -30,6 +45,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
