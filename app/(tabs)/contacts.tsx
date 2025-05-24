@@ -123,14 +123,14 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                         onPress={() => item.isAvailable === true && handleCall(item.phone)}
                         disabled={item.isAvailable !== true}
                     >
-                        <View style={styles.card}>
+                        <View style={[styles.card, { backgroundColor: colors.card }]}>
                             <Image
                                 source={{
                                     uri:
                                         item.avatarUrl ||
                                         `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=cccccc&color=ffffff&rounded=true&size=64`,
                                 }}
-                                style={styles.avatar}
+                                style={[styles.avatar, { backgroundColor: colors.muted }]}
                             />
                             <View style={{ flex: 1 }}>
                                 <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
@@ -194,7 +194,6 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
         padding: 12,
         marginBottom: 10,
         borderRadius: 12,
@@ -204,7 +203,6 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: '#ccc',
     },
     name: {
         fontSize: 16,

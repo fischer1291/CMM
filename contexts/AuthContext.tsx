@@ -1,29 +1,46 @@
-// ✅ AuthContext.tsx (unter /contexts)
-import React, { createContext, useContext, useState, useEffect } from 'react';
+// contexts/AuthContext.tsx
 import * as SecureStore from 'expo-secure-store';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 type AuthContextType = {
-    userPhone: string | null;
-    setUserPhone: (phone: string | null) => void;
+  userPhone: string | null;
+  isLoading: boolean;
+  setUserPhone: (phone: string | null) => void;
 };
 
 const AuthContext = createContext<AuthContextType>({
-    userPhone: null,
-    setUserPhone: () => {},
+  userPhone: null,
+  isLoading: true,
+  setUserPhone: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [userPhone, setUserPhone] = useState<string | null>(null);
+  const [userPhone, setUserPhoneState] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        SecureStore.getItemAsync('userPhone').then(setUserPhone);
-    }, []);
+  useEffect(() => {
+    SecureStore.getItemAsync('userPhone')
+      .then((stored) => {
+        setUserPhoneState(stored || null);
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
 
-    return (
-        <AuthContext.Provider value={{ userPhone, setUserPhone }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  const setUserPhone = useCallback(async (phone: string | null) => {
+    if (phone) {
+      await SecureStore.setItemAsync('userPhone', phone);
+      setUserPhoneState(phone);
+    } else {
+      await SecureStore.deleteItemAsync('userPhone');
+      setUserPhoneState(null);
+    }
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ userPhone, isLoading, setUserPhone }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => useContext(AuthContext);

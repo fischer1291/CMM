@@ -1,21 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  Button,
-  Alert,
-  StyleSheet,
-  Image,
-  Switch,
-  FlatList,
-} from 'react-native';
-import * as SecureStore from 'expo-secure-store';
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import { useTheme } from '../../theme';
-import defaultAvatar from '../../assets/avatar-placeholder.png';
 import { useFocusEffect } from '@react-navigation/native';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Image,
+  StyleSheet,
+  Switch,
+  Text,
+  View
+} from 'react-native';
+import defaultAvatar from '../../assets/avatar-placeholder.png';
+import { useTheme } from '../../theme';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 
@@ -27,6 +24,7 @@ export default function IndexScreen() {
   const [isAvailable, setIsAvailable] = useState(true);
   const [name, setName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const router = useRouter();
 
   const { colors } = useTheme();
 
@@ -44,20 +42,23 @@ export default function IndexScreen() {
 
       const saved = await SecureStore.getItemAsync('userPhone');
       if (saved) {
+        console.log("Phone:" + saved);
         setUserPhone(saved);
         fetchStatus(saved);
         fetchProfile(saved);
+      } else {
+        router.replace('/(auth)/onboarding') // oder /verify, je nachdem was du willst
       }
     };
     init();
   }, []);
 
   useFocusEffect(
-      useCallback(() => {
-        if (userPhone) {
-          fetchProfile(userPhone);
-        }
-      }, [userPhone])
+    useCallback(() => {
+      if (userPhone) {
+        fetchProfile(userPhone);
+      }
+    }, [userPhone])
   );
 
   const fetchStatus = async (phone: string) => {
@@ -104,100 +105,6 @@ export default function IndexScreen() {
     const token = (await Notifications.getExpoPushTokenAsync()).data;
     return token;
   };
-
-  const startVerification = async () => {
-    if (!phone.startsWith('+')) {
-      Alert.alert('Ungültige Nummer', 'Bitte gib eine Nummer im Format +49... ein.');
-      return;
-    }
-
-    try {
-      const res = await fetch(`${baseUrl}/verify/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        Alert.alert('Code gesendet');
-        setCodeRequested(true);
-      } else {
-        Alert.alert('Fehler', data.error || 'Unbekannter Fehler');
-      }
-    } catch (e) {
-      console.error('❌ Fehler bei startVerification:', e);
-    }
-  };
-
-  const checkCode = async () => {
-    try {
-      const res = await fetch(`${baseUrl}/verify/check`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        await fetch(`${baseUrl}/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone }),
-        });
-
-        await SecureStore.setItemAsync('userPhone', phone);
-        setUserPhone(phone);
-
-        const pushToken = await registerForPushNotificationsAsync();
-        if (pushToken) {
-          await fetch(`${baseUrl}/auth/push-token`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone, pushToken }),
-          });
-        }
-
-      } else {
-        Alert.alert('Fehler', data.error || 'Code ungültig');
-      }
-    } catch (e) {
-      console.error('❌ Fehler bei checkCode:', e);
-    }
-  };
-
-  if (!userPhone) {
-    return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-          <Text style={[styles.title, { color: colors.text }]}>📱 Registrierung</Text>
-          {!codeRequested ? (
-              <>
-                <Text style={[styles.label, { color: colors.text }]}>Deine Nummer</Text>
-                <TextInput
-                    style={[styles.input, { borderColor: colors.border, color: colors.text }]}
-                    placeholder="+49..."
-                    placeholderTextColor={colors.placeholder}
-                    value={phone}
-                    onChangeText={setPhone}
-                    keyboardType="phone-pad"
-                />
-                <Button title="Code senden" onPress={startVerification} />
-              </>
-          ) : (
-              <>
-                <Text style={[styles.label, { color: colors.text }]}>Bestätigungscode</Text>
-                <TextInput
-                    style={[styles.input, { borderColor: colors.border, color: colors.text }]}
-                    placeholder="Code"
-                    placeholderTextColor={colors.placeholder}
-                    value={code}
-                    onChangeText={setCode}
-                    keyboardType="number-pad"
-                />
-                <Button title="Code prüfen" onPress={checkCode} />
-              </>
-          )}
-        </View>
-    );
-  }
 
   return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>

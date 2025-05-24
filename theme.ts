@@ -17,13 +17,13 @@ const dark = {
     primary: '#0a84ff',
     success: '#30d158',
     error: '#ff453a',
-    gray: '#aaa',
-    muted: '#444444',             // 👉 hinzugefügt (dunklere Variante für Dark Mode)
-    background: '#000000',
-    card: '#1c1c1e',
-    border: '#333333',
-    text: '#f2f2f2',
-    placeholder: '#666'
+    gray: '#ccc',
+    muted: '#666666',
+    background: '#121212',
+    card: '#1e1e1e',
+    border: '#444444',
+    text: '#ffffff',
+    placeholder: '#888888'
 };
 
 const fonts = {

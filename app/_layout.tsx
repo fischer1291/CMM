@@ -1,42 +1,34 @@
-import { useAuth, AuthProvider } from '../contexts/AuthContext';
+// app/_layout.tsx
 import { Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
-import * as SecureStore from 'expo-secure-store';
 import { ActivityIndicator, View } from 'react-native';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
 
 function InnerLayout() {
-    const { userPhone, setUserPhone } = useAuth();
-    const [loading, setLoading] = useState(true);
+  const { userPhone, isLoading } = useAuth();
 
-    useEffect(() => {
-        SecureStore.getItemAsync('userPhone')
-            .then(setUserPhone)
-            .finally(() => setLoading(false));
-    }, []);
-
-    if (loading) {
-        return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" />
-            </View>
-        );
-    }
-
+  if (isLoading) {
     return (
-        <Stack screenOptions={{ headerShown: false }}>
-            {userPhone ? (
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            ) : (
-                <Stack.Screen name="(auth)" />
-            )}
-        </Stack>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
     );
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      {userPhone ? (
+        <Stack.Screen name="(tabs)" />
+      ) : (
+        <Stack.Screen name="(auth)" />
+      )}
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
-    return (
-        <AuthProvider>
-            <InnerLayout />
-        </AuthProvider>
-    );
+  return (
+    <AuthProvider>
+      <InnerLayout />
+    </AuthProvider>
+  );
 }

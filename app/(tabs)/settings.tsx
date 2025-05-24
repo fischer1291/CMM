@@ -1,21 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    ScrollView,
-    Image,
-    Alert,
-    Modal,
-    TextInput,
-} from 'react-native';
-import { useTheme } from '../../theme';
-import * as SecureStore from 'expo-secure-store';
-import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+    Alert,
+    Image,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../theme';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 
@@ -41,7 +41,8 @@ export default function SettingsScreen() {
 
     const loadProfile = async () => {
         const storedPhone = await SecureStore.getItemAsync('userPhone');
-        if (!storedPhone) return;
+        if (!storedPhone || storedPhone === 'null') return;
+        console.log('📱 Lade Profil für:', storedPhone);
 
         setPhone(storedPhone);
 
@@ -58,10 +59,24 @@ export default function SettingsScreen() {
     };
 
     const logout = async () => {
-        await SecureStore.deleteItemAsync('userPhone');
-        setUserPhone(null);
-        console.log("Test");
-        router.replace('/(auth)/onboarding'); // <- zwingt Router in korrekten Zustand
+        try {
+            console.log('🔒 Logging out...');
+            await SecureStore.deleteItemAsync('userPhone');
+            const checkStore = async () => {
+                const value = await SecureStore.getItemAsync('userPhone');
+                if (value === null) {
+                    setUserPhone(null);
+                    router.replace('/(auth)/onboarding');
+                    console.log('🔒 Logging out...'+ phone);
+                } else {
+                    setTimeout(checkStore, 100);
+                }
+            };
+            checkStore();
+        } catch (e) {
+            console.error('❌ Fehler beim Logout:', e);
+            Alert.alert('Fehler', 'Abmelden fehlgeschlagen.');
+        }
     };
 
     const updateProfile = async (updates: Partial<{ name: string; avatarUrl: string }>) => {
