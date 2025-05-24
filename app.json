@@ -15,9 +15,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSContactsUsageDescription": "Diese App benötigt Zugriff auf deine Kontakte, um dir anzuzeigen, wer bereits registriert ist.",
         "NSUserTrackingUsageDescription": "Diese App verwendet Benachrichtigungen, um dich über den Status deiner Kontakte zu informieren.",
-        "UIBackgroundModes": [
-          "remote-notification"
-        ]
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
@@ -27,11 +25,6 @@
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
-        "USE_FINGERPRINT",
-        "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED",
-        "com.google.android.c2dm.permission.RECEIVE",
-        "USE_FINGERPRINT",
         "VIBRATE",
         "RECEIVE_BOOT_COMPLETED",
         "com.google.android.c2dm.permission.RECEIVE"
