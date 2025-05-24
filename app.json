@@ -15,6 +15,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSContactsUsageDescription": "Diese App benötigt Zugriff auf deine Kontakte, um dir anzuzeigen, wer bereits registriert ist.",
         "NSUserTrackingUsageDescription": "Diese App verwendet Benachrichtigungen, um dich über den Status deiner Kontakte zu informieren.",
+        "NSPhotoLibraryUsageDescription": "Diese App benötigt Zugriff auf deine Bilder, um ein Profilbild auszuwählen.",
         "UIBackgroundModes": [
           "remote-notification",
           "remote-notification"

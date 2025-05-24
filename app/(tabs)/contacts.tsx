@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import * as Contacts from 'expo-contacts';
 import { io } from 'socket.io-client';
-import { useTheme } from '../theme';
+import { useTheme } from '../../theme';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 const socket = io(baseUrl, { transports: ['websocket'], secure: true });

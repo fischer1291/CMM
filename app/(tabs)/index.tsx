@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,15 @@ import {
   Alert,
   StyleSheet,
   Image,
-  Switch
+  Switch,
+  FlatList,
 } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import { useTheme } from '../theme';
+import { useTheme } from '../../theme';
+import defaultAvatar from '../../assets/avatar-placeholder.png';
+import { useFocusEffect } from '@react-navigation/native';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 
@@ -22,8 +25,15 @@ export default function IndexScreen() {
   const [code, setCode] = useState('');
   const [codeRequested, setCodeRequested] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
+  const [name, setName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
 
-  const { colors, fonts } = useTheme();
+  const { colors } = useTheme();
+
+  // Dummy-Daten
+  const lastActive = 'vor 1 Tag';
+  const totalOnlineMinutes = 283; // später evtl. in Sekunden und formatieren
+  const onlineContactsCount = 4;
 
   useEffect(() => {
     const init = async () => {
@@ -36,10 +46,19 @@ export default function IndexScreen() {
       if (saved) {
         setUserPhone(saved);
         fetchStatus(saved);
+        fetchProfile(saved);
       }
     };
     init();
   }, []);
+
+  useFocusEffect(
+      useCallback(() => {
+        if (userPhone) {
+          fetchProfile(userPhone);
+        }
+      }, [userPhone])
+  );
 
   const fetchStatus = async (phone: string) => {
     try {
@@ -51,6 +70,19 @@ export default function IndexScreen() {
     }
   };
 
+  const fetchProfile = async (phone: string) => {
+    try {
+      const res = await fetch(`${baseUrl}/me?phone=${encodeURIComponent(phone)}`);
+      const data = await res.json();
+      if (data.success) {
+        setName(data.user.name || '');
+        setAvatarUrl(data.user.avatarUrl || '');
+      }
+    } catch (e) {
+      console.error('❌ Fehler bei fetchProfile:', e);
+    }
+  };
+
   const toggleStatus = async () => {
     const newStatus = !isAvailable;
     setIsAvailable(newStatus);
@@ -58,7 +90,7 @@ export default function IndexScreen() {
       await fetch(`${baseUrl}/status/set`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: userPhone, isAvailable: newStatus })
+        body: JSON.stringify({ phone: userPhone, isAvailable: newStatus }),
       });
     } catch (e) {
       console.error('❌ Fehler beim Status setzen:', e);
@@ -83,7 +115,7 @@ export default function IndexScreen() {
       const res = await fetch(`${baseUrl}/verify/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone }),
       });
       const data = await res.json();
       if (data.success) {
@@ -102,14 +134,14 @@ export default function IndexScreen() {
       const res = await fetch(`${baseUrl}/verify/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code })
+        body: JSON.stringify({ phone, code }),
       });
       const data = await res.json();
       if (data.success) {
         await fetch(`${baseUrl}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone })
+          body: JSON.stringify({ phone }),
         });
 
         await SecureStore.setItemAsync('userPhone', phone);
@@ -169,13 +201,16 @@ export default function IndexScreen() {
 
   return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={styles.profileSection}>
+        <Text style={[styles.greeting, { color: colors.text }]}>
+          Guten Tag, {name || 'du'} 👋
+        </Text>
+
+        <View style={{ alignItems: 'center', padding: 20 }}>
           <Image
-              source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDy9vJcd7MwHTueWR7UkfpzCQpg6OokIs_6K-Jhe21d62QBq5tgt9H-kBv4fkIUB2jwDpq1BU_ips9QCfIW7_CzfH5sWJfEo7omg62nv0I8ilbRtd9p3dnugYHj0Pds9S-GtfZQWJYm7H2CaVNfXnOCVHvkCSCCZ9PtDfNMfh-5_D6Z3lkeC2PIhyxFXCFqH-oQ1bZfir9Zg4LJBG65Ew8FE6TSZ3iCt3Sq4mmQpOlIR90s2GYJNIRAH9T7or5tr3BVttUAKHUR4EA' }}
-              style={styles.avatar}
+              source={{ uri: avatarUrl || defaultAvatar }}
+              style={{ width: 100, height: 100, borderRadius: 50 }}
           />
-          <Text style={[styles.name, { color: colors.text }]}>Ava Harper</Text>
-          <Text style={[styles.subtitle, { color: colors.gray }]}>Software Engineer</Text>
+          <Text style={{ fontSize: 16, color: colors.gray, padding:10 }}>{userPhone}</Text>
         </View>
 
         <View style={styles.statusRow}>
@@ -189,37 +224,47 @@ export default function IndexScreen() {
               thumbColor="#fff"
           />
         </View>
+
+        <View style={styles.cardRow}>
+          <View style={[styles.card, { backgroundColor: colors.card }]}>
+            <Text style={[styles.cardLabel, { color: colors.gray }]}>
+              Zuletzt erreichbar
+            </Text>
+            <Text style={[styles.cardValue, { color: colors.text }]}>
+              {lastActive}
+            </Text>
+          </View>
+          <View style={[styles.card, { backgroundColor: colors.card }]}>
+            <Text style={[styles.cardLabel, { color: colors.gray }]}>
+              Gesamtzeit erreichbar
+            </Text>
+            <Text style={[styles.cardValue, { color: colors.text }]}>
+              {totalOnlineMinutes} min
+            </Text>
+          </View>
+          <View style={[styles.card, { backgroundColor: colors.card }]}>
+            <Text style={[styles.cardLabel, { color: colors.gray }]}>
+              Erreichbare Kontakte
+            </Text>
+            <Text style={[styles.cardValue, { color: colors.text }]}>
+              {onlineContactsCount}
+            </Text>
+          </View>
+        </View>
       </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'center' },
+  container: { flex: 1, padding: 20 },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  greeting: { fontSize: 20, fontWeight: '600', marginBottom: 10 },
   label: { marginTop: 20, fontWeight: '600', fontSize: 16 },
   input: {
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
     marginBottom: 10,
-    fontSize: 16,
-  },
-  profileSection: {
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 32,
-  },
-  avatar: {
-    width: 128,
-    height: 128,
-    borderRadius: 64,
-    marginBottom: 8,
-  },
-  name: {
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  subtitle: {
     fontSize: 16,
   },
   statusRow: {
@@ -230,9 +275,32 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: '#e5e5e5',
+    marginBottom: 20,
   },
   statusLabel: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  card: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 4,
+  },
+  cardLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  cardValue: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

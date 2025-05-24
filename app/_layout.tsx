@@ -1,39 +1,42 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../theme';
+import { useAuth, AuthProvider } from '../contexts/AuthContext';
+import { Stack } from 'expo-router';
+import { useEffect, useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { ActivityIndicator, View } from 'react-native';
 
-export default function Layout() {
-    const { colors, fonts } = useTheme();
+function InnerLayout() {
+    const { userPhone, setUserPhone } = useAuth();
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        SecureStore.getItemAsync('userPhone')
+            .then(setUserPhone)
+            .finally(() => setLoading(false));
+    }, []);
+
+    if (loading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" />
+            </View>
+        );
+    }
 
     return (
-        <Tabs
-            screenOptions={({ route }) => {
-                const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
-                    index: 'person-circle',
-                    contacts: 'people',
-                    settings: 'settings',
-                };
+        <Stack screenOptions={{ headerShown: false }}>
+            {userPhone ? (
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            ) : (
+                <Stack.Screen name="(auth)" />
+            )}
+        </Stack>
+    );
+}
 
-                return {
-                    tabBarIcon: ({ color, size }) => (
-                        <Ionicons name={icons[route.name] || 'ellipse'} size={size} color={color} />
-                    ),
-                    tabBarActiveTintColor: colors.primary,
-                    tabBarInactiveTintColor: colors.muted,
-                    headerStyle: { backgroundColor: colors.background },
-                    headerTitleStyle: {
-                        fontFamily: fonts.semibold,
-                        fontSize: 20,
-                        color: colors.text,
-                    },
-                    headerTitleAlign: 'center',
-                    headerShown: true,
-                };
-            }}
-        >
-            <Tabs.Screen name="index" options={{ title: 'Status' }} />
-            <Tabs.Screen name="contacts" options={{ title: 'Kontakte' }} />
-            <Tabs.Screen name="settings" options={{ title: 'Einstellungen' }} />
-        </Tabs>
+export default function RootLayout() {
+    return (
+        <AuthProvider>
+            <InnerLayout />
+        </AuthProvider>
     );
 }
