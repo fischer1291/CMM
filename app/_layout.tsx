@@ -1,8 +1,10 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import theme from '../theme'; // falls du "export const theme" verwendest
+import { useTheme } from '../theme';
 
 export default function Layout() {
+    const { colors, fonts } = useTheme();
+
     return (
         <Tabs
             screenOptions={({ route }) => {
@@ -16,13 +18,13 @@ export default function Layout() {
                     tabBarIcon: ({ color, size }) => (
                         <Ionicons name={icons[route.name] || 'ellipse'} size={size} color={color} />
                     ),
-                    tabBarActiveTintColor: theme.colors.primary,
-                    tabBarInactiveTintColor: theme.colors.muted,
-                    headerStyle: { backgroundColor: theme.colors.background },
+                    tabBarActiveTintColor: colors.primary,
+                    tabBarInactiveTintColor: colors.muted,
+                    headerStyle: { backgroundColor: colors.background },
                     headerTitleStyle: {
-                        fontFamily: theme.fonts.semibold,
+                        fontFamily: fonts.semibold,
                         fontSize: 20,
-                        color: theme.colors.text,
+                        color: colors.text,
                     },
                     headerTitleAlign: 'center',
                     headerTitle: 'Call Me Maybe',

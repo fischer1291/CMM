@@ -3,7 +3,7 @@ import { View, Text, TextInput, SectionList, TouchableOpacity, StyleSheet, Linki
 import * as Contacts from 'expo-contacts';
 import { Ionicons } from '@expo/vector-icons';
 import { io } from 'socket.io-client';
-import theme from '../theme';
+import { useTheme } from '../theme';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 const socket = io(baseUrl, { transports: ['websocket'], secure: true });
@@ -15,6 +15,7 @@ function normalizePhone(num: string) {
 export default function ContactsScreen({ userPhone }: { userPhone: string }) {
     const [contacts, setContacts] = useState<any[]>([]);
     const [query, setQuery] = useState('');
+    const { colors } = useTheme();
 
     const fetchContacts = async () => {
         const { status } = await Contacts.requestPermissionsAsync();
@@ -63,9 +64,9 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
             console.log('✅ WebSocket verbunden');
         });
 
-        socket.on('statusUpdate', (payload: { phone: string, isAvailable: boolean }) => {
-            setContacts(prev =>
-                prev.map(c => c.phone === payload.phone ? { ...c, isAvailable: payload.isAvailable } : c)
+        socket.on('statusUpdate', (payload: { phone: string; isAvailable: boolean }) => {
+            setContacts((prev) =>
+                prev.map((c) => (c.phone === payload.phone ? { ...c, isAvailable: payload.isAvailable } : c))
             );
         });
 
@@ -75,10 +76,7 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
         };
     }, []);
 
-    const filtered = contacts.filter((c) =>
-        c.name.toLowerCase().includes(query.toLowerCase())
-    );
-
+    const filtered = contacts.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
     const available = filtered.filter((c) => c.isAvailable === true);
     const unavailable = filtered.filter((c) => c.isAvailable === false);
     const unregistered = filtered.filter((c) => c.isAvailable === null);
@@ -94,11 +92,11 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
             <TextInput
-                style={styles.input}
+                style={[styles.input, { borderColor: colors.border, color: colors.text }]}
                 placeholder="🔍 Suche Kontakt..."
-                placeholderTextColor={theme.colors.gray}
+                placeholderTextColor={colors.gray}
                 value={query}
                 onChangeText={setQuery}
             />
@@ -112,23 +110,33 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                         disabled={item.isAvailable !== true}
                     >
                         <View style={styles.contactItem}>
-                            <View style={[
-                                styles.avatar,
-                                item.isAvailable === true && { backgroundColor: theme.colors.success },
-                                item.isAvailable === false && { backgroundColor: theme.colors.error },
-                                item.isAvailable === null && { backgroundColor: theme.colors.muted }
-                            ]}>
+                            <View
+                                style={[
+                                    styles.avatar,
+                                    {
+                                        backgroundColor:
+                                            item.isAvailable === true
+                                                ? colors.success
+                                                : item.isAvailable === false
+                                                    ? colors.error
+                                                    : colors.muted || '#ccc',
+                                    },
+                                ]}
+                            >
                                 <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
                             </View>
                             <View>
-                                <Text style={styles.contactName}>{item.name}</Text>
-                                <Text style={{
-                                    color: item.isAvailable === true
-                                        ? theme.colors.success
-                                        : item.isAvailable === false
-                                            ? theme.colors.error
-                                            : theme.colors.gray
-                                }}>
+                                <Text style={[styles.contactName, { color: colors.text }]}>{item.name}</Text>
+                                <Text
+                                    style={{
+                                        color:
+                                            item.isAvailable === true
+                                                ? colors.success
+                                                : item.isAvailable === false
+                                                    ? colors.error
+                                                    : colors.gray,
+                                    }}
+                                >
                                     {item.isAvailable === true
                                         ? 'Erreichbar'
                                         : item.isAvailable === false
@@ -141,8 +149,10 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                 )}
                 renderSectionHeader={({ section: { title, data, empty } }) => (
                     <View>
-                        <Text style={styles.sectionHeader}>{title}</Text>
-                        {data.length === 0 && <Text style={styles.emptyMessage}>{empty}</Text>}
+                        <Text style={[styles.sectionHeader, { color: colors.text }]}>{title}</Text>
+                        {data.length === 0 && (
+                            <Text style={[styles.emptyMessage, { color: colors.gray }]}>{empty}</Text>
+                        )}
                     </View>
                 )}
             />
@@ -155,40 +165,34 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
         paddingTop: 60,
-        backgroundColor: theme.colors.background,
     },
     sectionHeader: {
         fontSize: 16,
         fontWeight: 'bold',
         marginTop: 20,
         marginBottom: 10,
-        color: theme.colors.text,
     },
     emptyMessage: {
-        color: theme.colors.gray,
         fontStyle: 'italic',
         marginBottom: 10,
     },
     input: {
         borderWidth: 1,
-        borderColor: theme.colors.border,
         borderRadius: 8,
         padding: 10,
         marginBottom: 16,
-        color: theme.colors.text,
+        fontSize: 16,
     },
     contactItem: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 10,
         borderBottomWidth: 1,
-        borderBottomColor: theme.colors.border,
     },
     avatar: {
         width: 42,
         height: 42,
         borderRadius: 21,
-        backgroundColor: theme.colors.muted,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
@@ -201,6 +205,5 @@ const styles = StyleSheet.create({
     contactName: {
         fontSize: 16,
         fontWeight: '500',
-        color: theme.colors.text,
     },
 });

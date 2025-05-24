@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet, useColorScheme } from 'react-native';
+import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
-import theme from '../theme';
+import { useTheme } from '../theme';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 
@@ -13,11 +13,11 @@ export default function IndexScreen() {
   const [code, setCode] = useState('');
   const [codeRequested, setCodeRequested] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
-  const mode = useColorScheme();
+  const { colors, fonts, mode } = useTheme();
 
   useEffect(() => {
     const init = async () => {
-      // Push-Berechtigung anfragen
+      // Berechtigung für Notifications
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
@@ -26,7 +26,7 @@ export default function IndexScreen() {
         }
       }
 
-      // Nummer aus SecureStore laden
+      // Lokale Nummer prüfen
       const saved = await SecureStore.getItemAsync('userPhone');
       if (saved) {
         setUserPhone(saved);
@@ -145,17 +145,17 @@ export default function IndexScreen() {
   };
 
   return (
-      <View style={[styles.container, mode === 'dark' && { backgroundColor: '#000' }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {!userPhone ? (
             <>
-              <Text style={styles.title}>📱 Registrierung</Text>
+              <Text style={[styles.title, { color: colors.text }]}>📱 Registrierung</Text>
               {!codeRequested ? (
                   <>
-                    <Text style={styles.label}>Deine Nummer</Text>
+                    <Text style={[styles.label, { color: colors.text }]}>Deine Nummer</Text>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { borderColor: colors.border, color: colors.text }]}
                         placeholder="+49..."
-                        placeholderTextColor={theme.colors.gray}
+                        placeholderTextColor={colors.placeholder}
                         value={phone}
                         onChangeText={setPhone}
                         keyboardType="phone-pad"
@@ -165,11 +165,11 @@ export default function IndexScreen() {
                   </>
               ) : (
                   <>
-                    <Text style={styles.label}>Bestätigungscode</Text>
+                    <Text style={[styles.label, { color: colors.text }]}>Bestätigungscode</Text>
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { borderColor: colors.border, color: colors.text }]}
                         placeholder="Code"
-                        placeholderTextColor={theme.colors.gray}
+                        placeholderTextColor={colors.placeholder}
                         value={code}
                         onChangeText={setCode}
                         keyboardType="number-pad"
@@ -180,17 +180,17 @@ export default function IndexScreen() {
             </>
         ) : (
             <>
-              <Text style={styles.title}>👋 Hallo, du bist aktuell:</Text>
-              <Text style={styles.statusText}>
+              <Text style={[styles.title, { color: colors.text }]}>👋 Hallo, du bist aktuell:</Text>
+              <Text style={[styles.statusText, { color: colors.text }]}>
                 {isAvailable ? '✅ erreichbar' : '❌ nicht erreichbar'}
               </Text>
               <Button
                   title={isAvailable ? 'Nicht erreichbar' : 'Erreichbar'}
                   onPress={toggleStatus}
-                  color={isAvailable ? theme.colors.error : theme.colors.success}
+                  color={isAvailable ? colors.error : colors.success}
               />
               <View style={{ marginTop: 20 }}>
-                <Button title="Abmelden" color={theme.colors.gray} onPress={logout} />
+                <Button title="Abmelden" color={colors.gray} onPress={logout} />
               </View>
             </>
         )}
@@ -203,35 +203,29 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     justifyContent: 'center',
-    backgroundColor: theme.colors.background,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-    color: theme.colors.text,
-    fontFamily: theme.fonts.semibold,
+    fontFamily: 'System',
   },
   label: {
     marginTop: 20,
     fontWeight: '600',
     fontSize: 16,
-    color: theme.colors.text,
   },
   input: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
     borderRadius: 8,
     padding: 12,
     marginBottom: 10,
     fontSize: 16,
-    color: theme.colors.text,
   },
   statusText: {
     fontSize: 18,
     marginVertical: 20,
     textAlign: 'center',
-    color: theme.colors.text,
   },
 });

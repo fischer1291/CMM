@@ -15,7 +15,10 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSContactsUsageDescription": "Diese App benötigt Zugriff auf deine Kontakte, um dir anzuzeigen, wer bereits registriert ist.",
         "NSUserTrackingUsageDescription": "Diese App verwendet Benachrichtigungen, um dich über den Status deiner Kontakte zu informieren.",
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -25,6 +28,9 @@
       },
       "edgeToEdgeEnabled": true,
       "permissions": [
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "com.google.android.c2dm.permission.RECEIVE",
         "VIBRATE",
         "RECEIVE_BOOT_COMPLETED",
         "com.google.android.c2dm.permission.RECEIVE"
@@ -58,6 +64,10 @@
         "projectId": "b5b430e0-3b17-49fe-bf44-ad9c6a49b8e3"
       }
     },
-    "owner": "schly21"
+    "owner": "schly21",
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/b5b430e0-3b17-49fe-bf44-ad9c6a49b8e3"
+    }
   }
 }
