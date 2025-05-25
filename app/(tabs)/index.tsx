@@ -8,7 +8,7 @@ import {
   StyleSheet,
   Switch,
   Text,
-  View
+  View,
 } from 'react-native';
 import defaultAvatar from '../../assets/avatar-placeholder.png';
 import { useCountdown } from '../../hooks/useCountdown';
@@ -18,17 +18,24 @@ import CallMeMomentPrompt from '../components/CallMeMomentPrompt';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 
-
 export default function IndexScreen() {
   const [userPhone, setUserPhone] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState(true);
+  const [showPrompt, setShowPrompt] = useState(false);
+
   const router = useRouter();
   const { colors } = useTheme();
 
-  const { name, avatarUrl, momentActiveUntil, lastOnline, reloadProfile } = useProfile(userPhone);
+  const {
+    name,
+    avatarUrl,
+    momentActiveUntil,
+    lastOnline,
+    reloadProfile,
+  } = useProfile(userPhone);
   const { formatted: countdown, remaining } = useCountdown(momentActiveUntil);
-  {userPhone && <CallMeMomentPrompt phone={userPhone} />}
 
+  // Initialisierung: Nutzer laden
   useEffect(() => {
     const init = async () => {
       const { status } = await Notifications.getPermissionsAsync();
@@ -48,6 +55,29 @@ export default function IndexScreen() {
     init();
   }, []);
 
+  // Push-Listener: Prompt anzeigen
+  useEffect(() => {
+    const handleTrigger = () => setShowPrompt(true);
+
+    const responseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+      if (response?.notification?.request?.content?.data?.type === 'callMeMoment') {
+        handleTrigger();
+      }
+    });
+
+    const receiveSub = Notifications.addNotificationReceivedListener((notification) => {
+      if (notification?.request?.content?.data?.type === 'callMeMoment') {
+        handleTrigger();
+      }
+    });
+
+    return () => {
+      responseSub.remove();
+      receiveSub.remove();
+    };
+  }, []);
+
+  // Wenn View aktiv: Status neu laden
   useFocusEffect(
     useCallback(() => {
       if (userPhone) {
@@ -91,15 +121,25 @@ export default function IndexScreen() {
       day: '2-digit',
       month: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <CallMeMomentPrompt />
+      {showPrompt && userPhone && (
+        <CallMeMomentPrompt
+          phone={userPhone}
+          onClose={(shouldReload) => {
+            setShowPrompt(false);
+            if (shouldReload) reloadProfile(); // ✅ Profil nach Bestätigung neu laden
+          }}
+        />
+      )}
 
-      <Text style={[styles.greeting, { color: colors.text }]}>Guten Tag, {name || 'du'} 👋</Text>
+      <Text style={[styles.greeting, { color: colors.text }]}>
+        Guten Tag, {name || 'du'} 👋
+      </Text>
 
       <View style={{ alignItems: 'center', padding: 20 }}>
         <Image
@@ -110,7 +150,7 @@ export default function IndexScreen() {
       </View>
 
       <View style={styles.statusRow}>
-        <Text style={[styles.statusLabel, { color: colors.text }]}> 
+        <Text style={[styles.statusLabel, { color: colors.text }]}>
           {isAvailable ? '✅ Du bist erreichbar' : '❌ Du bist nicht erreichbar'}
         </Text>
         <Switch

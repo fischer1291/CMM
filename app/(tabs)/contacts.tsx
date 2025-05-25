@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {
     Image,
     Linking,
+    Platform,
     SectionList,
     StyleSheet,
     Text,
@@ -57,7 +58,7 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                     name: phoneNameMap[p] || p,
                     isAvailable: match ? match.isAvailable : null,
                     lastOnline: match?.lastOnline || null,
-                    avatarUrl: null // Optional: später durch Kontakte-API erweitern
+                    avatarUrl: null
                 };
             });
 
@@ -108,6 +109,21 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
         Linking.openURL(`tel:${phone}`);
     };
 
+    const handleFaceTimeCall = (phone: string) => {
+        if (Platform.OS === 'ios') {
+            Linking.openURL(`facetime://${phone}`);
+        } else {
+            alert('FaceTime wird nur auf iOS unterstützt.');
+        }
+    };
+
+    const handleWhatsAppChat = (phone: string) => {
+        const cleanedPhone = phone.replace('+', '');
+        Linking.openURL(`https://wa.me/${cleanedPhone}?text=Hast du Lust auf einen Videoanruf?`).catch(() =>
+            alert('WhatsApp nicht installiert oder Nummer ungültig.')
+        );
+    };
+
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <TextInput
@@ -122,55 +138,65 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                 sections={sections}
                 keyExtractor={(item) => item.phone}
                 renderItem={({ item }) => (
-                    <TouchableOpacity
-                        onPress={() => item.isAvailable === true && handleCall(item.phone)}
-                        disabled={item.isAvailable !== true}
-                    >
-                        <View style={[styles.card, { backgroundColor: colors.card }]}>
-                            <Image
-                                source={{
-                                    uri:
-                                        item.avatarUrl ||
-                                        `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=cccccc&color=ffffff&rounded=true&size=64`,
+                    <View style={[styles.card, { backgroundColor: colors.card }]}>
+                        <Image
+                            source={{
+                                uri:
+                                    item.avatarUrl ||
+                                    `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=cccccc&color=ffffff&rounded=true&size=64`,
+                            }}
+                            style={[styles.avatar, { backgroundColor: colors.muted }]}
+                        />
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
+                            <Text
+                                style={{
+                                    color:
+                                        item.isAvailable === true
+                                            ? colors.success
+                                            : item.isAvailable === false
+                                                ? colors.error
+                                                : colors.gray,
+                                    fontSize: 14,
                                 }}
-                                style={[styles.avatar, { backgroundColor: colors.muted }]}
-                            />
-                            <View style={{ flex: 1 }}>
-                                <Text style={[styles.name, { color: colors.text }]}>{item.name}</Text>
-                                <Text
-                                    style={{
-                                        color:
-                                            item.isAvailable === true
-                                                ? colors.success
-                                                : item.isAvailable === false
-                                                    ? colors.error
-                                                    : colors.gray,
-                                        fontSize: 14,
-                                    }}
-                                >
-                                    {item.isAvailable === true
-                                        ? '🟢 Erreichbar'
-                                        : item.isAvailable === false
-                                            ? item.lastOnline
-                                                ? `Zuletzt erreichbar: ${new Date(item.lastOnline).toLocaleString('de-DE', {
-                                                    day: '2-digit',
-                                                    month: '2-digit',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })}`
-                                                : '❌ Nicht erreichbar'
-                                            : 'Nicht registriert – jetzt einladen'}
-                                </Text>
-                                {item.isAvailable === null && (
-                                    <TouchableOpacity onPress={() => Linking.openURL(`sms:${item.phone}?body=Hey! Lade dir die Call Me Maybe App runter. Bin da erreichbar!`)}>
-                                        <Text style={{ color: colors.primary, fontSize: 14, marginTop: 4 }}>
-                                            📩 Einladung senden
-                                        </Text>
+                            >
+                                {item.isAvailable === true
+                                    ? '🟢 Erreichbar'
+                                    : item.isAvailable === false
+                                        ? item.lastOnline
+                                            ? `Zuletzt erreichbar: ${new Date(item.lastOnline).toLocaleString('de-DE', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}`
+                                            : '❌ Nicht erreichbar'
+                                        : 'Nicht registriert – jetzt einladen'}
+                            </Text>
+
+                            {item.isAvailable === true && (
+                                <View style={{ flexDirection: 'row', marginTop: 8, gap: 12 }}>
+                                    <TouchableOpacity onPress={() => handleCall(item.phone)}>
+                                        <Text style={{ fontSize: 22 }}>📞</Text>
                                     </TouchableOpacity>
-                                )}
-                            </View>
+                                    <TouchableOpacity onPress={() => handleFaceTimeCall(item.phone)}>
+                                        <Text style={{ fontSize: 22 }}>📹</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => handleWhatsAppChat(item.phone)}>
+                                        <Text style={{ fontSize: 22 }}>💬</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
+                            {item.isAvailable === null && (
+                                <TouchableOpacity onPress={() => Linking.openURL(`sms:${item.phone}?body=Hey! Lade dir die Call Me Maybe App runter. Bin da erreichbar!`)}>
+                                    <Text style={{ color: colors.primary, fontSize: 14, marginTop: 4 }}>
+                                        📩 Einladung senden
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
-                    </TouchableOpacity>
+                    </View>
                 )}
                 renderSectionHeader={({ section: { title, data, empty } }) => (
                     <View style={{ marginTop: 24 }}>
