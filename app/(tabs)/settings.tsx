@@ -1,8 +1,7 @@
-import { useFocusEffect } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Alert,
     Image,
@@ -15,64 +14,32 @@ import {
     View,
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useProfile } from '../../hooks/useProfile';
 import { useTheme } from '../../theme';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 
 export default function SettingsScreen() {
     const { colors } = useTheme();
-    const { setUserPhone } = useAuth();
+    const { setUserPhone, userPhone } = useAuth();
 
-    const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-    const [displayName, setDisplayName] = useState<string>('You');
+    const {
+        avatarUrl,
+        name,
+        setAvatarUrl,
+        setName,
+        reloadProfile
+    } = useProfile(userPhone || '');
+
     const [modalVisible, setModalVisible] = useState(false);
     const [newName, setNewName] = useState('');
-    const [phone, setPhone] = useState<string | null>(null);
-
-    useEffect(() => {
-        loadProfile();
-    }, []);
-
-    useFocusEffect(
-        useCallback(() => {
-            loadProfile();
-        }, [])
-    );
-
-    const loadProfile = async () => {
-        const storedPhone = await SecureStore.getItemAsync('userPhone');
-        if (!storedPhone || storedPhone === 'null') return;
-        console.log('📱 Lade Profil für:', storedPhone);
-
-        setPhone(storedPhone);
-
-        try {
-            const res = await fetch(`${baseUrl}/me?phone=${storedPhone}`);
-            const data = await res.json();
-            if (data.success) {
-                if (data.user.name) setDisplayName(data.user.name);
-                if (data.user.avatarUrl) setAvatarUrl(data.user.avatarUrl);
-            }
-        } catch (e) {
-            console.error('❌ Fehler beim Laden des Profils:', e);
-        }
-    };
 
     const logout = async () => {
         try {
             console.log('🔒 Logging out...');
             await SecureStore.deleteItemAsync('userPhone');
-            const checkStore = async () => {
-                const value = await SecureStore.getItemAsync('userPhone');
-                if (value === null) {
-                    setUserPhone(null);
-                    router.replace('/(auth)/onboarding');
-                    console.log('🔒 Logging out...'+ phone);
-                } else {
-                    setTimeout(checkStore, 100);
-                }
-            };
-            checkStore();
+            setUserPhone(null);
+            router.replace('/(auth)/onboarding');
         } catch (e) {
             console.error('❌ Fehler beim Logout:', e);
             Alert.alert('Fehler', 'Abmelden fehlgeschlagen.');
@@ -80,13 +47,14 @@ export default function SettingsScreen() {
     };
 
     const updateProfile = async (updates: Partial<{ name: string; avatarUrl: string }>) => {
-        if (!phone) return;
+        if (!userPhone) return;
         try {
             await fetch(`${baseUrl}/me/update`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone, ...updates }),
+                body: JSON.stringify({ phone: userPhone, ...updates }),
             });
+            await reloadProfile();
         } catch (e) {
             console.error('❌ Fehler beim Aktualisieren des Profils:', e);
         }
@@ -101,28 +69,26 @@ export default function SettingsScreen() {
 
         if (!result.canceled) {
             const uri = result.assets[0].uri;
-            setAvatarUrl(uri);
             await updateProfile({ avatarUrl: uri });
         }
     };
 
     const openNameModal = () => {
-        setNewName(displayName);
+        setNewName(name);
         setModalVisible(true);
     };
 
     const confirmNameChange = async () => {
-        setDisplayName(newName);
         await updateProfile({ name: newName });
         setModalVisible(false);
     };
 
     const Item = ({
-                      title,
-                      subtitle,
-                      icon,
-                      onPress,
-                  }: {
+        title,
+        subtitle,
+        icon,
+        onPress,
+    }: {
         title: string;
         subtitle: string;
         icon: string;
@@ -157,7 +123,7 @@ export default function SettingsScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity onPress={openNameModal}>
                         <View>
-                            <Text style={[styles.title, { color: colors.text }]}>{displayName}</Text>
+                            <Text style={[styles.title, { color: colors.text }]}>{name}</Text>
                             <Text style={[styles.subtitle, { color: colors.gray }]}>Edit name</Text>
                         </View>
                     </TouchableOpacity>

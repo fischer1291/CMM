@@ -1,5 +1,4 @@
 import { useFocusEffect } from '@react-navigation/native';
-import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -12,26 +11,18 @@ import {
   View
 } from 'react-native';
 import defaultAvatar from '../../assets/avatar-placeholder.png';
+import { useProfile } from '../../hooks/useProfile';
 import { useTheme } from '../../theme';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 
 export default function IndexScreen() {
   const [userPhone, setUserPhone] = useState<string | null>(null);
-  const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
-  const [codeRequested, setCodeRequested] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
-  const [name, setName] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
   const router = useRouter();
-
   const { colors } = useTheme();
 
-  // Dummy-Daten
-  const lastActive = 'vor 1 Tag';
-  const totalOnlineMinutes = 283; // später evtl. in Sekunden und formatieren
-  const onlineContactsCount = 4;
+  const { name, avatarUrl, reloadProfile } = useProfile(userPhone);
 
   useEffect(() => {
     const init = async () => {
@@ -45,9 +36,8 @@ export default function IndexScreen() {
         console.log("Phone:" + saved);
         setUserPhone(saved);
         fetchStatus(saved);
-        fetchProfile(saved);
       } else {
-        router.replace('/(auth)/onboarding') // oder /verify, je nachdem was du willst
+        router.replace('/(auth)/onboarding');
       }
     };
     init();
@@ -56,7 +46,7 @@ export default function IndexScreen() {
   useFocusEffect(
     useCallback(() => {
       if (userPhone) {
-        fetchProfile(userPhone);
+        reloadProfile();
       }
     }, [userPhone])
   );
@@ -68,19 +58,6 @@ export default function IndexScreen() {
       if (data?.isAvailable !== undefined) setIsAvailable(data.isAvailable);
     } catch (e) {
       console.error('❌ Fehler bei fetchStatus:', e);
-    }
-  };
-
-  const fetchProfile = async (phone: string) => {
-    try {
-      const res = await fetch(`${baseUrl}/me?phone=${encodeURIComponent(phone)}`);
-      const data = await res.json();
-      if (data.success) {
-        setName(data.user.name || '');
-        setAvatarUrl(data.user.avatarUrl || '');
-      }
-    } catch (e) {
-      console.error('❌ Fehler bei fetchProfile:', e);
     }
   };
 
@@ -98,67 +75,45 @@ export default function IndexScreen() {
     }
   };
 
-  const registerForPushNotificationsAsync = async (): Promise<string | null> => {
-    if (!Device.isDevice) return null;
-    const { status } = await Notifications.getPermissionsAsync();
-    if (status !== 'granted') return null;
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
-    return token;
-  };
-
   return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={[styles.greeting, { color: colors.text }]}>
-          Guten Tag, {name || 'du'} 👋
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.greeting, { color: colors.text }]}>Guten Tag, {name || 'du'} 👋</Text>
+
+      <View style={{ alignItems: 'center', padding: 20 }}>
+        <Image
+          source={{ uri: avatarUrl || defaultAvatar }}
+          style={{ width: 100, height: 100, borderRadius: 50 }}
+        />
+        <Text style={{ fontSize: 16, color: colors.gray, padding: 10 }}>{userPhone}</Text>
+      </View>
+
+      <View style={styles.statusRow}>
+        <Text style={[styles.statusLabel, { color: colors.text }]}> 
+          {isAvailable ? '✅ Du bist erreichbar' : '❌ Du bist nicht erreichbar'}
         </Text>
+        <Switch
+          value={isAvailable}
+          onValueChange={toggleStatus}
+          trackColor={{ false: colors.border, true: colors.success }}
+          thumbColor="#fff"
+        />
+      </View>
 
-        <View style={{ alignItems: 'center', padding: 20 }}>
-          <Image
-              source={{ uri: avatarUrl || defaultAvatar }}
-              style={{ width: 100, height: 100, borderRadius: 50 }}
-          />
-          <Text style={{ fontSize: 16, color: colors.gray, padding:10 }}>{userPhone}</Text>
+      <View style={styles.cardRow}>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <Text style={[styles.cardLabel, { color: colors.gray }]}>Zuletzt erreichbar</Text>
+          <Text style={[styles.cardValue, { color: colors.text }]}>vor 1 Tag</Text>
         </View>
-
-        <View style={styles.statusRow}>
-          <Text style={[styles.statusLabel, { color: colors.text }]}>
-            {isAvailable ? '✅ Du bist erreichbar' : '❌ Du bist nicht erreichbar'}
-          </Text>
-          <Switch
-              value={isAvailable}
-              onValueChange={toggleStatus}
-              trackColor={{ false: colors.border, true: colors.success }}
-              thumbColor="#fff"
-          />
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <Text style={[styles.cardLabel, { color: colors.gray }]}>Gesamtzeit erreichbar</Text>
+          <Text style={[styles.cardValue, { color: colors.text }]}>283 min</Text>
         </View>
-
-        <View style={styles.cardRow}>
-          <View style={[styles.card, { backgroundColor: colors.card }]}>
-            <Text style={[styles.cardLabel, { color: colors.gray }]}>
-              Zuletzt erreichbar
-            </Text>
-            <Text style={[styles.cardValue, { color: colors.text }]}>
-              {lastActive}
-            </Text>
-          </View>
-          <View style={[styles.card, { backgroundColor: colors.card }]}>
-            <Text style={[styles.cardLabel, { color: colors.gray }]}>
-              Gesamtzeit erreichbar
-            </Text>
-            <Text style={[styles.cardValue, { color: colors.text }]}>
-              {totalOnlineMinutes} min
-            </Text>
-          </View>
-          <View style={[styles.card, { backgroundColor: colors.card }]}>
-            <Text style={[styles.cardLabel, { color: colors.gray }]}>
-              Erreichbare Kontakte
-            </Text>
-            <Text style={[styles.cardValue, { color: colors.text }]}>
-              {onlineContactsCount}
-            </Text>
-          </View>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <Text style={[styles.cardLabel, { color: colors.gray }]}>Erreichbare Kontakte</Text>
+          <Text style={[styles.cardValue, { color: colors.text }]}>4</Text>
         </View>
       </View>
+    </View>
   );
 }
 
