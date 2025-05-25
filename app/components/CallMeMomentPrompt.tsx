@@ -26,12 +26,21 @@ const CallMeMomentPrompt = ({
     if (!phone || !selectedMood) return;
     setPending(true);
     try {
+      // Schritt 1: Moment aktivieren
       await fetch('https://cmm-backend-gdqx.onrender.com/moment/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, mood: selectedMood }),
       });
-      onClose(true); // 👉 signalisiere dem IndexScreen, dass reload nötig ist
+
+      // Schritt 2: isAvailable auf true setzen (zur Sicherheit)
+      await fetch('https://cmm-backend-gdqx.onrender.com/status/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, isAvailable: true }),
+      });
+
+      onClose(true); // signalisiere Index.tsx, dass Reload nötig ist
     } catch (err) {
       console.error('❌ Fehler beim Bestätigen des Moments:', err);
       onClose(false);

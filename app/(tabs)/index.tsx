@@ -35,7 +35,6 @@ export default function IndexScreen() {
   } = useProfile(userPhone);
   const { formatted: countdown, remaining } = useCountdown(momentActiveUntil);
 
-  // Initialisierung: Nutzer laden
   useEffect(() => {
     const init = async () => {
       const { status } = await Notifications.getPermissionsAsync();
@@ -55,7 +54,6 @@ export default function IndexScreen() {
     init();
   }, []);
 
-  // Push-Listener: Prompt anzeigen
   useEffect(() => {
     const handleTrigger = () => setShowPrompt(true);
 
@@ -77,7 +75,6 @@ export default function IndexScreen() {
     };
   }, []);
 
-  // Wenn View aktiv: Status neu laden
   useFocusEffect(
     useCallback(() => {
       if (userPhone) {
@@ -128,14 +125,19 @@ export default function IndexScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {showPrompt && userPhone && (
-        <CallMeMomentPrompt
-          phone={userPhone}
-          onClose={(shouldReload) => {
-            setShowPrompt(false);
-            if (shouldReload) reloadProfile(); // ✅ Profil nach Bestätigung neu laden
-          }}
-        />
-      )}
+  <CallMeMomentPrompt
+    phone={userPhone}
+    onClose={(shouldReload) => {
+      setShowPrompt(false);
+      reloadProfile();
+        fetchStatus(userPhone);
+      if (shouldReload && userPhone) {
+        reloadProfile();
+        fetchStatus(userPhone);
+      }
+    }}
+  />
+)}
 
       <Text style={[styles.greeting, { color: colors.text }]}>
         Guten Tag, {name || 'du'} 👋
@@ -162,10 +164,9 @@ export default function IndexScreen() {
       </View>
 
       {momentActiveUntil && remaining > 0 && (
-        <View style={{ marginTop: 12, alignItems: 'center' }}>
-          <Text style={{ color: colors.primary, fontWeight: '600' }}>
-            ⏳ Call Me Moment aktiv – {countdown} min
-          </Text>
+        <View style={[styles.timerCard, { backgroundColor: colors.card, borderColor: colors.primary }]}>
+          <Text style={[styles.timerTitle, { color: colors.primary }]}>⏳ Call Me Moment aktiv</Text>
+          <Text style={[styles.timerValue, { color: colors.text }]}>{countdown} Minuten verbleibend</Text>
         </View>
       )}
 
@@ -189,16 +190,7 @@ export default function IndexScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   greeting: { fontSize: 20, fontWeight: '600', marginBottom: 10 },
-  label: { marginTop: 20, fontWeight: '600', fontSize: 16 },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 10,
-    fontSize: 16,
-  },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -213,6 +205,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  timerCard: {
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  timerTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  timerValue: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
   cardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -220,7 +228,7 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    padding: 12,
+    padding: 14,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOpacity: 0.05,
