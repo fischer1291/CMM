@@ -11,10 +11,13 @@ import {
   View
 } from 'react-native';
 import defaultAvatar from '../../assets/avatar-placeholder.png';
+import { useCountdown } from '../../hooks/useCountdown';
 import { useProfile } from '../../hooks/useProfile';
 import { useTheme } from '../../theme';
+import CallMeMomentPrompt from '../components/CallMeMomentPrompt';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
+
 
 export default function IndexScreen() {
   const [userPhone, setUserPhone] = useState<string | null>(null);
@@ -22,7 +25,9 @@ export default function IndexScreen() {
   const router = useRouter();
   const { colors } = useTheme();
 
-  const { name, avatarUrl, lastOnline, reloadProfile } = useProfile(userPhone);
+  const { name, avatarUrl, momentActiveUntil, lastOnline, reloadProfile } = useProfile(userPhone);
+  const { formatted: countdown, remaining } = useCountdown(momentActiveUntil);
+  {userPhone && <CallMeMomentPrompt phone={userPhone} />}
 
   useEffect(() => {
     const init = async () => {
@@ -80,7 +85,6 @@ export default function IndexScreen() {
 
   const formatLastOnline = () => {
     if (isAvailable) return 'Jetzt';
-    console.log("last online: "+lastOnline);
     if (!lastOnline) return '–';
     const date = new Date(lastOnline);
     return date.toLocaleString('de-DE', {
@@ -93,6 +97,8 @@ export default function IndexScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <CallMeMomentPrompt />
+
       <Text style={[styles.greeting, { color: colors.text }]}>Guten Tag, {name || 'du'} 👋</Text>
 
       <View style={{ alignItems: 'center', padding: 20 }}>
@@ -114,6 +120,14 @@ export default function IndexScreen() {
           thumbColor="#fff"
         />
       </View>
+
+      {momentActiveUntil && remaining > 0 && (
+        <View style={{ marginTop: 12, alignItems: 'center' }}>
+          <Text style={{ color: colors.primary, fontWeight: '600' }}>
+            ⏳ Call Me Moment aktiv – {countdown} min
+          </Text>
+        </View>
+      )}
 
       <View style={styles.cardRow}>
         <View style={[styles.card, { backgroundColor: colors.card }]}>

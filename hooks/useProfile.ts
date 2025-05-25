@@ -9,6 +9,7 @@ export const useProfile = (phone: string | null) => {
   const [lastOnline, setLastOnline] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [momentActiveUntil, setMomentActiveUntil] = useState<string | null>(null);
 
   const loadProfile = useCallback(() => {
     if (!phone) return;
@@ -20,7 +21,7 @@ export const useProfile = (phone: string | null) => {
           setName(data.user.name || '');
           setAvatarUrl(data.user.avatarUrl || '');
           setLastOnline(data.user.lastOnline || '');
-          console.log("useprofile: "+lastOnline);
+          setMomentActiveUntil(data.user.momentActiveUntil || null);
         } else {
           setError('Profil konnte nicht geladen werden');
         }
@@ -37,6 +38,7 @@ export const useProfile = (phone: string | null) => {
     name,
     avatarUrl,
     lastOnline,
+    momentActiveUntil,
     loading,
     error,
     setName,
