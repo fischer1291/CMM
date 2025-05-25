@@ -1,15 +1,15 @@
+import * as Contacts from 'expo-contacts';
 import React, { useEffect, useState } from 'react';
 import {
-    View,
+    Image,
+    Linking,
+    SectionList,
+    StyleSheet,
     Text,
     TextInput,
-    SectionList,
     TouchableOpacity,
-    StyleSheet,
-    Linking,
-    Image
+    View
 } from 'react-native';
-import * as Contacts from 'expo-contacts';
 import { io } from 'socket.io-client';
 import { useTheme } from '../../theme';
 
@@ -56,6 +56,7 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                     phone: p,
                     name: phoneNameMap[p] || p,
                     isAvailable: match ? match.isAvailable : null,
+                    lastOnline: match?.lastOnline || null,
                     avatarUrl: null // Optional: später durch Kontakte-API erweitern
                 };
             });
@@ -76,7 +77,9 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
         socket.on('statusUpdate', (payload: { phone: string; isAvailable: boolean }) => {
             setContacts((prev) =>
                 prev.map((c) =>
-                    c.phone === payload.phone ? { ...c, isAvailable: payload.isAvailable } : c
+                    c.phone === payload.phone
+                        ? { ...c, isAvailable: payload.isAvailable, lastOnline: new Date().toISOString() }
+                        : c
                 )
             );
         });
@@ -146,11 +149,25 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                                     }}
                                 >
                                     {item.isAvailable === true
-                                        ? 'Available'
+                                        ? '🟢 Erreichbar'
                                         : item.isAvailable === false
-                                            ? 'Not Available'
-                                            : 'Not Registered'}
+                                            ? item.lastOnline
+                                                ? `Zuletzt erreichbar: ${new Date(item.lastOnline).toLocaleString('de-DE', {
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}`
+                                                : '❌ Nicht erreichbar'
+                                            : 'Nicht registriert – jetzt einladen'}
                                 </Text>
+                                {item.isAvailable === null && (
+                                    <TouchableOpacity onPress={() => Linking.openURL(`sms:${item.phone}?body=Hey! Lade dir die Call Me Maybe App runter. Bin da erreichbar!`)}>
+                                        <Text style={{ color: colors.primary, fontSize: 14, marginTop: 4 }}>
+                                            📩 Einladung senden
+                                        </Text>
+                                    </TouchableOpacity>
+                                )}
                             </View>
                         </View>
                     </TouchableOpacity>

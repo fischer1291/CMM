@@ -22,7 +22,7 @@ export default function IndexScreen() {
   const router = useRouter();
   const { colors } = useTheme();
 
-  const { name, avatarUrl, reloadProfile } = useProfile(userPhone);
+  const { name, avatarUrl, lastOnline, reloadProfile } = useProfile(userPhone);
 
   useEffect(() => {
     const init = async () => {
@@ -33,9 +33,9 @@ export default function IndexScreen() {
 
       const saved = await SecureStore.getItemAsync('userPhone');
       if (saved) {
-        console.log("Phone:" + saved);
         setUserPhone(saved);
-        fetchStatus(saved);
+        await fetchStatus(saved);
+        reloadProfile();
       } else {
         router.replace('/(auth)/onboarding');
       }
@@ -47,6 +47,7 @@ export default function IndexScreen() {
     useCallback(() => {
       if (userPhone) {
         reloadProfile();
+        fetchStatus(userPhone);
       }
     }, [userPhone])
   );
@@ -70,9 +71,24 @@ export default function IndexScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: userPhone, isAvailable: newStatus }),
       });
+      await fetchStatus(userPhone!);
+      reloadProfile();
     } catch (e) {
       console.error('❌ Fehler beim Status setzen:', e);
     }
+  };
+
+  const formatLastOnline = () => {
+    if (isAvailable) return 'Jetzt';
+    console.log("last online: "+lastOnline);
+    if (!lastOnline) return '–';
+    const date = new Date(lastOnline);
+    return date.toLocaleString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
@@ -102,7 +118,7 @@ export default function IndexScreen() {
       <View style={styles.cardRow}>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Text style={[styles.cardLabel, { color: colors.gray }]}>Zuletzt erreichbar</Text>
-          <Text style={[styles.cardValue, { color: colors.text }]}>vor 1 Tag</Text>
+          <Text style={[styles.cardValue, { color: colors.text }]}>{formatLastOnline()}</Text>
         </View>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <Text style={[styles.cardLabel, { color: colors.gray }]}>Gesamtzeit erreichbar</Text>
