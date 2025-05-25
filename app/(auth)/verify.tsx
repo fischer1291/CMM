@@ -1,14 +1,16 @@
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Button,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Button,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme';
@@ -24,6 +26,23 @@ export default function VerifyScreen() {
   const [code, setCode] = useState('');
   const [codeRequested, setCodeRequested] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const registerForPushNotificationsAsync = async (): Promise<string | null> => {
+    if (!Device.isDevice) return null;
+
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') return null;
+
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    return token;
+  };
 
   const startVerification = async () => {
     if (!phone.startsWith('+')) {
@@ -72,18 +91,24 @@ export default function VerifyScreen() {
       const data = await res.json();
 
       if (data.success) {
-        // Registrierung im Backend
+        // 🔐 PushToken holen
+        const pushToken = await registerForPushNotificationsAsync();
+
+        // ✅ Registrierung im Backend mit optionalem pushToken
         await fetch(`${baseUrl}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone }),
+          body: JSON.stringify({
+            phone,
+            ...(pushToken ? { pushToken } : {}),
+          }),
         });
 
-        // Persistieren und Auth-Flow aktivieren
+        // 📲 Persistieren und Weiterleitung
         await SecureStore.setItemAsync('userPhone', phone);
         setUserPhone(phone);
         router.replace('/');
-        console.log('✅ Registrierung abgeschlossen – Phone:', phone);
+        console.log('✅ Registrierung abgeschlossen – Phone:', phone, 'PushToken:', pushToken);
       } else {
         Alert.alert('Fehler', data.error || 'Code ungültig');
       }
