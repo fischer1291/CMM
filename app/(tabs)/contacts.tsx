@@ -1,3 +1,4 @@
+import { useNavigation } from '@react-navigation/native';
 import * as Contacts from 'expo-contacts';
 import React, { useEffect, useState } from 'react';
 import {
@@ -12,7 +13,10 @@ import {
     View
 } from 'react-native';
 import { io } from 'socket.io-client';
+import { useAuth } from '../../contexts/AuthContext';
+import { useCall } from '../../contexts/CallContext';
 import { useTheme } from '../../theme';
+import IncomingCallModal from '../components/IncomingCallModal';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 const socket = io(baseUrl, { transports: ['websocket'], secure: true });
@@ -21,10 +25,36 @@ function normalizePhone(num: string) {
     return num.replace(/\s+/g, '').replace(/[^+\d]/g, '').replace(/^00/, '+');
 }
 
-export default function ContactsScreen({ userPhone }: { userPhone: string }) {
+export default function ContactsScreen() {
+    const { userPhone, isLoading } = useAuth();
+    const { incomingCall, callerPhoneNumber, acceptCall, declineCall } = useCall();
+    const navigation = useNavigation();
     const [contacts, setContacts] = useState<any[]>([]);
     const [query, setQuery] = useState('');
     const { colors } = useTheme();
+
+    const handleStartVideoCall = (calleePhone: string) => {
+        const callerPhone = userPhone;
+        console.log('userPhone Logging for VideoCall: ' + callerPhone);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const raw = `${callerPhone || 'unknown'}_${calleePhone}_${timestamp}`;
+        const shortHash = Math.abs(raw.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)).toString(36).slice(0, 10);
+        const channel = `call_${shortHash}`;
+
+        // Anruf-Ereignis an den Callee senden
+        socket.emit('callRequest', {
+            from: callerPhone,
+            to: calleePhone,
+        });
+
+        // Navigation zum VideoCall-Screen
+        // @ts-ignore
+        navigation.navigate('videocall', {
+            channel,
+            userPhone: callerPhone,
+            targetPhone: calleePhone,
+        });
+    };
 
     const fetchContacts = async () => {
         const { status } = await Contacts.requestPermissionsAsync();
@@ -67,9 +97,19 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
             console.log('Fehler beim Abgleich:', err);
         }
     };
+    
+    const handleAcceptCall = () => {
+        acceptCall(navigation);
+    };
+
+    const handleDeclineCall = () => {
+        declineCall();
+    };
 
     useEffect(() => {
-        fetchContacts();
+        if (!isLoading && userPhone) {
+            fetchContacts();
+        }
 
         socket.on('connect', () => {
             console.log('✅ WebSocket verbunden');
@@ -89,8 +129,8 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
             socket.off('statusUpdate');
             socket.disconnect();
         };
-    }, []);
-
+    }, [userPhone, isLoading]);
+    
     const filtered = contacts.filter((c) =>
         c.name.toLowerCase().includes(query.toLowerCase())
     );
@@ -124,6 +164,12 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
         );
     };
 
+    if (isLoading) {
+        return <Text>Lade...</Text>;
+    }
+    if (!userPhone) {
+        return <Text>Fehler: Kein Benutzer eingeloggt.</Text>;
+    }
     return (
         <View style={[styles.container, { backgroundColor: colors.background }]}>
             <TextInput
@@ -185,6 +231,9 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                                     <TouchableOpacity onPress={() => handleWhatsAppChat(item.phone)}>
                                         <Text style={{ fontSize: 22 }}>💬</Text>
                                     </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => handleStartVideoCall(item.phone)}>
+                                        <Text style={{ fontSize: 22 }}>📲</Text>
+                                    </TouchableOpacity>
                                 </View>
                             )}
 
@@ -206,6 +255,12 @@ export default function ContactsScreen({ userPhone }: { userPhone: string }) {
                         )}
                     </View>
                 )}
+            />
+            <IncomingCallModal
+                visible={incomingCall}
+                callerPhone={callerPhoneNumber || ''}
+                onAccept={() => acceptCall(navigation)}
+                onDecline={handleDeclineCall}
             />
         </View>
     );

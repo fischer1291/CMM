@@ -16,6 +16,8 @@
         "NSContactsUsageDescription": "Diese App benötigt Zugriff auf deine Kontakte, um dir anzuzeigen, wer bereits registriert ist.",
         "NSUserTrackingUsageDescription": "Diese App verwendet Benachrichtigungen, um dich über den Status deiner Kontakte zu informieren.",
         "NSPhotoLibraryUsageDescription": "Diese App benötigt Zugriff auf deine Bilder, um ein Profilbild auszuwählen.",
+        "NSCameraUsageDescription": "Diese App benötigt Zugriff auf die Kamera für Videoanrufe.",
+        "NSMicrophoneUsageDescription": "Diese App benötigt Zugriff auf das Mikrofon für Anrufe.",
         "UIBackgroundModes": [
           "remote-notification",
           "remote-notification"
