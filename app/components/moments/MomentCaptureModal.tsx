@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from 'react';
 import {
+    Alert,
     Image,
     Modal,
     StyleSheet,
@@ -30,18 +31,45 @@ export default function MomentCaptureModal({
   const [text, setText] = useState('');
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-    });
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Kamera-Berechtigung benötigt',
+          'Um ein Foto aufzunehmen, benötigen wir Zugriff auf deine Kamera. Bitte erlaube den Zugriff in den Einstellungen.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
 
-    if (!result.canceled && result.assets.length > 0) {
-      setImageUri(result.assets[0].uri);
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        setImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      Alert.alert(
+        'Fehler',
+        'Die Kamera konnte nicht geöffnet werden. Bitte versuche es erneut.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
   const handleUpload = () => {
+    if (!imageUri) {
+      Alert.alert(
+        'Foto erforderlich',
+        'Bitte nimm erst ein Foto auf, bevor du deinen Moment teilst.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
     if (imageUri && mood) {
       onUpload({ image: imageUri, mood, text });
       reset();

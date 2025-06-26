@@ -1,7 +1,9 @@
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import * as Contacts from 'expo-contacts';
 import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
     Image,
     Linking,
     Platform,
@@ -12,14 +14,10 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { io } from 'socket.io-client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCall } from '../../contexts/CallContext';
 import { useTheme } from '../../theme';
 import IncomingCallModal from '../components/IncomingCallModal';
-
-const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
-const socket = io(baseUrl, { transports: ['websocket'], secure: true });
 
 function normalizePhone(num: string) {
     return num.replace(/\s+/g, '').replace(/[^+\d]/g, '').replace(/^00/, '+');
@@ -27,38 +25,31 @@ function normalizePhone(num: string) {
 
 export default function ContactsScreen() {
     const { userPhone, isLoading } = useAuth();
-    const { incomingCall, callerPhoneNumber, acceptCall, declineCall } = useCall();
-    const navigation = useNavigation();
+    const { incomingCall, callerPhoneNumber, acceptCall, declineCall, startVideoCall, onStatusUpdate } = useCall();
+    const router = useRouter();
     const [contacts, setContacts] = useState<any[]>([]);
     const [query, setQuery] = useState('');
+    const [isLoadingContacts, setIsLoadingContacts] = useState(false);
     const { colors } = useTheme();
 
     const handleStartVideoCall = (calleePhone: string) => {
-        const callerPhone = userPhone;
-        console.log('userPhone Logging for VideoCall: ' + callerPhone);
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const raw = `${callerPhone || 'unknown'}_${calleePhone}_${timestamp}`;
-        const shortHash = Math.abs(raw.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)).toString(36).slice(0, 10);
-        const channel = `call_${shortHash}`;
-
-        // Anruf-Ereignis an den Callee senden
-        socket.emit('callRequest', {
-            from: callerPhone,
-            to: calleePhone,
-        });
-
-        // Navigation zum VideoCall-Screen
-        // @ts-ignore
-        navigation.navigate('videocall', {
-            channel,
-            userPhone: callerPhone,
-            targetPhone: calleePhone,
-        });
+        if (!userPhone || !startVideoCall) return;
+        startVideoCall(calleePhone, userPhone);
     };
 
     const fetchContacts = async () => {
+        setIsLoadingContacts(true);
+        
         const { status } = await Contacts.requestPermissionsAsync();
-        if (status !== 'granted') return;
+        if (status !== 'granted') {
+            setIsLoadingContacts(false);
+            Alert.alert(
+                'Kontakt-Berechtigung benötigt',
+                'Um deine Kontakte anzuzeigen, benötigen wir Zugriff auf deine Kontakte. Bitte erlaube den Zugriff in den Einstellungen.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
 
         const { data } = await Contacts.getContactsAsync({ fields: [Contacts.Fields.PhoneNumbers] });
         const phoneNameMap: Record<string, string> = {};
@@ -73,13 +64,16 @@ export default function ContactsScreen() {
         const phones = Object.keys(phoneNameMap);
 
         try {
-            const res = await fetch(`${baseUrl}/contacts/match`, {
+            const res = await fetch('https://cmm-backend-gdqx.onrender.com/contacts/match', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ phones }),
             });
             const result = await res.json();
-            if (!result.success) return;
+            if (!result.success) {
+                setIsLoadingContacts(false);
+                return;
+            }
 
             const all = phones.map((p) => {
                 const match = result.matched.find((m: any) => m.phone === p);
@@ -94,12 +88,18 @@ export default function ContactsScreen() {
 
             setContacts(all);
         } catch (err) {
-            console.log('Fehler beim Abgleich:', err);
+            Alert.alert(
+                'Verbindungsfehler',
+                'Kontakte konnten nicht geladen werden. Bitte prüfe deine Internetverbindung und versuche es erneut.',
+                [{ text: 'OK' }]
+            );
+        } finally {
+            setIsLoadingContacts(false);
         }
     };
     
     const handleAcceptCall = () => {
-        acceptCall(navigation);
+        acceptCall();
     };
 
     const handleDeclineCall = () => {
@@ -111,25 +111,21 @@ export default function ContactsScreen() {
             fetchContacts();
         }
 
-        socket.on('connect', () => {
-            console.log('✅ WebSocket verbunden');
-        });
+        // Set up status update listener
+        if (onStatusUpdate) {
+            const cleanup = onStatusUpdate((phone: string, isAvailable: boolean) => {
+                setContacts((prev) =>
+                    prev.map((c) =>
+                        c.phone === phone
+                            ? { ...c, isAvailable, lastOnline: new Date().toISOString() }
+                            : c
+                    )
+                );
+            });
 
-        socket.on('statusUpdate', (payload: { phone: string; isAvailable: boolean }) => {
-            setContacts((prev) =>
-                prev.map((c) =>
-                    c.phone === payload.phone
-                        ? { ...c, isAvailable: payload.isAvailable, lastOnline: new Date().toISOString() }
-                        : c
-                )
-            );
-        });
-
-        return () => {
-            socket.off('statusUpdate');
-            socket.disconnect();
-        };
-    }, [userPhone, isLoading]);
+            return cleanup;
+        }
+    }, [userPhone, isLoading, onStatusUpdate]);
     
     const filtered = contacts.filter((c) =>
         c.name.toLowerCase().includes(query.toLowerCase())
@@ -151,16 +147,30 @@ export default function ContactsScreen() {
 
     const handleFaceTimeCall = (phone: string) => {
         if (Platform.OS === 'ios') {
-            Linking.openURL(`facetime://${phone}`);
+            Linking.openURL(`facetime://${phone}`).catch(() => 
+                Alert.alert(
+                    'FaceTime-Fehler',
+                    'FaceTime konnte nicht geöffnet werden. Stelle sicher, dass FaceTime installiert und aktiviert ist.',
+                    [{ text: 'OK' }]
+                )
+            );
         } else {
-            alert('FaceTime wird nur auf iOS unterstützt.');
+            Alert.alert(
+                'Nicht verfügbar',
+                'FaceTime ist nur auf iOS-Geräten verfügbar.',
+                [{ text: 'OK' }]
+            );
         }
     };
 
     const handleWhatsAppChat = (phone: string) => {
         const cleanedPhone = phone.replace('+', '');
         Linking.openURL(`https://wa.me/${cleanedPhone}?text=Hast du Lust auf einen Videoanruf?`).catch(() =>
-            alert('WhatsApp nicht installiert oder Nummer ungültig.')
+            Alert.alert(
+                'WhatsApp-Fehler',
+                'WhatsApp konnte nicht geöffnet werden. Stelle sicher, dass WhatsApp installiert ist und die Nummer gültig ist.',
+                [{ text: 'OK' }]
+            )
         );
     };
 
@@ -180,7 +190,13 @@ export default function ContactsScreen() {
                 onChangeText={setQuery}
             />
 
-            <SectionList
+            {isLoadingContacts ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={colors.primary} />
+                    <Text style={[styles.loadingText, { color: colors.text }]}>Kontakte werden geladen...</Text>
+                </View>
+            ) : (
+                <SectionList
                 sections={sections}
                 keyExtractor={(item) => item.phone}
                 renderItem={({ item }) => (
@@ -238,7 +254,15 @@ export default function ContactsScreen() {
                             )}
 
                             {item.isAvailable === null && (
-                                <TouchableOpacity onPress={() => Linking.openURL(`sms:${item.phone}?body=Hey! Lade dir die Call Me Maybe App runter. Bin da erreichbar!`)}>
+                                <TouchableOpacity onPress={() => 
+                                    Linking.openURL(`sms:${item.phone}?body=Hey! Lade dir die Call Me Maybe App runter. Bin da erreichbar!`).catch(() =>
+                                        Alert.alert(
+                                            'SMS-Fehler',
+                                            'SMS konnte nicht geöffnet werden. Überprüfe, ob SMS auf deinem Gerät verfügbar ist.',
+                                            [{ text: 'OK' }]
+                                        )
+                                    )
+                                }>
                                     <Text style={{ color: colors.primary, fontSize: 14, marginTop: 4 }}>
                                         📩 Einladung senden
                                     </Text>
@@ -255,11 +279,12 @@ export default function ContactsScreen() {
                         )}
                     </View>
                 )}
-            />
+                />
+            )}
             <IncomingCallModal
                 visible={incomingCall}
                 callerPhone={callerPhoneNumber || ''}
-                onAccept={() => acceptCall(navigation)}
+                onAccept={() => acceptCall()}
                 onDecline={handleDeclineCall}
             />
         </View>
@@ -305,5 +330,14 @@ const styles = StyleSheet.create({
     name: {
         fontSize: 16,
         fontWeight: '600',
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 20,
+    },
+    loadingText: {
+        fontSize: 16,
     },
 });

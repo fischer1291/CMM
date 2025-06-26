@@ -8,10 +8,11 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-  screenOptions={({ route }) => {
+      screenOptions={({ route }) => {
     const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
       index: 'person-circle',
       contacts: 'people',
+      callmoments: 'camera',
       settings: 'settings',
       videocall: 'videocam', // 🔧 neues Icon
     };
@@ -33,11 +34,12 @@ export default function TabsLayout() {
       },
     };
   }}
->
-  <Tabs.Screen name="index" options={{ title: 'Status' }} />
-  <Tabs.Screen name="contacts" options={{ title: 'Kontakte' }} />
-  <Tabs.Screen name="settings" options={{ title: 'Einstellungen' }} />
-  <Tabs.Screen name="videocall" options={{ title: 'Video' }} /> {/* ✅ NEU */}
-</Tabs>
+    >
+      <Tabs.Screen name="index" options={{ title: 'Status' }} />
+      <Tabs.Screen name="contacts" options={{ title: 'Kontakte' }} />
+      <Tabs.Screen name="callmoments" options={{ title: 'CallMoments' }} />
+      <Tabs.Screen name="settings" options={{ title: 'Einstellungen' }} />
+      <Tabs.Screen name="videocall" options={{ title: 'Video' }} />
+    </Tabs>
   );
 }

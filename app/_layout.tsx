@@ -1,6 +1,7 @@
 // app/_layout.tsx
 import { Stack, useNavigation } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { CallProvider, useCall } from '../contexts/CallContext';
 import IncomingCallModal from './components/IncomingCallModal';
@@ -30,7 +31,7 @@ function InnerLayout() {
       <IncomingCallModal
         visible={incomingCall}
         callerPhone={callerPhoneNumber || 'Unbekannt'}
-        onAccept={() => acceptCall(navigation)}
+        onAccept={() => acceptCall()}
         onDecline={declineCall}
       />
     </>
@@ -39,10 +40,12 @@ function InnerLayout() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <CallProvider>
-        <InnerLayout />
-      </CallProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <CallProvider>
+          <InnerLayout />
+        </CallProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
