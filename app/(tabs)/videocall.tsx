@@ -26,12 +26,13 @@ import ViewShot from 'react-native-view-shot';
 import { useAuth } from '../../contexts/AuthContext';
 import { useCall } from '../../contexts/CallContext';
 import CallMomentCaptureModal from '../components/callmoments/CallMomentCaptureModal';
+import { resolveContact } from '../../utils/contactResolver';
 
 const APP_ID = '28a507f76f1a400ba047aa629af4b81d';
 
 export default function VideoCallScreen() {
   const router = useRouter();
-  const { userPhone: authUserPhone } = useAuth();
+  const { userPhone: authUserPhone, userProfile } = useAuth();
   const { emitCallEnded, onCallEnded } = useCall();
   const rawParams = useLocalSearchParams();
   const channel = Array.isArray(rawParams.channel) ? rawParams.channel[0] : rawParams.channel;
@@ -423,10 +424,27 @@ export default function VideoCallScreen() {
     }
   };
 
+  // Create user profiles map for contact resolution
+  const createUserProfilesMap = () => {
+    const profilesMap = new Map();
+    if (authUserPhone && userProfile?.name) {
+      profilesMap.set(authUserPhone, userProfile);
+    }
+    return profilesMap;
+  };
+
+  // Helper function to resolve contact information
+  const getContactInfo = (phone: string) => {
+    const userProfilesMap = createUserProfilesMap();
+    
+    return resolveContact(phone, {
+      userProfiles: userProfilesMap,
+      fallbackToFormatted: true,
+    });
+  };
+
   const getContactName = (phone: string) => {
-    // For now, return the phone number
-    // In a real app, you'd fetch this from contacts
-    return phone || 'Unbekannt';
+    return getContactInfo(phone).name;
   };
 
   return (

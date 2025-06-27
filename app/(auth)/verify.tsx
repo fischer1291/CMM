@@ -107,7 +107,23 @@ export default function VerifyScreen() {
         // 📲 Persistieren und Weiterleitung
         await SecureStore.setItemAsync('userPhone', phone);
         setUserPhone(phone);
-        router.replace('/');
+        
+        // Check if user needs to set up profile
+        try {
+          const profileResponse = await fetch(`${baseUrl}/me?phone=${encodeURIComponent(phone)}`);
+          const profileData = await profileResponse.json();
+          
+          // If user has no name set, redirect to profile setup
+          if (!profileData.success || !profileData.user?.name) {
+            router.replace('/(auth)/profile-setup');
+          } else {
+            router.replace('/');
+          }
+        } catch (error) {
+          // On error, assume profile setup is needed
+          router.replace('/(auth)/profile-setup');
+        }
+        
         console.log('✅ Registrierung abgeschlossen – Phone:', phone, 'PushToken:', pushToken);
       } else {
         Alert.alert('Fehler', data.error || 'Code ungültig');

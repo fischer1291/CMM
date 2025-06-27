@@ -9,31 +9,31 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={({ route }) => {
-    const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
-      index: 'person-circle',
-      contacts: 'people',
-      callmoments: 'camera',
-      settings: 'settings',
-      videocall: 'videocam', // 🔧 neues Icon
-    };
+        const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
+          index: 'person-circle',
+          contacts: 'people',
+          callmoments: 'camera',
+          settings: 'settings',
+          videocall: 'videocam',
+        };
 
-    return {
-      tabBarIcon: ({ color, size }) => (
-        <Ionicons name={icons[route.name] || 'ellipse'} size={size} color={color} />
-      ),
-      tabBarActiveTintColor: colors.primary,
-      tabBarInactiveTintColor: colors.gray,
-      headerTitleAlign: 'center',
-      headerTitleStyle: {
-        fontFamily: fonts.semibold,
-        fontSize: 20,
-        color: colors.text,
-      },
-      headerStyle: {
-        backgroundColor: colors.background,
-      },
-    };
-  }}
+        return {
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name={icons[route.name] || 'ellipse'} size={size} color={color} />
+          ),
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.gray,
+          headerTitleAlign: 'center',
+          headerTitleStyle: {
+            fontFamily: fonts.semibold,
+            fontSize: 20,
+            color: colors.text,
+          },
+          headerStyle: {
+            backgroundColor: colors.background,
+          },
+        };
+      }}
     >
       <Tabs.Screen name="index" options={{ title: 'Status' }} />
       <Tabs.Screen name="contacts" options={{ title: 'Kontakte' }} />

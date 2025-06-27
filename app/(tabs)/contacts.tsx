@@ -1,12 +1,12 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import * as Contacts from 'expo-contacts';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     Image,
     Linking,
-    Platform,
     SectionList,
     StyleSheet,
     Text,
@@ -18,13 +18,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useCall } from '../../contexts/CallContext';
 import { useTheme } from '../../theme';
 import IncomingCallModal from '../components/IncomingCallModal';
-
-function normalizePhone(num: string) {
-    return num.replace(/\s+/g, '').replace(/[^+\d]/g, '').replace(/^00/, '+');
-}
+import { normalizePhone, resolveContact, generateAvatarUrl } from '../../utils/contactResolver';
 
 export default function ContactsScreen() {
-    const { userPhone, isLoading } = useAuth();
+    const { userPhone, isLoading, userProfile } = useAuth();
     const { incomingCall, callerPhoneNumber, acceptCall, declineCall, startVideoCall, onStatusUpdate } = useCall();
     const router = useRouter();
     const [contacts, setContacts] = useState<any[]>([]);
@@ -75,14 +72,82 @@ export default function ContactsScreen() {
                 return;
             }
 
+            // Create user profiles map for contact resolution
+            const userProfilesMap = new Map();
+            if (userPhone && userProfile?.name) {
+                userProfilesMap.set(userPhone, userProfile);
+            }
+
+            // Fetch profile data ONLY for registered users (matched users)
+            const matchedPhones = result.matched.map((m: any) => m.phone);
+            if (matchedPhones.length > 0) {
+                try {
+                    const profilePromises = matchedPhones.map(async (phone: string) => {
+                        try {
+                            const response = await fetch(`https://cmm-backend-gdqx.onrender.com/me?phone=${encodeURIComponent(phone)}`);
+                            const data = await response.json();
+                            if (data.success && data.user && data.user.name) {
+                                return {
+                                    phone,
+                                    profile: {
+                                        name: data.user.name,
+                                        avatarUrl: data.user.avatarUrl || '',
+                                        lastOnline: data.user.lastOnline || '',
+                                        momentActiveUntil: data.user.momentActiveUntil || null,
+                                    }
+                                };
+                            }
+                        } catch (error) {
+                            console.log(`Could not fetch profile for ${phone}:`, error);
+                        }
+                        return null;
+                    });
+
+                    const profileResults = await Promise.all(profilePromises);
+                    profileResults.forEach((result) => {
+                        if (result) {
+                            userProfilesMap.set(result.phone, result.profile);
+                        }
+                    });
+                } catch (profileError) {
+                    console.log('Could not fetch profile data for contacts:', profileError);
+                    // Continue without profile data - will fall back to device contacts
+                }
+            }
+
+            // Create device contacts map
+            const deviceContactsMap = new Map(Object.entries(phoneNameMap));
+
+            // Include ALL contacts (registered and unregistered)
             const all = phones.map((p) => {
                 const match = result.matched.find((m: any) => m.phone === p);
+                
+                // For UNREGISTERED users: Only use device contacts, no profile fetching
+                if (!match) {
+                    return {
+                        phone: p,
+                        name: phoneNameMap[p] || p, // Use device contact name directly
+                        isAvailable: null,
+                        lastOnline: null,
+                        avatarUrl: null, // No custom avatar for unregistered users
+                        contactSource: 'device_contact'
+                    };
+                }
+                
+                // For REGISTERED users: Use full contact resolution with profiles
+                const contactInfo = resolveContact(p, {
+                    userProfiles: userProfilesMap,
+                    deviceContacts: deviceContactsMap,
+                    fallbackToFormatted: true,
+                });
+                
                 return {
                     phone: p,
-                    name: phoneNameMap[p] || p,
-                    isAvailable: match ? match.isAvailable : null,
-                    lastOnline: match?.lastOnline || null,
-                    avatarUrl: null
+                    name: contactInfo.name,
+                    isAvailable: match.isAvailable,
+                    lastOnline: match.lastOnline || null,
+                    avatarUrl: contactInfo.avatarUrl || null,
+                    contactSource: contactInfo.source
                 };
             });
 
@@ -125,7 +190,16 @@ export default function ContactsScreen() {
 
             return cleanup;
         }
-    }, [userPhone, isLoading, onStatusUpdate]);
+    }, [userPhone, isLoading, userProfile, onStatusUpdate]);
+
+    // Refresh contacts when tab comes into focus (e.g., after editing profile in settings)
+    useFocusEffect(
+        useCallback(() => {
+            if (!isLoading && userPhone) {
+                fetchContacts();
+            }
+        }, [userPhone, isLoading, userProfile])
+    );
     
     const filtered = contacts.filter((c) =>
         c.name.toLowerCase().includes(query.toLowerCase())
@@ -141,38 +215,6 @@ export default function ContactsScreen() {
         { title: '⚪️ Nicht registriert', data: unregistered, empty: 'Alle deine Kontakte sind registriert 🎉' },
     ];
 
-    const handleCall = (phone: string) => {
-        Linking.openURL(`tel:${phone}`);
-    };
-
-    const handleFaceTimeCall = (phone: string) => {
-        if (Platform.OS === 'ios') {
-            Linking.openURL(`facetime://${phone}`).catch(() => 
-                Alert.alert(
-                    'FaceTime-Fehler',
-                    'FaceTime konnte nicht geöffnet werden. Stelle sicher, dass FaceTime installiert und aktiviert ist.',
-                    [{ text: 'OK' }]
-                )
-            );
-        } else {
-            Alert.alert(
-                'Nicht verfügbar',
-                'FaceTime ist nur auf iOS-Geräten verfügbar.',
-                [{ text: 'OK' }]
-            );
-        }
-    };
-
-    const handleWhatsAppChat = (phone: string) => {
-        const cleanedPhone = phone.replace('+', '');
-        Linking.openURL(`https://wa.me/${cleanedPhone}?text=Hast du Lust auf einen Videoanruf?`).catch(() =>
-            Alert.alert(
-                'WhatsApp-Fehler',
-                'WhatsApp konnte nicht geöffnet werden. Stelle sicher, dass WhatsApp installiert ist und die Nummer gültig ist.',
-                [{ text: 'OK' }]
-            )
-        );
-    };
 
     if (isLoading) {
         return <Text>Lade...</Text>;
@@ -202,10 +244,10 @@ export default function ContactsScreen() {
                 renderItem={({ item }) => (
                     <View style={[styles.card, { backgroundColor: colors.card }]}>
                         <Image
-                            source={{
-                                uri:
-                                    item.avatarUrl ||
-                                    `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name)}&background=cccccc&color=ffffff&rounded=true&size=64`,
+                            source={{ 
+                                uri: item.isAvailable === null 
+                                    ? generateAvatarUrl(item.name) 
+                                    : generateAvatarUrl(item.name, item.avatarUrl)
                             }}
                             style={[styles.avatar, { backgroundColor: colors.muted }]}
                         />
@@ -237,33 +279,44 @@ export default function ContactsScreen() {
                             </Text>
 
                             {item.isAvailable === true && (
-                                <View style={{ flexDirection: 'row', marginTop: 8, gap: 12 }}>
-                                    <TouchableOpacity onPress={() => handleCall(item.phone)}>
-                                        <Text style={{ fontSize: 22 }}>📞</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => handleFaceTimeCall(item.phone)}>
-                                        <Text style={{ fontSize: 22 }}>📹</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => handleWhatsAppChat(item.phone)}>
-                                        <Text style={{ fontSize: 22 }}>💬</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => handleStartVideoCall(item.phone)}>
-                                        <Text style={{ fontSize: 22 }}>📲</Text>
-                                    </TouchableOpacity>
-                                </View>
+                                <TouchableOpacity 
+                                    onPress={() => handleStartVideoCall(item.phone)}
+                                    style={{
+                                        backgroundColor: colors.primary,
+                                        paddingHorizontal: 16,
+                                        paddingVertical: 8,
+                                        borderRadius: 20,
+                                        marginTop: 8,
+                                        alignSelf: 'flex-start'
+                                    }}
+                                >
+                                    <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '600' }}>
+                                        📲 Videoanruf starten
+                                    </Text>
+                                </TouchableOpacity>
                             )}
 
                             {item.isAvailable === null && (
-                                <TouchableOpacity onPress={() => 
-                                    Linking.openURL(`sms:${item.phone}?body=Hey! Lade dir die Call Me Maybe App runter. Bin da erreichbar!`).catch(() =>
-                                        Alert.alert(
-                                            'SMS-Fehler',
-                                            'SMS konnte nicht geöffnet werden. Überprüfe, ob SMS auf deinem Gerät verfügbar ist.',
-                                            [{ text: 'OK' }]
+                                <TouchableOpacity 
+                                    onPress={() => 
+                                        Linking.openURL(`sms:${item.phone}?body=Hey! Lade dir die Call Me Maybe App runter. Bin da erreichbar!`).catch(() =>
+                                            Alert.alert(
+                                                'SMS-Fehler',
+                                                'SMS konnte nicht geöffnet werden. Überprüfe, ob SMS auf deinem Gerät verfügbar ist.',
+                                                [{ text: 'OK' }]
+                                            )
                                         )
-                                    )
-                                }>
-                                    <Text style={{ color: colors.primary, fontSize: 14, marginTop: 4 }}>
+                                    }
+                                    style={{
+                                        backgroundColor: colors.border,
+                                        paddingHorizontal: 16,
+                                        paddingVertical: 8,
+                                        borderRadius: 20,
+                                        marginTop: 8,
+                                        alignSelf: 'flex-start'
+                                    }}
+                                >
+                                    <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>
                                         📩 Einladung senden
                                     </Text>
                                 </TouchableOpacity>

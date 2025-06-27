@@ -6,6 +6,7 @@ export default function AuthLayout() {
     <Stack initialRouteName="onboarding" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="verify" />
+      <Stack.Screen name="profile-setup" />
     </Stack>
   );
 }

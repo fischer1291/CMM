@@ -14,22 +14,13 @@ import {
     View,
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { useProfile } from '../../hooks/useProfile';
 import { useTheme } from '../../theme';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 
 export default function SettingsScreen() {
     const { colors } = useTheme();
-    const { setUserPhone, userPhone } = useAuth();
-
-    const {
-        avatarUrl,
-        name,
-        setAvatarUrl,
-        setName,
-        reloadProfile
-    } = useProfile(userPhone || '');
+    const { setUserPhone, userPhone, userProfile, updateUserProfile, reloadProfile } = useAuth();
 
     const [modalVisible, setModalVisible] = useState(false);
     const [newName, setNewName] = useState('');
@@ -49,32 +40,130 @@ export default function SettingsScreen() {
     const updateProfile = async (updates: Partial<{ name: string; avatarUrl: string }>) => {
         if (!userPhone) return;
         try {
-            await fetch(`${baseUrl}/me/update`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: userPhone, ...updates }),
-            });
-            await reloadProfile();
+            await updateUserProfile(updates);
         } catch (e) {
             console.error('❌ Fehler beim Aktualisieren des Profils:', e);
+            Alert.alert('Fehler', 'Profil konnte nicht aktualisiert werden. Bitte versuche es erneut.');
         }
     };
 
-    const pickImage = async () => {
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            quality: 0.7,
-        });
+    const uploadImage = async (imageUri: string): Promise<string | null> => {
+        try {
+            const formData = new FormData();
+            formData.append('avatar', {
+                uri: imageUri,
+                type: 'image/jpeg',
+                name: 'avatar.jpg',
+            } as any);
+            
+            // Add phone number to the request
+            if (userPhone) {
+                formData.append('phone', userPhone);
+            }
 
-        if (!result.canceled) {
+            const response = await fetch('https://cmm-backend-gdqx.onrender.com/upload/avatar', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            const responseText = await response.text();
+            
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                throw new Error(`Server error ${response.status}: ${responseText}`);
+            }
+            
+            if (data.success && data.avatarUrl) {
+                return data.avatarUrl;
+            } else {
+                throw new Error(`Upload failed: ${data.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            return null;
+        }
+    };
+
+    const showImagePickerOptions = () => {
+        Alert.alert(
+            'Profilbild auswählen',
+            'Wie möchtest du dein Profilbild hinzufügen?',
+            [
+                { text: 'Abbrechen', style: 'cancel' },
+                { text: 'Foto aufnehmen', onPress: () => pickImageFromCamera() },
+                { text: 'Aus Galerie wählen', onPress: () => pickImageFromLibrary() },
+            ]
+        );
+    };
+
+    const pickImageFromCamera = async () => {
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        
+        if (permissionResult.granted === false) {
+            Alert.alert('Berechtigung erforderlich', 'Wir benötigen Kamera-Zugriff um ein Foto aufzunehmen.');
+            return;
+        }
+
+        try {
+            const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.7,
+            });
+            
+            await handleImageResult(result);
+        } catch (error) {
+            console.error('Camera error:', error);
+            Alert.alert('Fehler', 'Foto konnte nicht aufgenommen werden.');
+        }
+    };
+
+    const pickImageFromLibrary = async () => {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        
+        if (permissionResult.granted === false) {
+            Alert.alert('Berechtigung erforderlich', 'Wir benötigen Zugriff auf deine Fotobibliothek.');
+            return;
+        }
+        
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                allowsEditing: true,
+                quality: 0.7,
+                aspect: [1, 1],
+            });
+            
+            await handleImageResult(result);
+        } catch (error) {
+            console.error('Image picker error:', error);
+            Alert.alert('Fehler', 'Bildauswahl fehlgeschlagen.');
+        }
+    };
+
+    const handleImageResult = async (result: any) => {
+        if (!result.canceled && result.assets && result.assets[0]) {
             const uri = result.assets[0].uri;
-            await updateProfile({ avatarUrl: uri });
+            
+            // Upload to Cloudinary first, then update profile
+            const cloudinaryUrl = await uploadImage(uri);
+            if (cloudinaryUrl) {
+                await updateProfile({ avatarUrl: cloudinaryUrl });
+            } else {
+                Alert.alert('Fehler', 'Profilbild konnte nicht hochgeladen werden.');
+            }
         }
     };
+
+    // Keep the old function name for compatibility
+    const pickImage = showImagePickerOptions;
 
     const openNameModal = () => {
-        setNewName(name);
+        setNewName(userProfile?.name || '');
         setModalVisible(true);
     };
 
@@ -111,19 +200,26 @@ export default function SettingsScreen() {
             <View style={styles.section}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Profile</Text>
                 <View style={styles.row}>
-                    <TouchableOpacity onPress={pickImage}>
+                    <TouchableOpacity 
+                        onPress={pickImage}
+                        style={styles.avatarContainer}
+                        activeOpacity={0.7}
+                    >
                         <Image
                             source={{
                                 uri:
-                                    avatarUrl ||
+                                    userProfile?.avatarUrl ||
                                     'https://ui-avatars.com/api/?name=You&background=cccccc&color=ffffff&rounded=true&size=64',
                             }}
                             style={styles.avatar}
                         />
+                        <View style={styles.editIconContainer}>
+                            <Text style={styles.editIcon}>✏️</Text>
+                        </View>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={openNameModal}>
                         <View>
-                            <Text style={[styles.title, { color: colors.text }]}>{name}</Text>
+                            <Text style={[styles.title, { color: colors.text }]}>{userProfile?.name || 'Unnamed User'}</Text>
                             <Text style={[styles.subtitle, { color: colors.gray }]}>Edit name</Text>
                         </View>
                     </TouchableOpacity>
@@ -213,11 +309,30 @@ const styles = StyleSheet.create({
     subtitle: {
         fontSize: 14,
     },
+    avatarContainer: {
+        position: 'relative',
+        marginRight: 12,
+    },
     avatar: {
         width: 56,
         height: 56,
         borderRadius: 28,
-        marginRight: 12,
+    },
+    editIconContainer: {
+        position: 'absolute',
+        bottom: -2,
+        right: -2,
+        backgroundColor: '#007AFF',
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#ffffff',
+    },
+    editIcon: {
+        fontSize: 10,
     },
     logoutButton: {
         borderRadius: 24,

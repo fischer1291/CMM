@@ -10,7 +10,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../theme';
+import { resolveContact } from '../../../utils/contactResolver';
 
 const moods = ['😊', '😐', '😔', '🤣', '😍', '🥰', '😎', '🤔', '😴', '🥳', '😇', '🤪'];
 
@@ -47,8 +49,39 @@ export default function CallMomentCaptureModal({
     callDuration: string;
 }) {
     const { colors } = useTheme();
+    const { userPhone: authUserPhone, userProfile } = useAuth();
     const [mood, setMood] = useState<string>('😊');
     const [note, setNote] = useState('');
+
+    // Create user profiles map for contact resolution
+    const createUserProfilesMap = () => {
+        const profilesMap = new Map();
+        if (authUserPhone && userProfile?.name) {
+            profilesMap.set(authUserPhone, userProfile);
+        }
+        return profilesMap;
+    };
+
+    // Helper function to resolve contact information
+    const getContactInfo = (phone: string, fallbackName?: string) => {
+        const userProfilesMap = createUserProfilesMap();
+        
+        // If we have a fallback name that's different from phone, create a mock profile
+        if (fallbackName && fallbackName !== phone) {
+            const mockProfile = {
+                name: fallbackName,
+                avatarUrl: '',
+                lastOnline: '',
+                momentActiveUntil: null,
+            };
+            userProfilesMap.set(phone, mockProfile);
+        }
+        
+        return resolveContact(phone, {
+            userProfiles: userProfilesMap,
+            fallbackToFormatted: true,
+        });
+    };
 
     const handlePost = () => {
         if (!screenshotUri) {
@@ -95,7 +128,7 @@ export default function CallMomentCaptureModal({
                                 <Image source={{ uri: screenshotUri }} style={styles.screenshot} />
                                 <View style={[styles.overlay_info, { backgroundColor: colors.background + 'CC' }]}>
                                     <Text style={[styles.callInfo, { color: colors.text }]}>
-                                        📞 {callDuration} • {targetName}
+                                        📞 {callDuration} • {getContactInfo(targetPhone, targetName).name}
                                     </Text>
                                 </View>
                             </View>

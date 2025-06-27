@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import defaultAvatar from '../../assets/avatar-placeholder.png';
+import { useAuth } from '../../contexts/AuthContext';
 import { useCountdown } from '../../hooks/useCountdown';
 import { useProfile } from '../../hooks/useProfile';
 import { useTheme } from '../../theme';
@@ -25,6 +26,7 @@ export default function IndexScreen() {
 
   const router = useRouter();
   const { colors } = useTheme();
+  const { userPhone: authUserPhone, userProfile } = useAuth();
 
   const {
     name,
@@ -140,15 +142,22 @@ export default function IndexScreen() {
 )}
 
       <Text style={[styles.greeting, { color: colors.text }]}>
-        Guten Tag, {name || 'du'} 👋
+        Guten Tag, {userProfile?.name || name || 'du'} 👋
       </Text>
 
       <View style={{ alignItems: 'center', padding: 20 }}>
         <Image
-          source={{ uri: avatarUrl || defaultAvatar }}
+          source={{ uri: (userProfile?.avatarUrl || avatarUrl) || defaultAvatar }}
           style={{ width: 100, height: 100, borderRadius: 50 }}
         />
-        <Text style={{ fontSize: 16, color: colors.gray, padding: 10 }}>{userPhone}</Text>
+        <Text style={{ fontSize: 18, color: colors.text, padding: 10, fontWeight: '600' }}>
+          {userProfile?.name || name || 'Unbekannt'}
+        </Text>
+        {(userProfile?.name || name) && (
+          <Text style={{ fontSize: 14, color: colors.gray, paddingBottom: 10 }}>
+            {authUserPhone || userPhone}
+          </Text>
+        )}
       </View>
 
       <View style={styles.statusRow}>
