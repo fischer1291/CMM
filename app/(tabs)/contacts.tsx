@@ -1,5 +1,4 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useRouter } from 'expo-router';
 import * as Contacts from 'expo-contacts';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -15,15 +14,13 @@ import {
     View
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
-import { useCall } from '../../contexts/CallContext';
+import { useNewCall } from '../../contexts/NewCallContext';
 import { useTheme } from '../../theme';
-import IncomingCallModal from '../components/IncomingCallModal';
 import { normalizePhone, resolveContact, generateAvatarUrl } from '../../utils/contactResolver';
 
 export default function ContactsScreen() {
     const { userPhone, isLoading, userProfile } = useAuth();
-    const { incomingCall, callerPhoneNumber, acceptCall, declineCall, startVideoCall, onStatusUpdate } = useCall();
-    const router = useRouter();
+    const { startVideoCall } = useNewCall();
     const [contacts, setContacts] = useState<any[]>([]);
     const [query, setQuery] = useState('');
     const [isLoadingContacts, setIsLoadingContacts] = useState(false);
@@ -152,7 +149,7 @@ export default function ContactsScreen() {
             });
 
             setContacts(all);
-        } catch (err) {
+        } catch {
             Alert.alert(
                 'Verbindungsfehler',
                 'Kontakte konnten nicht geladen werden. Bitte prüfe deine Internetverbindung und versuche es erneut.',
@@ -163,34 +160,12 @@ export default function ContactsScreen() {
         }
     };
     
-    const handleAcceptCall = () => {
-        acceptCall();
-    };
-
-    const handleDeclineCall = () => {
-        declineCall();
-    };
 
     useEffect(() => {
         if (!isLoading && userPhone) {
             fetchContacts();
         }
-
-        // Set up status update listener
-        if (onStatusUpdate) {
-            const cleanup = onStatusUpdate((phone: string, isAvailable: boolean) => {
-                setContacts((prev) =>
-                    prev.map((c) =>
-                        c.phone === phone
-                            ? { ...c, isAvailable, lastOnline: new Date().toISOString() }
-                            : c
-                    )
-                );
-            });
-
-            return cleanup;
-        }
-    }, [userPhone, isLoading, userProfile, onStatusUpdate]);
+    }, [userPhone, isLoading, userProfile]);
 
     // Refresh contacts when tab comes into focus (e.g., after editing profile in settings)
     useFocusEffect(
@@ -334,12 +309,6 @@ export default function ContactsScreen() {
                 )}
                 />
             )}
-            <IncomingCallModal
-                visible={incomingCall}
-                callerPhone={callerPhoneNumber || ''}
-                onAccept={() => acceptCall()}
-                onDecline={handleDeclineCall}
-            />
         </View>
     );
 }

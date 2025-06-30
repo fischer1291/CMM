@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Alert,
+    Animated,
+    Dimensions,
     Image,
+    Keyboard,
+    KeyboardAvoidingView,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -12,7 +17,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../theme';
-import { resolveContact } from '../../../utils/contactResolver';
+import { resolveContact, generateAvatarUrl, normalizePhone } from '../../../utils/contactResolver';
 
 const moods = ['😊', '😐', '😔', '🤣', '😍', '🥰', '😎', '🤔', '😴', '🥳', '😇', '🤪'];
 
@@ -25,6 +30,8 @@ interface CallMomentData {
     targetPhone: string;
     targetName: string;
     callDuration: string;
+    reactions: Array<{ emoji: string; count: number; userReacted: boolean }>;
+    totalReactions: number;
 }
 
 export default function CallMomentCaptureModal({
@@ -37,6 +44,7 @@ export default function CallMomentCaptureModal({
     targetPhone,
     targetName,
     callDuration,
+    userProfiles,
 }: {
     visible: boolean;
     onClose: () => void;
@@ -47,40 +55,55 @@ export default function CallMomentCaptureModal({
     targetPhone: string;
     targetName: string;
     callDuration: string;
+    userProfiles?: Map<string, any>;
 }) {
     const { colors } = useTheme();
     const { userPhone: authUserPhone, userProfile } = useAuth();
     const [mood, setMood] = useState<string>('😊');
     const [note, setNote] = useState('');
-
-    // Create user profiles map for contact resolution
-    const createUserProfilesMap = () => {
-        const profilesMap = new Map();
-        if (authUserPhone && userProfile?.name) {
-            profilesMap.set(authUserPhone, userProfile);
-        }
-        return profilesMap;
-    };
+    const [controlsVisible, setControlsVisible] = useState(true);
+    const [controlsOpacity] = useState(new Animated.Value(1));
+    const [keyboardHeight, setKeyboardHeight] = useState(0);
+    const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+    
+    const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
     // Helper function to resolve contact information
     const getContactInfo = (phone: string, fallbackName?: string) => {
-        const userProfilesMap = createUserProfilesMap();
+        const normalizedPhone = normalizePhone(phone);
         
-        // If we have a fallback name that's different from phone, create a mock profile
-        if (fallbackName && fallbackName !== phone) {
-            const mockProfile = {
-                name: fallbackName,
-                avatarUrl: '',
-                lastOnline: '',
-                momentActiveUntil: null,
-            };
-            userProfilesMap.set(phone, mockProfile);
+        // Start with passed user profiles or create empty map
+        const profilesMap = new Map(userProfiles || new Map());
+        
+        // Add current user's profile if available
+        if (authUserPhone && userProfile?.name) {
+            profilesMap.set(normalizePhone(authUserPhone), userProfile);
         }
         
-        return resolveContact(phone, {
-            userProfiles: userProfilesMap,
+        // Only add fallback profile if no real profile exists and fallback is meaningful
+        if (fallbackName && fallbackName !== phone && !profilesMap.has(normalizedPhone)) {
+            // Check if this looks like a real name vs a placeholder like "Kontakt 1888"
+            const isPlaceholderName = fallbackName.startsWith('Kontakt ');
+            
+            // Only create mock profile for non-placeholder names
+            if (!isPlaceholderName) {
+                const mockProfile = {
+                    name: fallbackName,
+                    avatarUrl: '',
+                    lastOnline: '',
+                    momentActiveUntil: null,
+                };
+                profilesMap.set(normalizedPhone, mockProfile);
+            }
+        }
+        
+        const resolved = resolveContact(normalizedPhone, {
+            userProfiles: profilesMap,
             fallbackToFormatted: true,
         });
+        
+        
+        return resolved;
     };
 
     const handlePost = () => {
@@ -102,6 +125,8 @@ export default function CallMomentCaptureModal({
             targetPhone,
             targetName,
             callDuration,
+            reactions: [], // Start with no reactions
+            totalReactions: 0,
         };
 
         onPost(callMomentData);
@@ -114,203 +139,400 @@ export default function CallMomentCaptureModal({
         onClose();
     };
 
-    return (
-        <Modal visible={visible} transparent animationType="slide">
-            <View style={styles.overlay}>
-                <View style={[styles.modal, { backgroundColor: colors.card }]}>
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                        <Text style={[styles.title, { color: colors.text }]}>
-                            📸 CallMoment teilen
-                        </Text>
+    const toggleControls = () => {
+        const newVisible = !controlsVisible;
+        setControlsVisible(newVisible);
+        
+        Animated.timing(controlsOpacity, {
+            toValue: newVisible ? 1 : 0,
+            duration: 300,
+            useNativeDriver: true,
+        }).start();
+    };
 
-                        {screenshotUri ? (
-                            <View style={styles.screenshotContainer}>
-                                <Image source={{ uri: screenshotUri }} style={styles.screenshot} />
-                                <View style={[styles.overlay_info, { backgroundColor: colors.background + 'CC' }]}>
-                                    <Text style={[styles.callInfo, { color: colors.text }]}>
-                                        📞 {callDuration} • {getContactInfo(targetPhone, targetName).name}
-                                    </Text>
-                                </View>
-                            </View>
-                        ) : (
-                            <View style={[styles.screenshotPlaceholder, { backgroundColor: colors.muted }]}>
-                                <Text style={[styles.placeholderText, { color: colors.gray }]}>
-                                    Kein Screenshot verfügbar
+    const formatTimestamp = (timestamp: string) => {
+        const now = new Date();
+        const diffInMinutes = Math.floor((now.getTime() - new Date(timestamp).getTime()) / (1000 * 60));
+        return diffInMinutes < 1 ? 'Gerade eben' : `${diffInMinutes}m`;
+    };
+
+    // Keyboard handling
+    useEffect(() => {
+        const keyboardWillShowListener = Keyboard.addListener(
+            Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+            (e) => {
+                setKeyboardHeight(e.endCoordinates.height);
+                setIsKeyboardVisible(true);
+            }
+        );
+
+        const keyboardWillHideListener = Keyboard.addListener(
+            Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+            () => {
+                setKeyboardHeight(0);
+                setIsKeyboardVisible(false);
+            }
+        );
+
+        return () => {
+            keyboardWillShowListener.remove();
+            keyboardWillHideListener.remove();
+        };
+    }, []);
+
+    return (
+        <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+            <KeyboardAvoidingView 
+                style={styles.fullScreenContainer}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            >
+                {/* Full-screen background image */}
+                {screenshotUri && (
+                    <TouchableOpacity 
+                        style={styles.fullScreenImageContainer}
+                        activeOpacity={1}
+                        onPress={toggleControls}
+                    >
+                        <Image 
+                            source={{ uri: screenshotUri }} 
+                            style={[styles.fullScreenImage, { width: screenWidth, height: screenHeight }]}
+                            resizeMode="cover"
+                        />
+                        
+                        {/* Subtle gradients for overlay readability */}
+                        <View style={styles.topGradient} />
+                        <View style={styles.bottomGradient} />
+                    </TouchableOpacity>
+                )}
+
+                {/* Top overlay controls */}
+                <Animated.View 
+                    style={[
+                        styles.topOverlay,
+                        { opacity: controlsOpacity }
+                    ]}
+                >
+                    <View style={styles.topControls}>
+                        <View style={styles.userInfo}>
+                            <Image
+                                source={{
+                                    uri: generateAvatarUrl(
+                                        getContactInfo(userPhone, userName).name,
+                                        getContactInfo(userPhone, userName).avatarUrl
+                                    )
+                                }}
+                                style={styles.avatarSmall}
+                            />
+                            <View style={styles.userDetails}>
+                                <Text style={styles.userNameText}>
+                                    {getContactInfo(userPhone, userName).name}
+                                </Text>
+                                <Text style={styles.callInfoText}>
+                                    mit {getContactInfo(targetPhone, targetName).name} • {callDuration}
                                 </Text>
                             </View>
-                        )}
+                        </View>
+                        <View style={styles.topRightControls}>
+                            <Text style={styles.timeText}>{formatTimestamp(new Date().toISOString())}</Text>
+                            <Text style={styles.moodDisplay}>{mood}</Text>
+                        </View>
+                    </View>
+                </Animated.View>
 
-                        <Text style={[styles.sectionLabel, { color: colors.text }]}>
-                            Wie war der Anruf?
-                        </Text>
-                        <View style={styles.moodGrid}>
-                            {moods.map((m) => (
-                                <TouchableOpacity
-                                    key={m}
-                                    onPress={() => setMood(m)}
-                                    style={[
-                                        styles.moodButton,
-                                        {
-                                            backgroundColor: mood === m ? colors.primary : colors.border,
-                                            borderColor: mood === m ? colors.primary : colors.border,
-                                        }
-                                    ]}
-                                >
-                                    <Text style={styles.moodEmoji}>{m}</Text>
-                                </TouchableOpacity>
-                            ))}
+                {/* Bottom overlay controls */}
+                <Animated.View 
+                    style={[
+                        styles.bottomOverlay,
+                        { 
+                            opacity: controlsOpacity,
+                            bottom: isKeyboardVisible ? keyboardHeight : 0,
+                            paddingBottom: isKeyboardVisible ? 20 : 40
+                        }
+                    ]}
+                >
+                    {/* Note preview */}
+                    {note && (
+                        <View style={styles.notePreview}>
+                            <Text style={styles.notePreviewText}>{note}</Text>
+                        </View>
+                    )}
+                    
+                    {/* Control panel */}
+                    <View style={styles.controlPanel}>
+                        {/* Mood selector */}
+                        <View style={styles.moodSection}>
+                            <Text style={styles.controlLabel}>Stimmung:</Text>
+                            <ScrollView 
+                                horizontal 
+                                showsHorizontalScrollIndicator={false}
+                                style={styles.moodScrollView}
+                            >
+                                {moods.map((m) => (
+                                    <TouchableOpacity
+                                        key={m}
+                                        onPress={() => setMood(m)}
+                                        style={[
+                                            styles.moodButtonOverlay,
+                                            { 
+                                                backgroundColor: mood === m ? 'rgba(0,122,255,0.3)' : 'rgba(255,255,255,0.2)',
+                                                borderColor: mood === m ? '#007AFF' : 'rgba(255,255,255,0.3)'
+                                            }
+                                        ]}
+                                    >
+                                        <Text style={styles.moodEmojiOverlay}>{m}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
                         </View>
 
-                        <Text style={[styles.sectionLabel, { color: colors.text }]}>
-                            Notiz hinzufügen (optional)
-                        </Text>
-                        <TextInput
-                            placeholder="Was möchtest du über diesen Anruf teilen?"
-                            placeholderTextColor={colors.gray}
-                            style={[styles.noteInput, { borderColor: colors.border, color: colors.text }]}
-                            value={note}
-                            onChangeText={setNote}
-                            multiline
-                            maxLength={200}
-                        />
-                        <Text style={[styles.charCount, { color: colors.gray }]}>
-                            {note.length}/200
-                        </Text>
+                        {/* Note input */}
+                        <View style={styles.noteSection}>
+                            <Text style={styles.controlLabel}>Notiz:</Text>
+                            <TextInput
+                                placeholder="Was möchtest du teilen?"
+                                placeholderTextColor="rgba(255,255,255,0.7)"
+                                style={styles.noteInputOverlay}
+                                value={note}
+                                onChangeText={setNote}
+                                multiline
+                                maxLength={200}
+                            />
+                            <Text style={styles.charCountOverlay}>
+                                {note.length}/200
+                            </Text>
+                        </View>
 
-                        <View style={styles.buttonRow}>
+                        {/* Action buttons */}
+                        <View style={styles.actionButtons}>
                             <TouchableOpacity 
                                 onPress={reset}
-                                style={[styles.button, styles.cancelButton, { borderColor: colors.border }]}
+                                style={styles.cancelButtonOverlay}
                             >
-                                <Text style={[styles.buttonText, { color: colors.gray }]}>Abbrechen</Text>
+                                <Text style={styles.cancelButtonText}>Abbrechen</Text>
                             </TouchableOpacity>
                             <TouchableOpacity 
                                 onPress={handlePost}
-                                style={[styles.button, styles.postButton, { backgroundColor: colors.primary }]}
+                                style={styles.shareButtonOverlay}
                                 disabled={!screenshotUri}
                             >
-                                <Text style={[styles.buttonText, { color: '#fff' }]}>
-                                    CallMoment teilen
+                                <Text style={styles.shareButtonText}>
+                                    Teilen
                                 </Text>
                             </TouchableOpacity>
                         </View>
-                    </ScrollView>
-                </View>
-            </View>
+                    </View>
+                </Animated.View>
+            </KeyboardAvoidingView>
         </Modal>
     );
 }
 
 const styles = StyleSheet.create({
-    overlay: {
+    // Full-screen container
+    fullScreenContainer: {
         flex: 1,
-        backgroundColor: '#00000088',
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: '#000',
     },
-    modal: {
-        width: '90%',
-        maxHeight: '80%',
-        borderRadius: 20,
-        padding: 20,
-    },
-    title: {
-        fontSize: 20,
-        fontWeight: '700',
-        marginBottom: 20,
-        textAlign: 'center',
-    },
-    screenshotContainer: {
-        position: 'relative',
-        marginBottom: 20,
-    },
-    screenshot: {
-        width: '100%',
-        height: 200,
-        borderRadius: 12,
-        resizeMode: 'cover',
-    },
-    overlay_info: {
+    fullScreenImageContainer: {
         position: 'absolute',
-        bottom: 8,
-        left: 8,
-        right: 8,
-        borderRadius: 8,
-        padding: 8,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
     },
-    callInfo: {
-        fontSize: 14,
-        fontWeight: '600',
-        textAlign: 'center',
+    fullScreenImage: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
     },
-    screenshotPlaceholder: {
+    
+    // Gradients for overlay readability
+    topGradient: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 120,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+    },
+    bottomGradient: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
         height: 200,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 20,
+        backgroundColor: 'rgba(0,0,0,0.6)',
     },
-    placeholderText: {
-        fontSize: 16,
-        fontStyle: 'italic',
+    
+    // Top overlay
+    topOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        paddingTop: 50,
+        paddingHorizontal: 16,
+        zIndex: 10,
     },
-    sectionLabel: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 12,
-        marginTop: 8,
-    },
-    moodGrid: {
+    topControls: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         justifyContent: 'space-between',
-        marginBottom: 20,
-        gap: 8,
+        alignItems: 'flex-start',
     },
-    moodButton: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        justifyContent: 'center',
+    userInfo: {
+        flexDirection: 'row',
         alignItems: 'center',
-        borderWidth: 2,
+        flex: 1,
+        gap: 12,
     },
-    moodEmoji: {
+    avatarSmall: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: '#ffffff',
+    },
+    userDetails: {
+        flex: 1,
+    },
+    userNameText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#ffffff',
+        textShadowColor: 'rgba(0,0,0,0.7)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+    callInfoText: {
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.95)',
+        fontWeight: '500',
+        textShadowColor: 'rgba(0,0,0,0.7)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+    topRightControls: {
+        alignItems: 'flex-end',
+        gap: 4,
+    },
+    timeText: {
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.9)',
+        fontWeight: '600',
+        textShadowColor: 'rgba(0,0,0,0.7)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+    moodDisplay: {
         fontSize: 24,
     },
-    noteInput: {
-        borderWidth: 1,
+    
+    // Bottom overlay
+    bottomOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingHorizontal: 16,
+        paddingBottom: 40,
+        zIndex: 10,
+    },
+    notePreview: {
+        marginBottom: 16,
+        padding: 12,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 12,
+    },
+    notePreviewText: {
+        fontSize: 15,
+        color: '#ffffff',
+        lineHeight: 20,
+        textShadowColor: 'rgba(0,0,0,0.7)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+    },
+    controlPanel: {
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        borderRadius: 16,
+        padding: 16,
+        gap: 16,
+    },
+    
+    // Control sections
+    moodSection: {
+        gap: 8,
+    },
+    noteSection: {
+        gap: 8,
+    },
+    controlLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#ffffff',
+    },
+    moodScrollView: {
+        flexGrow: 0,
+    },
+    moodButtonOverlay: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
+        borderWidth: 1.5,
+    },
+    moodEmojiOverlay: {
+        fontSize: 20,
+    },
+    noteInputOverlay: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 12,
         padding: 12,
+        color: '#ffffff',
         fontSize: 16,
-        minHeight: 80,
-        textAlignVertical: 'top',
+        minHeight: 44,
+        maxHeight: 80,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
     },
-    charCount: {
+    charCountOverlay: {
         fontSize: 12,
+        color: 'rgba(255,255,255,0.7)',
         textAlign: 'right',
-        marginTop: 4,
-        marginBottom: 20,
     },
-    buttonRow: {
+    
+    // Action buttons
+    actionButtons: {
         flexDirection: 'row',
         gap: 12,
     },
-    button: {
+    cancelButtonOverlay: {
         flex: 1,
-        paddingVertical: 12,
-        paddingHorizontal: 20,
+        paddingVertical: 14,
+        paddingHorizontal: 24,
         borderRadius: 25,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.3)',
         alignItems: 'center',
     },
-    cancelButton: {
-        borderWidth: 1,
-    },
-    postButton: {
-        // backgroundColor set dynamically
-    },
-    buttonText: {
+    cancelButtonText: {
         fontSize: 16,
         fontWeight: '600',
+        color: '#ffffff',
+    },
+    shareButtonOverlay: {
+        flex: 1,
+        paddingVertical: 14,
+        paddingHorizontal: 24,
+        borderRadius: 25,
+        backgroundColor: '#007AFF',
+        alignItems: 'center',
+    },
+    shareButtonText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#ffffff',
     },
 });

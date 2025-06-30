@@ -1,6 +1,7 @@
 // contexts/AuthContext.tsx
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import PushTokenService from '../services/PushTokenService';
 
 export type UserProfile = {
   name: string;
@@ -127,8 +128,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Load stored phone number on startup
   useEffect(() => {
     SecureStore.getItemAsync('userPhone')
-      .then((stored) => {
+      .then(async (stored) => {
         setUserPhoneState(stored || null);
+        
+        // Only refresh push token if we don't have one stored
+        if (stored) {
+          const currentToken = PushTokenService.getPushToken();
+          if (!currentToken) {
+            console.log('🔄 No push token found, refreshing for standalone app...');
+            try {
+              await PushTokenService.refreshPushToken(stored);
+            } catch (error) {
+              console.log('Failed to refresh push token on startup:', error);
+            }
+          } else {
+            console.log('✅ Push token already exists, skipping refresh');
+          }
+        }
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -146,6 +162,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (phone) {
       await SecureStore.setItemAsync('userPhone', phone);
       setUserPhoneState(phone);
+      
+      // Register for push notifications when user logs in (standalone app)
+      try {
+        console.log('Registering push notifications for standalone app...');
+        const pushToken = await PushTokenService.registerForPushNotifications();
+        if (pushToken) {
+          console.log('Push token obtained, registering with backend...');
+          const success = await PushTokenService.registerPushToken(phone, pushToken);
+          if (success) {
+            console.log('✅ Push token registered successfully for standalone app');
+          } else {
+            console.log('❌ Failed to register push token with backend');
+          }
+        } else {
+          console.log('❌ Failed to obtain push token');
+        }
+      } catch (error) {
+        console.log('Failed to register push notifications:', error);
+      }
     } else {
       await SecureStore.deleteItemAsync('userPhone');
       setUserPhoneState(null);

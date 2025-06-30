@@ -8,6 +8,9 @@
       "developmentClient": true,
       "distribution": "internal",
       "channel": "development",
+      "env": {
+        "APP_VARIANT": "development"
+      },
       "cache": {
         "key": "dev-v1"
       }
@@ -15,6 +18,9 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
+      "env": {
+        "APP_VARIANT": "production"
+      },
       "cache": {
         "key": "preview-v1"
       }
@@ -22,8 +28,16 @@
     "production": {
       "autoIncrement": true,
       "channel": "production",
+      "env": {
+        "APP_VARIANT": "production"
+      },
       "cache": {
         "key": "prod-v1"
+      }
+    },
+    "manual-apk": {
+      "android": {
+        "buildType": "apk"
       }
     }
   },

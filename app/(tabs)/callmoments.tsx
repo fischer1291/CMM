@@ -17,6 +17,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme';
 import { resolveContact, generateAvatarUrl } from '../../utils/contactResolver';
 
+interface Reaction {
+    emoji: string;
+    count: number;
+    userReacted: boolean;
+}
+
 interface CallMoment {
     id: string;
     userPhone: string;
@@ -28,6 +34,8 @@ interface CallMoment {
     mood: string;
     callDuration: string;
     timestamp: string;
+    reactions: Reaction[];
+    totalReactions: number;
 }
 
 export default function CallMomentsScreen() {
@@ -41,14 +49,19 @@ export default function CallMomentsScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [userProfiles, setUserProfiles] = useState(new Map());
     
+    // Available reaction types
+    const availableReactions = ['❤️', '😂', '😮', '😢', '😍', '👏'];
+    
     // Calculate available height accounting for header and tab bar
     const headerHeight = 100; // Header height
     const tabBarHeight = 80; // Tab bar height
     const availableHeight = screenHeight - headerHeight - tabBarHeight;
 
     const fetchCallMoments = async () => {
+        if (!userPhone) return; // Don't fetch if no user logged in
+        
         try {
-            const response = await fetch('https://cmm-backend-gdqx.onrender.com/moment/callmoments', {
+            const response = await fetch(`https://cmm-backend-gdqx.onrender.com/moment/callmoments?userPhone=${encodeURIComponent(userPhone)}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -57,7 +70,12 @@ export default function CallMomentsScreen() {
 
             const result = await response.json();
             if (result.success) {
-                const moments = result.callMoments || [];
+                const moments = (result.callMoments || []).map((moment: any) => ({
+                    ...moment,
+                    reactions: moment.reactions || [],
+                    totalReactions: moment.totalReactions || 0
+                }));
+                
                 setCallMoments(moments);
                 
                 // Fetch profile data for all unique phone numbers in the call moments
@@ -135,8 +153,10 @@ export default function CallMomentsScreen() {
     };
 
     useEffect(() => {
-        fetchCallMoments();
-    }, []);
+        if (userPhone) {
+            fetchCallMoments();
+        }
+    }, [userPhone]);
 
     const onRefresh = useCallback(() => {
         setRefreshing(true);
@@ -181,6 +201,111 @@ export default function CallMomentsScreen() {
         });
     };
 
+    // Handle reaction toggle
+    const handleReactionToggle = async (momentId: string, emoji: string) => {
+        if (!userPhone) {
+            Alert.alert('Fehler', 'Du musst angemeldet sein, um zu reagieren.');
+            return;
+        }
+        
+        // Store original state for rollback
+        const originalMoments = [...callMoments];
+        
+        // Optimistic update
+        setCallMoments(prev => prev.map(moment => {
+            if ((moment as any)._id === momentId) {
+                const updatedReactions = moment.reactions.map(reaction => {
+                    if (reaction.emoji === emoji) {
+                        return {
+                            ...reaction,
+                            count: reaction.userReacted ? reaction.count - 1 : reaction.count + 1,
+                            userReacted: !reaction.userReacted
+                        };
+                    }
+                    return reaction;
+                });
+                
+                // If reaction doesn't exist, add it
+                const existingReaction = moment.reactions.find(r => r.emoji === emoji);
+                if (!existingReaction) {
+                    updatedReactions.push({
+                        emoji,
+                        count: 1,
+                        userReacted: true
+                    });
+                }
+                
+                const totalReactions = updatedReactions.reduce((sum, r) => sum + r.count, 0);
+                
+                return {
+                    ...moment,
+                    reactions: updatedReactions.filter(r => r.count > 0),
+                    totalReactions
+                };
+            }
+            return moment;
+        }));
+        
+        try {
+            const payload = {
+                momentId: momentId,
+                userPhone,
+                emoji
+            };
+            
+            const response = await fetch('https://cmm-backend-gdqx.onrender.com/moment/react', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            });
+            
+            const result = await response.json();
+            if (!result.success) {
+                // Rollback optimistic update
+                setCallMoments(originalMoments);
+                Alert.alert('Fehler', result.message || 'Reaktion konnte nicht gespeichert werden.');
+            } else {
+                // Update with server response to ensure consistency
+                setCallMoments(prev => prev.map(moment => {
+                    if ((moment as any)._id === momentId) {
+                        return {
+                            ...moment,
+                            reactions: result.reactions || [],
+                            totalReactions: result.totalReactions || 0
+                        };
+                    }
+                    return moment;
+                }));
+            }
+        } catch (error) {
+            // Rollback optimistic update on network error
+            setCallMoments(originalMoments);
+            console.error('Failed to toggle reaction:', error);
+            Alert.alert(
+                'Verbindungsfehler',
+                'Reaktion konnte nicht gespeichert werden. Bitte überprüfe deine Internetverbindung.',
+                [{ text: 'OK' }]
+            );
+        }
+    };
+
+    // Show reaction picker
+    const showReactionPicker = (momentId: string) => {
+        Alert.alert(
+            'Reaktion wählen',
+            'Tippe auf eine Reaktion oder wähle eine neue:',
+            [
+                { text: 'Abbrechen', style: 'cancel' },
+                ...availableReactions.map(emoji => ({
+                    text: `${emoji} ${emoji === '❤️' ? 'Liebe' : emoji === '😂' ? 'Lustig' : emoji === '😮' ? 'Wow' : emoji === '😢' ? 'Traurig' : emoji === '😍' ? 'Toll' : 'Applaus'}`,
+                    onPress: () => handleReactionToggle(momentId, emoji)
+                }))
+            ]
+        );
+    };
+
     const renderCallMoment = ({ item }: { item: CallMoment }) => (
         <View style={[styles.momentContainer, { height: availableHeight }]}>
             {/* Full-screen background image that fits properly */}
@@ -223,25 +348,78 @@ export default function CallMomentsScreen() {
 
             {/* Side action buttons */}
             <View style={styles.sideButtons}>
-                <TouchableOpacity style={styles.actionButton}>
-                    <Text style={styles.actionEmoji}>❤️</Text>
-                    <Text style={styles.actionCount}>24</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                    <Text style={styles.actionEmoji}>💬</Text>
-                    <Text style={styles.actionCount}>7</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                    <Text style={styles.actionEmoji}>📤</Text>
-                </TouchableOpacity>
+                {/* Smart reaction button */}
+                {(() => {
+                    // Find the most popular reaction, or default to heart
+                    const sortedReactions = [...(item.reactions || [])]
+                        .filter(r => r.count > 0)
+                        .sort((a, b) => b.count - a.count);
+                    
+                    const primaryReaction = sortedReactions.length > 0 
+                        ? sortedReactions[0] 
+                        : { emoji: '❤️', count: 0, userReacted: false };
+                    
+                    return (
+                        <TouchableOpacity 
+                            style={styles.actionButton}
+                            onPress={() => handleReactionToggle((item as any)._id, primaryReaction.emoji)}
+                            onLongPress={() => showReactionPicker((item as any)._id)}
+                            delayLongPress={500}
+                        >
+                            <Text style={[
+                                styles.actionEmoji, 
+                                primaryReaction.userReacted && styles.userReacted
+                            ]}>{primaryReaction.emoji}</Text>
+                            <Text style={styles.actionCount}>
+                                {item.totalReactions || 0}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })()}
             </View>
 
-            {/* Bottom note section */}
-            {item.note && (
-                <View style={styles.bottomSection}>
+            {/* Bottom section with reactions and note */}
+            <View style={styles.bottomSection}>
+                {/* Reactions display */}
+                {item.reactions && item.reactions.length > 0 && (
+                    <View style={styles.reactionsContainer}>
+                        {item.reactions
+                            .filter(r => r.count > 0)
+                            .sort((a, b) => b.count - a.count)
+                            .slice(0, 3) // Show top 3 reactions
+                            .map((reaction, index) => (
+                                <TouchableOpacity 
+                                    key={reaction.emoji}
+                                    style={[
+                                        styles.reactionPill,
+                                        reaction.userReacted && styles.userReactionPill
+                                    ]}
+                                    onPress={() => handleReactionToggle((item as any)._id, reaction.emoji)}
+                                >
+                                    <Text style={styles.reactionEmoji}>{reaction.emoji}</Text>
+                                    <Text style={[
+                                        styles.reactionCount,
+                                        reaction.userReacted && styles.userReactionCount
+                                    ]}>{reaction.count}</Text>
+                                </TouchableOpacity>
+                            ))
+                        }
+                        {item.reactions.filter(r => r.count > 0).length > 3 && (
+                            <TouchableOpacity 
+                                style={styles.moreReactions}
+                                onPress={() => showReactionPicker((item as any)._id)}
+                            >
+                                <Text style={styles.moreReactionsText}>+{item.reactions.filter(r => r.count > 0).length - 3}</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
+                
+                {/* Note text */}
+                {item.note && (
                     <Text style={styles.noteText}>{item.note}</Text>
-                </View>
-            )}
+                )}
+            </View>
         </View>
     );
 
@@ -275,7 +453,7 @@ export default function CallMomentsScreen() {
             <FlatList
                 data={callMoments}
                 renderItem={renderCallMoment}
-                keyExtractor={(item, index) => item.id || `callmoment-${index}`}
+                keyExtractor={(item, index) => (item as any)._id || `callmoment-${index}`}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -434,6 +612,12 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 2,
     },
+    userReacted: {
+        transform: [{ scale: 1.2 }],
+        textShadowColor: '#FFD700',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 8,
+    },
     
     // Bottom section
     bottomSection: {
@@ -442,6 +626,54 @@ const styles = StyleSheet.create({
         left: 16,
         right: 80, // Leave space for side buttons
         zIndex: 10,
+    },
+    reactionsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 12,
+    },
+    reactionPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 20,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        gap: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+    },
+    userReactionPill: {
+        backgroundColor: 'rgba(255,215,0,0.3)',
+        borderColor: '#FFD700',
+    },
+    reactionEmoji: {
+        fontSize: 16,
+    },
+    reactionCount: {
+        fontSize: 12,
+        color: '#ffffff',
+        fontWeight: '600',
+        textShadowColor: 'rgba(0,0,0,0.7)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+    },
+    userReactionCount: {
+        color: '#FFD700',
+    },
+    moreReactions: {
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 20,
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+    },
+    moreReactionsText: {
+        fontSize: 12,
+        color: '#ffffff',
+        fontWeight: '600',
     },
     noteText: {
         fontSize: 15,

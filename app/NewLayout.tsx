@@ -1,6 +1,6 @@
 /**
- * app/_layout.tsx - New simplified layout using clean call system
- * Replaces the complex old layout with professional implementation
+ * NewLayout - Simplified layout using new call system
+ * Replaces the complex _layout.tsx
  */
 import { Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
@@ -49,7 +49,7 @@ function InnerLayout() {
   );
 }
 
-export default function RootLayout() {
+export default function NewRootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>

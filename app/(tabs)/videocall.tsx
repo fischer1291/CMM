@@ -24,16 +24,17 @@ import {
 import Icon from 'react-native-vector-icons/Ionicons';
 import ViewShot from 'react-native-view-shot';
 import { useAuth } from '../../contexts/AuthContext';
-import { useCall } from '../../contexts/CallContext';
+import { useNewCall } from '../../contexts/NewCallContext';
 import CallMomentCaptureModal from '../components/callmoments/CallMomentCaptureModal';
-import { resolveContact } from '../../utils/contactResolver';
+import { resolveContact, normalizePhone } from '../../utils/contactResolver';
+import CallNotificationService from '../../services/CallNotificationService';
 
 const APP_ID = '28a507f76f1a400ba047aa629af4b81d';
 
 export default function VideoCallScreen() {
   const router = useRouter();
   const { userPhone: authUserPhone, userProfile } = useAuth();
-  const { emitCallEnded, onCallEnded } = useCall();
+  const { endCall } = useNewCall();
   const rawParams = useLocalSearchParams();
   const channel = Array.isArray(rawParams.channel) ? rawParams.channel[0] : rawParams.channel;
   let userPhone = Array.isArray(rawParams.userPhone) ? rawParams.userPhone[0] : rawParams.userPhone;
@@ -57,6 +58,7 @@ export default function VideoCallScreen() {
   const [capturedScreenshot, setCapturedScreenshot] = useState<string | null>(null);
   const [capturedScreenshotBase64, setCapturedScreenshotBase64] = useState<string | null>(null);
   const [showCallMomentModal, setShowCallMomentModal] = useState(false);
+  const [userProfiles, setUserProfiles] = useState<Map<string, any>>(new Map());
 
   const getQualityIcon = () => {
     switch (networkQuality) {
@@ -95,6 +97,13 @@ export default function VideoCallScreen() {
       setMicMuted(newMuted);
     }
   };
+
+  // Fetch user profiles when component mounts or users change
+  useEffect(() => {
+    if (authUserPhone && targetPhone) {
+      fetchUserProfiles();
+    }
+  }, [authUserPhone, targetPhone]);
 
   const switchCamera = () => {
     if (engineRef.current) {
@@ -184,7 +193,21 @@ export default function VideoCallScreen() {
   };
 
   useEffect(() => {
-    initializeEngine();
+    const setupCall = async () => {
+      // Stop any ringing when entering video call
+      try {
+        if (channel) {
+          console.log('🔇 Stopping call notifications for channel:', channel);
+          CallNotificationService.endCallByChannel(channel);
+        }
+      } catch (error) {
+        console.log('Error stopping call notifications:', error);
+      }
+
+      await initializeEngine();
+    };
+
+    setupCall();
 
     return () => {
       if (engineRef.current) {
@@ -194,36 +217,9 @@ export default function VideoCallScreen() {
         engineRef.current = null;
       }
     };
-  }, []); // Only run once on mount
+  }, [channel]); // Include channel as dependency
 
-  // Separate useEffect for socket listeners
-  useEffect(() => {
-    if (!onCallEnded || !channel) return;
-
-    const cleanup = onCallEnded(({ from, channel: endedChannel }) => {
-      // Only react if it's for the current call
-      if (endedChannel === channel) {
-        // Clean up call without notifying remote
-        if (engineRef.current) {
-          try {
-            engineRef.current.leaveChannel();
-            engineRef.current.stopPreview();
-          } catch (e) {
-            // Disconnect error - silent handling as call is ending anyway
-          }
-        }
-
-        setJoined(false);
-        setRemoteUid(null);
-        setLocalUid(null);
-
-        // Navigate back to contacts
-        router.replace('/(tabs)/contacts');
-      }
-    });
-
-    return cleanup;
-  }, [channel, router, onCallEnded]); // Re-run when channel changes
+  // Note: Call ending is now handled by the NewCallContext automatically
 
   // Timer useEffect
   useEffect(() => {
@@ -286,7 +282,17 @@ export default function VideoCallScreen() {
     }
   }, [channel, userPhone]);
 
-  const cleanupCall = (notifyRemote = false) => {
+  const cleanupCall = async (notifyRemote = false) => {
+    // Stop any call notifications
+    try {
+      if (channel) {
+        CallNotificationService.endCallByChannel(channel);
+        console.log('✅ Call service cleaned up for channel:', channel);
+      }
+    } catch (error) {
+      console.log('Call service cleanup error:', error);
+    }
+
     if (engineRef.current) {
       try {
         engineRef.current.leaveChannel();
@@ -298,11 +304,8 @@ export default function VideoCallScreen() {
     }
 
     // Notify other user that call has ended (only if we initiated the disconnect)
-    if (notifyRemote && channel && userPhone && targetPhone && emitCallEnded) {
-      // Ensure userPhone has + prefix for consistency
-      const normalizedUserPhone = userPhone.startsWith('+') ? userPhone : `+${userPhone}`;
-      
-      emitCallEnded(normalizedUserPhone, targetPhone, channel);
+    if (notifyRemote) {
+      endCall(); // Use the new call context to handle ending
     }
 
     setJoined(false);
@@ -424,20 +427,48 @@ export default function VideoCallScreen() {
     }
   };
 
+  // Fetch user profiles for both users
+  const fetchUserProfiles = async () => {
+    const profilesMap = new Map();
+    
+    // Add current user's profile if available
+    if (authUserPhone && userProfile?.name) {
+      profilesMap.set(normalizePhone(authUserPhone), userProfile);
+    }
+    
+    // Fetch target user's profile from backend
+    if (targetPhone) {
+      try {
+        const response = await fetch(`https://cmm-backend-gdqx.onrender.com/me?phone=${encodeURIComponent(targetPhone)}`);
+        const data = await response.json();
+        if (data.success && data.user && data.user.name) {
+          const targetProfile = {
+            name: data.user.name,
+            avatarUrl: data.user.avatarUrl || '',
+            lastOnline: data.user.lastOnline || '',
+            momentActiveUntil: data.user.momentActiveUntil || null,
+          };
+          profilesMap.set(normalizePhone(targetPhone), targetProfile);
+        }
+      } catch (error) {
+        console.log('Failed to fetch target user profile:', error);
+      }
+    }
+    
+    setUserProfiles(profilesMap);
+    return profilesMap;
+  };
+
   // Create user profiles map for contact resolution
   const createUserProfilesMap = () => {
-    const profilesMap = new Map();
-    if (authUserPhone && userProfile?.name) {
-      profilesMap.set(authUserPhone, userProfile);
-    }
-    return profilesMap;
+    return userProfiles;
   };
 
   // Helper function to resolve contact information
   const getContactInfo = (phone: string) => {
     const userProfilesMap = createUserProfilesMap();
     
-    return resolveContact(phone, {
+    return resolveContact(normalizePhone(phone), {
       userProfiles: userProfilesMap,
       fallbackToFormatted: true,
     });
@@ -529,6 +560,7 @@ export default function VideoCallScreen() {
         targetPhone={targetPhone || ''}
         targetName={getContactName(targetPhone || '')}
         callDuration={callDuration}
+        userProfiles={createUserProfilesMap()}
       />
     </SafeAreaView>
   );

@@ -1,0 +1,338 @@
+import { useRouter } from 'expo-router';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
+import { useAuth } from './AuthContext';
+import NotificationService from '../services/notificationService';
+import CallKeepService from '../services/callKeepServiceSimple';
+import EnhancedCallService from '../services/enhancedCallService';
+
+const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
+const socket = io(baseUrl, { transports: ['websocket'], secure: true });
+
+interface CallContextType {
+    incomingCall: boolean;
+    callerPhoneNumber: string | null;
+    incomingChannel: string | null;
+    acceptCall: () => void;
+    declineCall: () => void;
+    startVideoCall: (calleePhone: string, callerPhone: string) => void;
+    updateContactStatus: (phone: string, isAvailable: boolean) => void;
+    onStatusUpdate: (callback: (phone: string, isAvailable: boolean) => void) => () => void;
+    emitCallEnded: (from: string, to: string, channel: string) => void;
+    onCallEnded: (callback: (data: { from: string; channel: string }) => void) => () => void;
+}
+
+const CallContext = createContext<CallContextType | null>(null);
+
+export function CallProvider({ children }: { children: React.ReactNode }) {
+    const { userPhone, isLoading } = useAuth();
+    const router = useRouter();
+    const [incomingCall, setIncomingCall] = useState(false);
+    const [callerPhoneNumber, setCallerPhoneNumber] = useState<string | null>(null);
+    const [incomingChannel, setIncomingChannel] = useState<string | null>(null);
+    const [recentlyEndedChannels, setRecentlyEndedChannels] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        if (!isLoading && userPhone) {
+            socket.emit('register', userPhone);
+            
+            // Initialize Enhanced Call Service
+            const initializeEnhancedCallService = async () => {
+                try {
+                    const setupResult = await EnhancedCallService.setup();
+                    if (setupResult) {
+                        // Set up notification handlers for enhanced call service
+                        EnhancedCallService.setupNotificationHandlers(
+                            (callId, callData) => {
+                                // Handle call answer from EnhancedCallService
+                                console.log('Call answered via EnhancedCallService:', callId, callData);
+                                
+                                // Clear any local call state first
+                                setIncomingCall(false);
+                                setCallerPhoneNumber(null);
+                                setIncomingChannel(null);
+                                
+                                // Navigate to video call
+                                router.push({
+                                    pathname: '/(tabs)/videocall',
+                                    params: {
+                                        channel: callData.channel,
+                                        userPhone: userPhone,
+                                        targetPhone: callData.callerId,
+                                    },
+                                });
+                            },
+                            (callId) => {
+                                // Handle call decline from EnhancedCallService
+                                console.log('Call declined via EnhancedCallService:', callId);
+                                // Clear any local call state
+                                setIncomingCall(false);
+                                setCallerPhoneNumber(null);
+                                setIncomingChannel(null);
+                            }
+                        );
+                        console.log('EnhancedCallService: Initialization successful');
+                    } else {
+                        console.log('EnhancedCallService: Setup failed, using fallback');
+                    }
+                } catch (error) {
+                    console.log('EnhancedCallService: Error during initialization:', error);
+                }
+            };
+            
+            initializeEnhancedCallService();
+            
+            // Temporarily disabled NativeCallService handlers due to infinite notification loop
+            // TODO: Fix infinite notification loop before re-enabling
+            /*
+            // Set up native call notification handlers
+            const removeNativeCallHandlers = NativeCallService.setupNotificationHandlers(
+                (callId, callData) => {
+                    // Handle call answer from notification
+                    console.log('Call answered via native notification:', callId);
+                    
+                    // Navigate to video call
+                    router.push({
+                        pathname: '/(tabs)/videocall',
+                        params: {
+                            channel: callData.channel,
+                            userPhone: userPhone,
+                            targetPhone: callData.callerPhone,
+                        },
+                    });
+                },
+                (callId) => {
+                    // Handle call decline from notification
+                    console.log('Call declined via native notification:', callId);
+                }
+            );
+            */
+        }
+
+        socket.on('connect', () => {
+            // WebSocket connected
+        });
+
+        socket.on('incomingCall', async ({ from, channel, action, callerName }) => {
+            // Handle call end action specifically
+            if (action === 'end') {
+                console.log('Call ended by caller:', { from, channel });
+                
+                // End any active enhanced call service calls
+                if (EnhancedCallService.isAvailable()) {
+                    await EnhancedCallService.endCallByChannel(channel);
+                }
+                
+                // Clear local call state
+                setIncomingCall(false);
+                setCallerPhoneNumber(null);
+                setIncomingChannel(null);
+                
+                return; // Exit early for end action
+            }
+            
+            // Ignore incoming calls for recently ended channels
+            if (recentlyEndedChannels.has(channel)) {
+                return;
+            }
+            
+            // Handle normal incoming call
+            if (!from || !channel) {
+                return;
+            }
+
+            // Only use socket-based incoming calls as fallback when EnhancedCallService is not available
+            // This prevents duplicate notifications when push notifications are working
+            if (!EnhancedCallService.isAvailable()) {
+                console.log('EnhancedCallService not available, using fallback call UI');
+                setCallerPhoneNumber(from);
+                setIncomingChannel(channel);
+                setIncomingCall(true);
+            } else {
+                console.log('EnhancedCallService available, ignoring socket incoming call (push notification should handle this)');
+            }
+        });
+
+        // Always set up notification listeners to handle backend notifications
+        const removeNotificationListeners = NotificationService.setupNotificationListeners(
+            async (data) => {
+                console.log('Notification listener triggered for call:', data);
+                
+                if (EnhancedCallService.isAvailable()) {
+                    // Try to convert to enhanced call with ringing
+                    try {
+                        const callData = {
+                            callerId: data.callerPhone,
+                            callerName: data.callerName || data.callerPhone,
+                            channel: data.channel,
+                            hasVideo: true,
+                        };
+
+                        const callId = await EnhancedCallService.displayIncomingCall(callData);
+                        
+                        if (callId) {
+                            console.log('✅ Enhanced call created from notification with ringing:', callId);
+                            return; // Exit early if EnhancedCallService handled it
+                        }
+                    } catch (error) {
+                        console.log('Failed to create enhanced call, using fallback:', error);
+                    }
+                }
+
+                // Fallback to basic UI
+                setCallerPhoneNumber(data.callerPhone);
+                setIncomingChannel(data.channel);
+                setIncomingCall(true);
+                console.log('✅ Showing fallback incoming call screen');
+            }
+        );
+
+        return () => {
+            socket.off('incomingCall');
+            removeNotificationListeners();
+            // Note: removeNativeCallHandlers would be called here if we stored it in a variable
+        };
+    }, [userPhone, isLoading, recentlyEndedChannels, router]);
+
+    // Remove this useEffect - no longer needed
+
+    const acceptCall = (navigation?: any) => {
+        if (!callerPhoneNumber || !userPhone || !incomingChannel) {
+            return;
+        }
+
+        // Dismiss any call notifications
+        NotificationService.dismissCallNotification(incomingChannel);
+
+        // Navigate to video call
+        router.push({
+            pathname: '/(tabs)/videocall',
+            params: {
+                channel: incomingChannel,
+                userPhone,
+                targetPhone: callerPhoneNumber,
+            },
+        });
+
+        setIncomingCall(false);
+        setCallerPhoneNumber(null);
+        setIncomingChannel(null);
+    };
+
+    const declineCall = () => {
+        // Dismiss any call notifications
+        if (incomingChannel) {
+            NotificationService.dismissCallNotification(incomingChannel);
+        }
+        
+        setIncomingCall(false);
+        setCallerPhoneNumber(null);
+        setIncomingChannel(null);
+    };
+
+    const startVideoCall = (calleePhone: string, callerPhone: string) => {
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substring(2, 8);
+        const raw = `${callerPhone}_${calleePhone}_${timestamp}_${randomId}`;
+        const shortHash = Math.abs(raw.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)).toString(36).slice(0, 12);
+        const channel = `call_${shortHash}`;
+
+        // Send call request to callee
+        socket.emit('callRequest', {
+            from: callerPhone,
+            to: calleePhone,
+            channel: channel,
+        });
+
+        // Navigate to video call screen
+        router.push({
+            pathname: '/(tabs)/videocall',
+            params: {
+                channel,
+                userPhone: callerPhone,
+                targetPhone: calleePhone,
+            },
+        });
+    };
+
+    const updateContactStatus = (phone: string, isAvailable: boolean) => {
+        // Status update functionality can be implemented here
+    };
+
+    const onStatusUpdate = (callback: (phone: string, isAvailable: boolean) => void) => {
+        const handleStatusUpdate = (payload: { phone: string; isAvailable: boolean }) => {
+            callback(payload.phone, payload.isAvailable);
+        };
+
+        socket.on('statusUpdate', handleStatusUpdate);
+
+        // Return cleanup function
+        return () => {
+            socket.off('statusUpdate', handleStatusUpdate);
+        };
+    };
+
+    const emitCallEnded = (from: string, to: string, channel: string) => {
+        socket.emit('callEnded', { from, to, channel });
+    };
+
+    const onCallEnded = (callback: (data: { from: string; channel: string }) => void) => {
+        let hasHandled = false; // Prevent duplicate event handling
+        
+        const handleCallEnded = (data: { from: string; channel: string }) => {
+            if (hasHandled) {
+                return;
+            }
+            
+            hasHandled = true;
+            
+            // Add channel to recently ended list to prevent spurious incoming calls
+            setRecentlyEndedChannels(prev => new Set(prev).add(data.channel));
+            
+            callback(data);
+            
+            // Reset flag after a delay to allow for new calls
+            setTimeout(() => {
+                hasHandled = false;
+                // Remove channel from recently ended list after 10 seconds
+                setRecentlyEndedChannels(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(data.channel);
+                    return newSet;
+                });
+            }, 10000);
+        };
+
+        socket.on('callEnded', handleCallEnded);
+
+        // Return cleanup function
+        return () => {
+            socket.off('callEnded', handleCallEnded);
+        };
+    };
+
+    return (
+        <CallContext.Provider value={{ 
+            incomingCall, 
+            callerPhoneNumber, 
+            incomingChannel, 
+            acceptCall, 
+            declineCall, 
+            startVideoCall,
+            updateContactStatus,
+            onStatusUpdate,
+            emitCallEnded,
+            onCallEnded
+        }}>
+            {children}
+        </CallContext.Provider>
+    );
+}
+
+export const useCall = () => {
+    const context = useContext(CallContext);
+    if (!context) {
+        throw new Error('useCall must be used within a CallProvider');
+    }
+    return context;
+};

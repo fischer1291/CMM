@@ -18,7 +18,14 @@ export interface ContactResolutionOptions {
  * Normalizes phone numbers to a consistent format
  */
 export function normalizePhone(phone: string): string {
-  return phone.replace(/\s+/g, '').replace(/[^+\d]/g, '').replace(/^00/, '+');
+  let normalized = phone.replace(/\s+/g, '').replace(/[^+\d]/g, '').replace(/^00/, '+');
+  
+  // Add + prefix for German numbers that don't have it
+  if (!normalized.startsWith('+') && normalized.startsWith('49')) {
+    normalized = '+' + normalized;
+  }
+  
+  return normalized;
 }
 
 /**
