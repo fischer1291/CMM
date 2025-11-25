@@ -7,7 +7,7 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>$(DEVELOPMENT_LANGUAGE)</string>
     <key>CFBundleDisplayName</key>
-    <string>kontaktliste-app</string>
+    <string>Call Me Maybe</string>
     <key>CFBundleExecutable</key>
     <string>$(EXECUTABLE_NAME)</string>
     <key>CFBundleIdentifier</key>
@@ -69,10 +69,14 @@
     </array>
     <key>NSUserTrackingUsageDescription</key>
     <string>Diese App verwendet Benachrichtigungen, um dich über den Status deiner Kontakte zu informieren.</string>
+    <key>RCTNewArchEnabled</key>
+    <true/>
     <key>UIBackgroundModes</key>
     <array>
       <string>remote-notification</string>
-      <string>remote-notification</string>
+      <string>voip</string>
+      <string>audio</string>
+      <string>background-processing</string>
     </array>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
