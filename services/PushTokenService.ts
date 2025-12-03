@@ -6,6 +6,7 @@
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { fetchWithTimeout } from '../utils/apiUtils';
 
 export interface PushToken {
   token: string;
@@ -78,16 +79,20 @@ class PushTokenService {
 
       console.log('📤 Registering push token with backend...');
 
-      const response = await fetch('https://cmm-backend-gdqx.onrender.com/user/push-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetchWithTimeout(
+        'https://cmm-backend-gdqx.onrender.com/user/push-token',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userPhone,
+            ...pushTokenData,
+          }),
         },
-        body: JSON.stringify({
-          userPhone,
-          ...pushTokenData,
-        }),
-      });
+        10000
+      );
 
       if (!response.ok) {
         const errorText = await response.text();

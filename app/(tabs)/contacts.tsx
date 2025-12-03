@@ -17,6 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNewCall } from '../../contexts/NewCallContext';
 import { useTheme } from '../../theme';
 import { normalizePhone, resolveContact, generateAvatarUrl } from '../../utils/contactResolver';
+import { fetchWithTimeout } from '../../utils/apiUtils';
 
 export default function ContactsScreen() {
     const { userPhone, isLoading, userProfile } = useAuth();
@@ -58,11 +59,15 @@ export default function ContactsScreen() {
         const phones = Object.keys(phoneNameMap);
 
         try {
-            const res = await fetch('https://cmm-backend-gdqx.onrender.com/contacts/match', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phones }),
-            });
+            const res = await fetchWithTimeout(
+                'https://cmm-backend-gdqx.onrender.com/contacts/match',
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phones }),
+                },
+                10000
+            );
             const result = await res.json();
             if (!result.success) {
                 setIsLoadingContacts(false);
@@ -81,7 +86,11 @@ export default function ContactsScreen() {
                 try {
                     const profilePromises = matchedPhones.map(async (phone: string) => {
                         try {
-                            const response = await fetch(`https://cmm-backend-gdqx.onrender.com/me?phone=${encodeURIComponent(phone)}`);
+                            const response = await fetchWithTimeout(
+                                `https://cmm-backend-gdqx.onrender.com/me?phone=${encodeURIComponent(phone)}`,
+                                {},
+                                10000
+                            );
                             const data = await response.json();
                             if (data.success && data.user && data.user.name) {
                                 return {

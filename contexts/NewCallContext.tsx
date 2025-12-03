@@ -4,11 +4,13 @@
  */
 import { useRouter } from 'expo-router';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager, { CallData } from '../services/CallStateManager';
 import PlatformCallAdapter from '../services/PlatformCallAdapter';
+import VoipPushService from '../services/VoipPushService';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 const socket = io(baseUrl, { transports: ['websocket'], secure: true });
@@ -50,24 +52,75 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   const initializeServices = async () => {
     try {
       console.log('🚀 NewCallContext: Initializing services...');
-      
+
       // Register user with socket
       socket.emit('register', userPhone);
-      
+
       // Initialize services
       await PlatformCallAdapter.initialize();
       await CallNotificationService.initialize();
-      
+
+      // Initialize VoIP push for iOS (enables background CallKit)
+      // TEMPORARILY DISABLED FOR DEBUGGING
+      if (false && Platform.OS === 'ios') {
+        try {
+          const voipToken = await VoipPushService.initialize();
+          if (voipToken) {
+            console.log('✅ VoIP push initialized with token');
+          } else {
+            console.log('⚠️ VoIP push initialization returned null (this is OK - fallback to regular push)');
+          }
+        } catch (error) {
+          console.error('❌ VoIP push initialization error (non-fatal):', error);
+          // Continue without VoIP push - regular push notifications will work
+        }
+      }
+      console.log('⚠️ VoIP push DISABLED for debugging');
+
+      // Setup CallKit callbacks
+      setupCallKitCallbacks();
+
       // Setup call state listeners
       setupCallStateListeners();
-      
+
       // Setup socket listeners
       setupSocketListeners();
-      
+
       console.log('✅ NewCallContext: Services initialized successfully');
     } catch (error) {
       console.error('❌ NewCallContext: Service initialization failed:', error);
     }
+  };
+
+  /**
+   * Setup CallKit callbacks to handle native call UI events
+   */
+  const setupCallKitCallbacks = () => {
+    // When user answers call via CallKit
+    PlatformCallAdapter.setOnAnswerCallCallback((callId) => {
+      console.log('📱 CallKit answer callback triggered:', callId);
+      CallNotificationService.answerCall();
+    });
+
+    // When user ends call via CallKit
+    PlatformCallAdapter.setOnEndCallCallback((callId) => {
+      console.log('📱 CallKit end callback triggered:', callId);
+      const call = CallStateManager.getActiveCall();
+      if (call) {
+        // Notify backend that call ended
+        socket.emit('call:end', {
+          channel: call.channel,
+          calleePhone: call.callerPhone === userPhone ? call.targetPhone : call.callerPhone,
+        });
+      }
+      CallStateManager.endCall();
+    });
+
+    // When user rejects call via CallKit
+    PlatformCallAdapter.setOnRejectCallCallback((callId) => {
+      console.log('📱 CallKit reject callback triggered:', callId);
+      CallNotificationService.declineCall();
+    });
   };
 
   /**
@@ -222,6 +275,9 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     CallStateManager.removeAllListeners();
     CallNotificationService.cleanup();
     PlatformCallAdapter.cleanup();
+    if (Platform.OS === 'ios') {
+      VoipPushService.cleanup();
+    }
   };
 
   return (

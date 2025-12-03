@@ -25,8 +25,7 @@ export default {
         UIBackgroundModes: [
           'remote-notification',
           'voip',
-          'audio',
-          'background-processing'
+          'audio'
         ]
       }
     },

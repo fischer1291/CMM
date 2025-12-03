@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme';
+import { fetchWithTimeout } from '../../utils/apiUtils';
 
 export default function ProfileSetupScreen() {
   const { colors } = useTheme();
@@ -63,13 +64,17 @@ export default function ProfileSetupScreen() {
         formData.append('phone', userPhone);
       }
 
-      const response = await fetch('https://cmm-backend-gdqx.onrender.com/upload/avatar', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data',
+      const response = await fetchWithTimeout(
+        'https://cmm-backend-gdqx.onrender.com/upload/avatar',
+        {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         },
-      });
+        15000 // Longer timeout for file upload
+      );
 
       const data = await response.json();
       

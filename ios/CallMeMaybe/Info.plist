@@ -76,7 +76,6 @@
       <string>remote-notification</string>
       <string>voip</string>
       <string>audio</string>
-      <string>background-processing</string>
     </array>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>

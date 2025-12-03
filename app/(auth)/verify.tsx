@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme';
+import { fetchWithTimeout } from '../../utils/apiUtils';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 
@@ -53,11 +54,15 @@ export default function VerifyScreen() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${baseUrl}/verify/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      });
+      const res = await fetchWithTimeout(
+        `${baseUrl}/verify/start`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone }),
+        },
+        10000
+      );
       const data = await res.json();
 
       if (data.success) {
@@ -83,11 +88,15 @@ export default function VerifyScreen() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${baseUrl}/verify/check`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code }),
-      });
+      const res = await fetchWithTimeout(
+        `${baseUrl}/verify/check`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, code }),
+        },
+        10000
+      );
       const data = await res.json();
 
       if (data.success) {
@@ -95,14 +104,18 @@ export default function VerifyScreen() {
         const pushToken = await registerForPushNotificationsAsync();
 
         // ✅ Registrierung im Backend mit optionalem pushToken
-        await fetch(`${baseUrl}/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone,
-            ...(pushToken ? { pushToken } : {}),
-          }),
-        });
+        await fetchWithTimeout(
+          `${baseUrl}/auth/register`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone,
+              ...(pushToken ? { pushToken } : {}),
+            }),
+          },
+          10000
+        );
 
         // 📲 Persistieren und Weiterleitung
         await SecureStore.setItemAsync('userPhone', phone);
@@ -110,7 +123,11 @@ export default function VerifyScreen() {
         
         // Check if user needs to set up profile
         try {
-          const profileResponse = await fetch(`${baseUrl}/me?phone=${encodeURIComponent(phone)}`);
+          const profileResponse = await fetchWithTimeout(
+            `${baseUrl}/me?phone=${encodeURIComponent(phone)}`,
+            {},
+            10000
+          );
           const profileData = await profileResponse.json();
           
           // If user has no name set, redirect to profile setup

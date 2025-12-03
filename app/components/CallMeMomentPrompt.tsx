@@ -7,6 +7,7 @@ import {
     View,
 } from 'react-native';
 import { useTheme } from '../../theme';
+import { fetchWithTimeout } from '../../utils/apiUtils';
 
 const moods = ['😊', '😐', '😔'];
 
@@ -27,18 +28,26 @@ const CallMeMomentPrompt = ({
     setPending(true);
     try {
       // Schritt 1: Moment aktivieren
-      await fetch('https://cmm-backend-gdqx.onrender.com/moment/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, mood: selectedMood }),
-      });
+      await fetchWithTimeout(
+        'https://cmm-backend-gdqx.onrender.com/moment/confirm',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, mood: selectedMood }),
+        },
+        10000
+      );
 
       // Schritt 2: isAvailable auf true setzen (zur Sicherheit)
-      await fetch('https://cmm-backend-gdqx.onrender.com/status/set', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, isAvailable: true }),
-      });
+      await fetchWithTimeout(
+        'https://cmm-backend-gdqx.onrender.com/status/set',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, isAvailable: true }),
+        },
+        10000
+      );
 
       onClose(true); // signalisiere Index.tsx, dass Reload nötig ist
     } catch (err) {

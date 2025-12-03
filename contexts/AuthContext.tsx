@@ -2,6 +2,7 @@
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import PushTokenService from '../services/PushTokenService';
+import { fetchWithTimeout } from '../utils/apiUtils';
 
 export type UserProfile = {
   name: string;
@@ -42,7 +43,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const loadProfile = useCallback(async (phone: string) => {
     setIsProfileLoading(true);
     try {
-      const response = await fetch(`${baseUrl}/me?phone=${encodeURIComponent(phone)}`);
+      const response = await fetchWithTimeout(
+        `${baseUrl}/me?phone=${encodeURIComponent(phone)}`,
+        {},
+        10000
+      );
       const data = await response.json();
       
       if (data.success && data.user) {
@@ -84,16 +89,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     setIsProfileLoading(true);
     try {
-      const response = await fetch(`${baseUrl}/me/update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetchWithTimeout(
+        `${baseUrl}/me/update`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone: userPhone,
+            ...profileUpdate,
+          }),
         },
-        body: JSON.stringify({
-          phone: userPhone,
-          ...profileUpdate,
-        }),
-      });
+        10000
+      );
 
       if (response.ok) {
         // Update was successful, update local state optimistically

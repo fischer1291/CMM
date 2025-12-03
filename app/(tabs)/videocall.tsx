@@ -28,6 +28,7 @@ import { useNewCall } from '../../contexts/NewCallContext';
 import CallMomentCaptureModal from '../components/callmoments/CallMomentCaptureModal';
 import { resolveContact, normalizePhone } from '../../utils/contactResolver';
 import CallNotificationService from '../../services/CallNotificationService';
+import { fetchWithTimeout } from '../../utils/apiUtils';
 
 const APP_ID = '28a507f76f1a400ba047aa629af4b81d';
 
@@ -92,9 +93,14 @@ export default function VideoCallScreen() {
 
   const toggleMute = () => {
     if (engineRef.current) {
-      const newMuted = !micMuted;
-      engineRef.current.muteLocalAudioStream(newMuted);
-      setMicMuted(newMuted);
+      try {
+        const newMuted = !micMuted;
+        engineRef.current.muteLocalAudioStream(newMuted);
+        setMicMuted(newMuted);
+      } catch (error) {
+        console.error('❌ Error toggling mute:', error);
+        Alert.alert('Fehler', 'Mikrofon konnte nicht stummgeschaltet werden.');
+      }
     }
   };
 
@@ -107,8 +113,13 @@ export default function VideoCallScreen() {
 
   const switchCamera = () => {
     if (engineRef.current) {
-      engineRef.current.switchCamera();
-      setIsFrontCamera(!isFrontCamera);
+      try {
+        engineRef.current.switchCamera();
+        setIsFrontCamera(!isFrontCamera);
+      } catch (error) {
+        console.error('❌ Error switching camera:', error);
+        Alert.alert('Fehler', 'Kamera konnte nicht gewechselt werden.');
+      }
     }
   };
 
@@ -155,10 +166,11 @@ export default function VideoCallScreen() {
           }
         },
         onError: (err) => {
+          console.error('❌ Agora engine error:', err);
           Alert.alert(
             'Verbindungsfehler',
-            'Ein technischer Fehler ist aufgetreten. Bitte überprüfe deine Internetverbindung und versuche es erneut.',
-            [{ text: 'OK' }]
+            'Ein technischer Fehler ist aufgetreten. Der Anruf wird beendet.',
+            [{ text: 'OK', onPress: () => cleanupCall(false) }]
           );
         },
       });
@@ -184,11 +196,24 @@ export default function VideoCallScreen() {
       await engine.startPreview();
       await engine.setClientRole(ClientRoleType.ClientRoleBroadcaster);
     } catch (error) {
+      console.error('❌ Agora initialization failed:', error);
+
+      // Clean up partially initialized engine
+      if (engineRef.current) {
+        try {
+          engineRef.current.release();
+        } catch (releaseError) {
+          console.error('Error releasing engine during init cleanup:', releaseError);
+        }
+        engineRef.current = null;
+      }
+
       Alert.alert(
         'Initialisierungsfehler',
         'Die Video-Engine konnte nicht gestartet werden. Bitte starte die App neu und versuche es erneut.',
-        [{ text: 'OK' }]
+        [{ text: 'OK', onPress: () => router.replace('/(tabs)/contacts') }]
       );
+      throw error; // Re-throw to prevent further execution
     }
   };
 
@@ -210,10 +235,26 @@ export default function VideoCallScreen() {
     setupCall();
 
     return () => {
+      // Cleanup on unmount
       if (engineRef.current) {
-        engineRef.current.leaveChannel();
-        engineRef.current.stopPreview();
-        engineRef.current.release();
+        try {
+          engineRef.current.leaveChannel();
+        } catch (error) {
+          console.error('Error leaving channel during cleanup:', error);
+        }
+
+        try {
+          engineRef.current.stopPreview();
+        } catch (error) {
+          console.error('Error stopping preview during cleanup:', error);
+        }
+
+        try {
+          engineRef.current.release();
+        } catch (error) {
+          console.error('Error releasing engine during cleanup:', error);
+        }
+
         engineRef.current = null;
       }
     };
@@ -249,24 +290,47 @@ export default function VideoCallScreen() {
 
         if (!engineRef.current) {
           console.error('❌ Agora Engine not initialized');
+          Alert.alert(
+            'Initialisierungsfehler',
+            'Die Video-Engine konnte nicht initialisiert werden.',
+            [{ text: 'OK', onPress: () => router.replace('/(tabs)/contacts') }]
+          );
           return;
         }
 
-        const res = await axios.post("https://cmm-backend-gdqx.onrender.com/rtcToken", {
-          channelName: channel,
-          uid: agoraSafeUserAccount,
-          role: 'publisher',
-        });
+        const res = await axios.post(
+          "https://cmm-backend-gdqx.onrender.com/rtcToken",
+          {
+            channelName: channel,
+            uid: agoraSafeUserAccount,
+            role: 'publisher',
+          },
+          { timeout: 10000 }
+        );
 
         const token = res.data.token;
 
         // Restart video and preview before joining channel
         await engineRef.current.enableVideo();
         await engineRef.current.startPreview();
-        
+
         await engineRef.current.joinChannelWithUserAccount(token, channel, userPhone);
         setLocalUid(agoraSafeUserAccount);
       } catch (err) {
+        console.error('❌ Failed to fetch token or join channel:', err);
+
+        // Clean up engine before navigating away
+        if (engineRef.current) {
+          try {
+            engineRef.current.leaveChannel();
+            engineRef.current.stopPreview();
+            engineRef.current.release();
+          } catch (cleanupError) {
+            console.error('Error during error cleanup:', cleanupError);
+          }
+          engineRef.current = null;
+        }
+
         Alert.alert(
           'Verbindung fehlgeschlagen',
           'Der Videoanruf konnte nicht hergestellt werden. Bitte überprüfe deine Internetverbindung und versuche es erneut.',
@@ -283,6 +347,8 @@ export default function VideoCallScreen() {
   }, [channel, userPhone]);
 
   const cleanupCall = async (notifyRemote = false) => {
+    console.log('🧹 Starting call cleanup, notifyRemote:', notifyRemote);
+
     // Stop any call notifications
     try {
       if (channel) {
@@ -290,27 +356,50 @@ export default function VideoCallScreen() {
         console.log('✅ Call service cleaned up for channel:', channel);
       }
     } catch (error) {
-      console.log('Call service cleanup error:', error);
+      console.error('❌ Call service cleanup error:', error);
     }
 
+    // Clean up Agora engine
     if (engineRef.current) {
       try {
-        engineRef.current.leaveChannel();
-        engineRef.current.stopPreview();
-        // Don't release the engine here - keep it for reuse
-      } catch (e) {
-        // Disconnect error - silent handling as call is ending anyway
+        await engineRef.current.leaveChannel();
+        console.log('✅ Left Agora channel');
+      } catch (error) {
+        console.error('❌ Error leaving channel:', error);
       }
+
+      try {
+        await engineRef.current.stopPreview();
+        console.log('✅ Stopped preview');
+      } catch (error) {
+        console.error('❌ Error stopping preview:', error);
+      }
+
+      try {
+        engineRef.current.release();
+        console.log('✅ Released engine');
+      } catch (error) {
+        console.error('❌ Error releasing engine:', error);
+      }
+
+      engineRef.current = null;
     }
 
     // Notify other user that call has ended (only if we initiated the disconnect)
     if (notifyRemote) {
-      endCall(); // Use the new call context to handle ending
+      try {
+        endCall(); // Use the new call context to handle ending
+      } catch (error) {
+        console.error('❌ Error notifying remote user:', error);
+      }
     }
 
+    // Reset state
     setJoined(false);
     setRemoteUid(null);
     setLocalUid(null);
+    setCallStartTime(null);
+    setCallDuration('00:00');
 
     // Navigation zurück
     router.replace('/(tabs)/contacts');
@@ -389,13 +478,17 @@ export default function VideoCallScreen() {
         return;
       }
       
-      const response = await fetch('https://cmm-backend-gdqx.onrender.com/moment/callmoment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetchWithTimeout(
+        'https://cmm-backend-gdqx.onrender.com/moment/callmoment',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(postData),
         },
-        body: JSON.stringify(postData),
-      });
+        10000
+      );
 
       console.log('🚀 Response status:', response.status);
       console.log('🚀 Response ok:', response.ok);
@@ -439,7 +532,11 @@ export default function VideoCallScreen() {
     // Fetch target user's profile from backend
     if (targetPhone) {
       try {
-        const response = await fetch(`https://cmm-backend-gdqx.onrender.com/me?phone=${encodeURIComponent(targetPhone)}`);
+        const response = await fetchWithTimeout(
+          `https://cmm-backend-gdqx.onrender.com/me?phone=${encodeURIComponent(targetPhone)}`,
+          {},
+          10000
+        );
         const data = await response.json();
         if (data.success && data.user && data.user.name) {
           const targetProfile = {

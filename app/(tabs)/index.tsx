@@ -16,6 +16,7 @@ import { useCountdown } from '../../hooks/useCountdown';
 import { useProfile } from '../../hooks/useProfile';
 import { useTheme } from '../../theme';
 import CallMeMomentPrompt from '../components/CallMeMomentPrompt';
+import { fetchWithTimeout } from '../../utils/apiUtils';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 
@@ -88,7 +89,11 @@ export default function IndexScreen() {
 
   const fetchStatus = async (phone: string) => {
     try {
-      const res = await fetch(`${baseUrl}/status/get?phone=${encodeURIComponent(phone)}`);
+      const res = await fetchWithTimeout(
+        `${baseUrl}/status/get?phone=${encodeURIComponent(phone)}`,
+        {},
+        10000
+      );
       const data = await res.json();
       if (data?.isAvailable !== undefined) setIsAvailable(data.isAvailable);
     } catch (e) {
@@ -100,11 +105,15 @@ export default function IndexScreen() {
     const newStatus = !isAvailable;
     setIsAvailable(newStatus);
     try {
-      await fetch(`${baseUrl}/status/set`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: userPhone, isAvailable: newStatus }),
-      });
+      await fetchWithTimeout(
+        `${baseUrl}/status/set`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: userPhone, isAvailable: newStatus }),
+        },
+        10000
+      );
       await fetchStatus(userPhone!);
       reloadProfile();
     } catch (e) {

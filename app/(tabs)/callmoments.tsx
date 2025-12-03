@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme';
 import { resolveContact, generateAvatarUrl } from '../../utils/contactResolver';
+import { fetchWithTimeout } from '../../utils/apiUtils';
 
 interface Reaction {
     emoji: string;
@@ -61,12 +62,16 @@ export default function CallMomentsScreen() {
         if (!userPhone) return; // Don't fetch if no user logged in
         
         try {
-            const response = await fetch(`https://cmm-backend-gdqx.onrender.com/moment/callmoments?userPhone=${encodeURIComponent(userPhone)}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
+            const response = await fetchWithTimeout(
+                `https://cmm-backend-gdqx.onrender.com/moment/callmoments?userPhone=${encodeURIComponent(userPhone)}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                 },
-            });
+                10000
+            );
 
             const result = await response.json();
             if (result.success) {
@@ -119,7 +124,11 @@ export default function CallMomentsScreen() {
             try {
                 const profilePromises = uniquePhones.map(async (phone: string) => {
                     try {
-                        const response = await fetch(`https://cmm-backend-gdqx.onrender.com/me?phone=${encodeURIComponent(phone)}`);
+                        const response = await fetchWithTimeout(
+                            `https://cmm-backend-gdqx.onrender.com/me?phone=${encodeURIComponent(phone)}`,
+                            {},
+                            10000
+                        );
                         const data = await response.json();
                         if (data.success && data.user && data.user.name) {
                             return {
@@ -253,13 +262,17 @@ export default function CallMomentsScreen() {
                 emoji
             };
             
-            const response = await fetch('https://cmm-backend-gdqx.onrender.com/moment/react', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
+            const response = await fetchWithTimeout(
+                'https://cmm-backend-gdqx.onrender.com/moment/react',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
                 },
-                body: JSON.stringify(payload),
-            });
+                10000
+            );
             
             const result = await response.json();
             if (!result.success) {
