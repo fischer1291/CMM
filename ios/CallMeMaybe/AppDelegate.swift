@@ -1,9 +1,10 @@
 import Expo
 import React
 import ReactAppDependencyProvider
+import PushKit
 
 @UIApplicationMain
-public class AppDelegate: ExpoAppDelegate {
+public class AppDelegate: ExpoAppDelegate, PKPushRegistryDelegate {
   var window: UIWindow?
 
   var reactNativeDelegate: ExpoReactNativeFactoryDelegate?
@@ -49,6 +50,27 @@ public class AppDelegate: ExpoAppDelegate {
   ) -> Bool {
     let result = RCTLinkingManager.application(application, continue: userActivity, restorationHandler: restorationHandler)
     return super.application(application, continue: userActivity, restorationHandler: restorationHandler) || result
+  }
+
+  // MARK: - PKPushRegistryDelegate (VoIP Push Notifications)
+
+  // Called when VoIP push token is updated
+  public func pushRegistry(_ registry: PKPushRegistry, didUpdate pushCredentials: PKPushCredentials, for type: PKPushType) {
+    // Forward to React Native VoIP library
+    RNVoipPushNotificationManager.didUpdate(pushCredentials, forType: type.rawValue)
+  }
+
+  // Called when VoIP push notification is received
+  public func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
+    // Forward to React Native VoIP library
+    RNVoipPushNotificationManager.didReceiveIncomingPush(with: payload, forType: type.rawValue)
+    completion()
+  }
+
+  // Called when push token is invalidated
+  public func pushRegistry(_ registry: PKPushRegistry, didInvalidatePushTokenFor type: PKPushType) {
+    // Handle token invalidation
+    NSLog("VoIP push token invalidated for type: \(type.rawValue)")
   }
 }
 

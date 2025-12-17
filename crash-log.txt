@@ -1,0 +1,13 @@
+Starting project at /Users/leroyfischer/Dev/CMM
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Unable to run simctl:
+Error: xcrun simctl help exited with non-zero code: 72
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+Recrawled this watch 1 time, most recently because:
+MustScanSubDirs UserDroppedTo resolve, please review the information on
+https://facebook.github.io/watchman/docs/troubleshooting.html#recrawl
+To clear this warning, run:
+`watchman watch-del '/Users/leroyfischer/Dev/CMM' ; watchman watch-project '/Users/leroyfischer/Dev/CMM'`
+
