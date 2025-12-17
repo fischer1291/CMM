@@ -418,7 +418,7 @@ export default function VideoCallScreen() {
   const convertToBase64 = async (uri: string): Promise<string> => {
     try {
       const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64',
       });
       return `data:image/jpeg;base64,${base64}`;
     } catch (error) {
