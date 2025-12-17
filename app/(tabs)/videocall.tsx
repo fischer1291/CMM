@@ -1,4 +1,3 @@
-import axios from 'axios';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -298,17 +297,24 @@ export default function VideoCallScreen() {
           return;
         }
 
-        const res = await axios.post(
+        const res = await fetchWithTimeout(
           "https://cmm-backend-gdqx.onrender.com/rtcToken",
           {
-            channelName: channel,
-            uid: agoraSafeUserAccount,
-            role: 'publisher',
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              channelName: channel,
+              uid: agoraSafeUserAccount,
+              role: 'publisher',
+            }),
           },
-          { timeout: 10000 }
+          10000
         );
 
-        const token = res.data.token;
+        const data = await res.json();
+        const token = data.token;
 
         // Restart video and preview before joining channel
         await engineRef.current.enableVideo();
