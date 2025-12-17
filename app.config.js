@@ -12,9 +12,12 @@ export default {
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
-      bundleIdentifier: IS_DEV 
-        ? 'com.schly21.kontaktlisteapp.dev' 
+      bundleIdentifier: IS_DEV
+        ? 'com.schly21.kontaktlisteapp.dev'
         : 'com.schly21.kontaktlisteapp',
+      entitlements: {
+        'aps-environment': IS_DEV ? 'development' : 'production',
+      },
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSContactsUsageDescription: 'Diese App benötigt Zugriff auf deine Kontakte, um dir anzuzeigen, wer bereits registriert ist.',

@@ -61,21 +61,23 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       await CallNotificationService.initialize();
 
       // Initialize VoIP push for iOS (enables background CallKit)
-      // TEMPORARILY DISABLED FOR DEBUGGING
-      if (false && Platform.OS === 'ios') {
+      // NOTE: VoIP library may not be available in development builds without proper native linking
+      // This is OK - the app will use regular push notifications as fallback
+      if (Platform.OS === 'ios') {
         try {
+          console.log('🚀 Starting VoIP push initialization...');
           const voipToken = await VoipPushService.initialize();
           if (voipToken) {
             console.log('✅ VoIP push initialized with token');
           } else {
-            console.log('⚠️ VoIP push initialization returned null (this is OK - fallback to regular push)');
+            console.log('⚠️ VoIP push not available (using regular push notifications as fallback)');
+            console.log('   This is expected in development builds without native VoIP library linking');
           }
         } catch (error) {
           console.error('❌ VoIP push initialization error (non-fatal):', error);
           // Continue without VoIP push - regular push notifications will work
         }
       }
-      console.log('⚠️ VoIP push DISABLED for debugging');
 
       // Setup CallKit callbacks
       setupCallKitCallbacks();

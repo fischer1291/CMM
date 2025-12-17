@@ -1,19 +1,47 @@
 /**
  * VoipPushService - iOS VoIP Push Notification handler
  * Enables CallKit to work when app is in background/terminated
+ *
+ * COMPLETELY DEFENSIVE implementation to prevent crashes
  */
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import CallStateManager from './CallStateManager';
 import PlatformCallAdapter from './PlatformCallAdapter';
 
-// Only import VoIP push on iOS
+// Lazy-loaded VoIP push module (only loaded when needed, not at module init)
 let RNVoipPushNotification: any = null;
-if (Platform.OS === 'ios') {
+let isLibraryAvailable = false;
+let libraryLoadAttempted = false;
+
+/**
+ * Lazily load the VoIP library only when needed
+ * This prevents crashes on app launch if the library isn't properly linked
+ */
+function loadVoipLibrary(): boolean {
+  if (libraryLoadAttempted) {
+    return isLibraryAvailable;
+  }
+
+  libraryLoadAttempted = true;
+
+  if (Platform.OS !== 'ios') {
+    console.log('📱 VoIP push is iOS only, skipping library load');
+    return false;
+  }
+
   try {
-    RNVoipPushNotification = require('react-native-voip-push-notification').default;
-  } catch (error) {
-    console.warn('⚠️ VoIP push notification not available:', error);
+    console.log('📱 Attempting to load VoIP push library...');
+    const voipModule = require('react-native-voip-push-notification');
+    RNVoipPushNotification = voipModule?.default || voipModule;
+    isLibraryAvailable = !!RNVoipPushNotification;
+    console.log('✅ VoIP library loaded successfully:', isLibraryAvailable);
+    return isLibraryAvailable;
+  } catch (error: any) {
+    console.warn('⚠️ VoIP push notification library could not be loaded:', error?.message);
+    console.warn('   This is normal in development builds without proper native linking');
+    isLibraryAvailable = false;
+    return false;
   }
 }
 
@@ -21,6 +49,7 @@ class VoipPushService {
   private static instance: VoipPushService;
   private isInitialized = false;
   private voipToken: string | null = null;
+  private initializationAttempted = false;
 
   private constructor() {}
 
@@ -32,19 +61,31 @@ class VoipPushService {
   }
 
   /**
-   * Initialize VoIP push notifications (iOS only)
+   * Initialize VoIP push notifications (iOS only) with maximum safety
    */
   async initialize(): Promise<string | null> {
+    // Only try once to prevent repeated crashes
+    if (this.initializationAttempted) {
+      console.log('⚠️ VoIP initialization already attempted');
+      return this.voipToken;
+    }
+
+    this.initializationAttempted = true;
+
+    // Platform check
     if (Platform.OS !== 'ios') {
       console.log('⚠️ VoIP push is iOS only');
       return null;
     }
 
-    if (!RNVoipPushNotification) {
-      console.warn('⚠️ VoIP push notification library not available');
+    // Lazy load the library (only now, not at module import time)
+    const libraryLoaded = loadVoipLibrary();
+    if (!libraryLoaded || !RNVoipPushNotification) {
+      console.warn('⚠️ VoIP push notification library not available - continuing without VoIP');
       return null;
     }
 
+    // Already initialized check
     if (this.isInitialized) {
       console.log('✅ VoipPushService already initialized');
       return this.voipToken;
@@ -53,86 +94,141 @@ class VoipPushService {
     try {
       console.log('📱 Initializing VoIP push notifications...');
 
-      // Verify RNVoipPushNotification has required methods
-      if (!RNVoipPushNotification.registerVoipToken ||
-          !RNVoipPushNotification.addEventListener) {
-        console.warn('⚠️ VoIP push methods not available');
+      // Verify the library has the required methods
+      if (typeof RNVoipPushNotification.registerVoipToken !== 'function') {
+        console.warn('⚠️ registerVoipToken method not found');
         return null;
       }
 
-      // Register for VoIP notifications
+      if (typeof RNVoipPushNotification.addEventListener !== 'function') {
+        console.warn('⚠️ addEventListener method not found');
+        return null;
+      }
+
+      // Setup event listeners FIRST (before registering)
+      const listenersSetup = await this.setupEventListeners();
+      if (!listenersSetup) {
+        console.warn('⚠️ Failed to setup event listeners');
+        return null;
+      }
+
+      // Now register for VoIP token
+      console.log('📱 Registering for VoIP token...');
       RNVoipPushNotification.registerVoipToken();
 
-      // Setup event listeners
-      this.setupEventListeners();
-
       this.isInitialized = true;
-      console.log('✅ VoipPushService initialized');
+      console.log('✅ VoipPushService initialized successfully');
 
       return this.voipToken;
-    } catch (error) {
-      console.error('❌ Failed to initialize VoIP push:', error);
-      console.error('Error details:', error);
+    } catch (error: any) {
+      console.error('❌ Failed to initialize VoIP push:', error?.message || error);
+      console.error('Stack:', error?.stack);
+      this.isInitialized = false;
       return null;
     }
   }
 
   /**
-   * Setup VoIP push event listeners
+   * Setup VoIP push event listeners with error handling
    */
-  private setupEventListeners(): void {
+  private async setupEventListeners(): Promise<boolean> {
     try {
-      // Called when VoIP push token is received
-      RNVoipPushNotification.addEventListener('register', async (token: string) => {
-      console.log('📱 VoIP push token received:', token);
-      this.voipToken = token;
+      console.log('📱 Setting up VoIP event listeners...');
 
-      // Send token to backend
+      // Register event - called when VoIP push token is received
       try {
-        const userPhone = await SecureStore.getItemAsync('userPhone');
+        RNVoipPushNotification.addEventListener('register', async (token: string) => {
+          try {
+            console.log('📱 VoIP push token received:', token?.substring(0, 20) + '...');
+            this.voipToken = token;
 
-        if (userPhone) {
-          const response = await fetch('https://cmm-backend-gdqx.onrender.com/user/voip-token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              userPhone,
-              voipToken: token,
-              deviceId: 'ios-device',
-              platform: 'ios',
-            }),
-          });
-
-          const data = await response.json();
-          if (data.success) {
-            console.log('✅ VoIP token registered with backend');
-          } else {
-            console.error('❌ Failed to register VoIP token:', data.message);
+            // Send token to backend
+            await this.registerTokenWithBackend(token);
+          } catch (error) {
+            console.error('❌ Error in register event handler:', error);
           }
-        } else {
-          console.log('⚠️ No userPhone found, will register VoIP token later');
-        }
+        });
+        console.log('✅ Register event listener added');
       } catch (error) {
-        console.error('❌ Error sending VoIP token to backend:', error);
+        console.error('❌ Failed to add register listener:', error);
+        return false;
       }
-    });
 
-    // Called when VoIP push notification is received
-    RNVoipPushNotification.addEventListener('notification', (notification: any) => {
-      console.log('📱 VoIP push notification received:', notification);
-      this.handleVoipPush(notification);
-    });
-
-    // Called when user taps on notification
-    RNVoipPushNotification.addEventListener('didLoadWithEvents', (events: any) => {
-      console.log('📱 VoIP push events loaded:', events);
-      if (events && events.length > 0) {
-        events.forEach((event: any) => this.handleVoipPush(event));
+      // Notification event - called when VoIP push notification is received
+      try {
+        RNVoipPushNotification.addEventListener('notification', (notification: any) => {
+          try {
+            console.log('📱 VoIP push notification received');
+            this.handleVoipPush(notification);
+          } catch (error) {
+            console.error('❌ Error in notification event handler:', error);
+          }
+        });
+        console.log('✅ Notification event listener added');
+      } catch (error) {
+        console.error('❌ Failed to add notification listener:', error);
+        return false;
       }
-    });
+
+      // DidLoadWithEvents - called when user taps on notification
+      try {
+        RNVoipPushNotification.addEventListener('didLoadWithEvents', (events: any) => {
+          try {
+            console.log('📱 VoIP push events loaded');
+            if (events && Array.isArray(events) && events.length > 0) {
+              events.forEach((event: any) => this.handleVoipPush(event));
+            }
+          } catch (error) {
+            console.error('❌ Error in didLoadWithEvents handler:', error);
+          }
+        });
+        console.log('✅ DidLoadWithEvents listener added');
+      } catch (error) {
+        console.error('❌ Failed to add didLoadWithEvents listener:', error);
+        return false;
+      }
+
+      console.log('✅ All VoIP event listeners setup successfully');
+      return true;
     } catch (error) {
       console.error('❌ Failed to setup VoIP event listeners:', error);
-      throw error; // Re-throw so caller knows initialization failed
+      return false;
+    }
+  }
+
+  /**
+   * Register VoIP token with backend
+   */
+  private async registerTokenWithBackend(token: string): Promise<void> {
+    try {
+      const userPhone = await SecureStore.getItemAsync('userPhone');
+
+      if (!userPhone) {
+        console.log('⚠️ No userPhone found, will register VoIP token later');
+        return;
+      }
+
+      console.log('📤 Registering VoIP token with backend...');
+
+      const response = await fetch('https://cmm-backend-gdqx.onrender.com/user/voip-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userPhone,
+          voipToken: token,
+          deviceId: 'ios-device',
+          platform: 'ios',
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        console.log('✅ VoIP token registered with backend');
+      } else {
+        console.error('❌ Failed to register VoIP token:', data.message);
+      }
+    } catch (error) {
+      console.error('❌ Error sending VoIP token to backend:', error);
     }
   }
 
@@ -149,10 +245,10 @@ class VoipPushService {
         channel,
         callerName,
         hasVideo = true,
-      } = notification;
+      } = notification || {};
 
       if (!callerPhone || !channel) {
-        console.error('❌ Invalid VoIP push data');
+        console.error('❌ Invalid VoIP push data - missing callerPhone or channel');
         return;
       }
 
@@ -160,7 +256,7 @@ class VoipPushService {
       const callData = CallStateManager.createIncomingCall({
         channel,
         callerPhone,
-        calleePhone,
+        calleePhone: calleePhone || '',
         callerName: callerName || callerPhone,
         hasVideo,
       });
@@ -182,24 +278,48 @@ class VoipPushService {
   }
 
   /**
-   * Check if VoIP push is available
+   * Check if VoIP push is available and initialized
    */
   isAvailable(): boolean {
-    return Platform.OS === 'ios' && this.isInitialized;
+    return Platform.OS === 'ios' && isLibraryAvailable && this.isInitialized;
   }
 
   /**
-   * Cleanup
+   * Cleanup - safe cleanup with error handling
    */
   cleanup(): void {
-    if (Platform.OS === 'ios') {
-      RNVoipPushNotification.removeEventListener('register');
-      RNVoipPushNotification.removeEventListener('notification');
-      RNVoipPushNotification.removeEventListener('didLoadWithEvents');
+    // Don't attempt cleanup if library wasn't loaded
+    if (Platform.OS !== 'ios' || !libraryLoadAttempted || !isLibraryAvailable || !RNVoipPushNotification) {
+      return;
     }
-    this.isInitialized = false;
-    this.voipToken = null;
-    console.log('🧹 VoipPushService cleaned up');
+
+    try {
+      if (typeof RNVoipPushNotification.removeEventListener === 'function') {
+        try {
+          RNVoipPushNotification.removeEventListener('register');
+        } catch (e) {
+          console.warn('Failed to remove register listener:', e);
+        }
+
+        try {
+          RNVoipPushNotification.removeEventListener('notification');
+        } catch (e) {
+          console.warn('Failed to remove notification listener:', e);
+        }
+
+        try {
+          RNVoipPushNotification.removeEventListener('didLoadWithEvents');
+        } catch (e) {
+          console.warn('Failed to remove didLoadWithEvents listener:', e);
+        }
+      }
+
+      this.isInitialized = false;
+      this.voipToken = null;
+      console.log('🧹 VoipPushService cleaned up');
+    } catch (error) {
+      console.error('❌ Error during VoIP cleanup:', error);
+    }
   }
 }
 

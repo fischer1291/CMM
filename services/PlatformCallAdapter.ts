@@ -3,8 +3,38 @@
  * Replaces: CallKeepService, CallKeepServiceSimple, NativeCallService
  */
 import { Platform } from 'react-native';
-import RNCallKeep from 'react-native-callkeep';
 import { CallData } from './CallStateManager';
+
+// Lazy-loaded CallKeep module (only loaded when needed, not at module init)
+let RNCallKeep: any = null;
+let isCallKeepAvailable = false;
+let callKeepLoadAttempted = false;
+
+/**
+ * Lazily load the CallKeep library only when needed
+ * This prevents crashes on app launch if the library isn't properly linked
+ */
+function loadCallKeepLibrary(): boolean {
+  if (callKeepLoadAttempted) {
+    return isCallKeepAvailable;
+  }
+
+  callKeepLoadAttempted = true;
+
+  try {
+    console.log('📱 Attempting to load CallKeep library...');
+    const callKeepModule = require('react-native-callkeep');
+    RNCallKeep = callKeepModule?.default || callKeepModule;
+    isCallKeepAvailable = !!RNCallKeep;
+    console.log('✅ CallKeep library loaded successfully:', isCallKeepAvailable);
+    return isCallKeepAvailable;
+  } catch (error: any) {
+    console.warn('⚠️ CallKeep library could not be loaded:', error?.message);
+    console.warn('   This is normal in development builds without proper native linking');
+    isCallKeepAvailable = false;
+    return false;
+  }
+}
 
 interface PlatformCallCapabilities {
   supportsNativeCallUI: boolean;
@@ -71,6 +101,14 @@ class PlatformCallAdapter {
     try {
       console.log('📱 PlatformCallAdapter: Initializing...');
       console.log('📱 Detected capabilities:', this.capabilities);
+
+      // Lazy load the CallKeep library
+      const libraryLoaded = loadCallKeepLibrary();
+      if (!libraryLoaded || !RNCallKeep) {
+        console.warn('⚠️ CallKeep library not available - falling back to notification-based calls');
+        this.isInitialized = true;
+        return true;
+      }
 
       // Initialize CallKit for iOS
       if (this.capabilities.supportsCallKit && Platform.OS === 'ios') {
@@ -335,8 +373,8 @@ class PlatformCallAdapter {
    */
   cleanup(): void {
     try {
-      // Remove all CallKeep event listeners
-      if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      // Remove all CallKeep event listeners (only if library was loaded)
+      if (isCallKeepAvailable && RNCallKeep && (Platform.OS === 'ios' || Platform.OS === 'android')) {
         RNCallKeep.removeEventListener('answerCall');
         RNCallKeep.removeEventListener('endCall');
         RNCallKeep.removeEventListener('didPerformDTMFAction');
