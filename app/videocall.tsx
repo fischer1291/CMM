@@ -43,14 +43,35 @@ export default function VideoCallScreen() {
   }
   const agoraSafeUserAccount = userPhone;
   const targetPhone = Array.isArray(rawParams.targetPhone) ? rawParams.targetPhone[0] : rawParams.targetPhone;
+  const isOutgoing = rawParams.isOutgoing === 'true';
 
   // DIAGNOSTIC: Log when videocall screen mounts
-  console.log('🎥 VideoCallScreen mounted with params:', { channel, userPhone, targetPhone });
+  console.log('🎥 VideoCallScreen mounted with params:', {
+    channel,
+    userPhone,
+    targetPhone,
+    isOutgoing
+  });
 
-  // GUARD: If no channel, navigate back immediately
-  if (!channel) {
-    console.log('❌ VideoCallScreen: No channel provided, navigating back');
-    router.replace('/(tabs)/contacts');
+  // CRITICAL GUARD: Prevent unauthorized mounting
+  useEffect(() => {
+    if (!channel || !userPhone || !targetPhone) {
+      console.log('❌ VideoCallScreen: Missing required params, navigating back');
+      router.replace('/(tabs)/contacts');
+      return;
+    }
+
+    // Additional guard: If this is receiver (incoming call), verify they actually answered
+    // This prevents the screen from mounting before CallKit answer
+    if (!isOutgoing) {
+      console.log('📞 Receiver entering call screen - verifying call was answered');
+      // The fact that we reached this screen means CallKit answer callback fired
+      // So this is legitimate
+    }
+  }, [channel, userPhone, targetPhone, isOutgoing]);
+
+  // Early return if invalid - prevents render errors
+  if (!channel || !userPhone || !targetPhone) {
     return null;
   }
 

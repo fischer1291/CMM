@@ -190,14 +190,22 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       });
       setActiveCall(callData);
 
-      // Navigate to video call screen
+      // Navigate to video call screen (receiver answered)
       router.push({
-        pathname: '/(tabs)/videocall',
+        pathname: '/videocall',
         params: {
           channel: callData.channel,
           userPhone: userPhone!,
           targetPhone: callData.callerPhone,
+          isOutgoing: 'false', // Receiver side
         },
+      });
+
+      // Notify backend that call was accepted
+      socket.emit('acceptCall', {
+        from: callData.callerPhone,
+        to: userPhone,
+        channel: callData.channel,
       });
     } catch (error) {
       console.error('❌ Error in handleCallAnswered:', error);
@@ -246,31 +254,38 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * Start a new video call
+   * Start a new video call (outgoing)
    */
   const startVideoCall = (calleePhone: string, callerPhone: string) => {
-    const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substring(2, 8);
-    const raw = `${callerPhone}_${calleePhone}_${timestamp}_${randomId}`;
-    const shortHash = Math.abs(raw.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)).toString(36).slice(0, 12);
-    const channel = `call_${shortHash}`;
+    try {
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(2, 8);
+      const raw = `${callerPhone}_${calleePhone}_${timestamp}_${randomId}`;
+      const shortHash = Math.abs(raw.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)).toString(36).slice(0, 12);
+      const channel = `call_${shortHash}`;
 
-    // Send call request to socket
-    socket.emit('callRequest', {
-      from: callerPhone,
-      to: calleePhone,
-      channel: channel,
-    });
+      console.log('📞 Starting outgoing call:', { from: callerPhone, to: calleePhone, channel });
 
-    // Navigate to video call screen
-    router.push({
-      pathname: '/(tabs)/videocall',
-      params: {
-        channel,
-        userPhone: callerPhone,
-        targetPhone: calleePhone,
-      },
-    });
+      // Send call request to backend
+      socket.emit('callRequest', {
+        from: callerPhone,
+        to: calleePhone,
+        channel: channel,
+      });
+
+      // Navigate to video call screen (caller side)
+      router.push({
+        pathname: '/videocall',
+        params: {
+          channel,
+          userPhone: callerPhone,
+          targetPhone: calleePhone,
+          isOutgoing: 'true', // Caller side
+        },
+      });
+    } catch (error) {
+      console.error('❌ Error starting video call:', error);
+    }
   };
 
   /**
