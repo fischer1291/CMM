@@ -44,6 +44,16 @@ export default function VideoCallScreen() {
   const agoraSafeUserAccount = userPhone;
   const targetPhone = Array.isArray(rawParams.targetPhone) ? rawParams.targetPhone[0] : rawParams.targetPhone;
 
+  // DIAGNOSTIC: Log when videocall screen mounts
+  console.log('🎥 VideoCallScreen mounted with params:', { channel, userPhone, targetPhone });
+
+  // GUARD: If no channel, navigate back immediately
+  if (!channel) {
+    console.log('❌ VideoCallScreen: No channel provided, navigating back');
+    router.replace('/(tabs)/contacts');
+    return null;
+  }
+
   const [joined, setJoined] = useState(false);
   const [remoteUid, setRemoteUid] = useState<number | null>(null);
   const engineRef = useRef<IRtcEngine | null>(null);

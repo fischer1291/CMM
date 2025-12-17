@@ -182,17 +182,26 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   };
 
   const handleCallAnswered = (callData: CallData) => {
-    setActiveCall(callData);
-    
-    // Navigate to video call screen
-    router.push({
-      pathname: '/(tabs)/videocall',
-      params: {
+    try {
+      console.log('📞 handleCallAnswered: Call was answered, navigating to videocall', {
         channel: callData.channel,
-        userPhone: userPhone!,
+        userPhone,
         targetPhone: callData.callerPhone,
-      },
-    });
+      });
+      setActiveCall(callData);
+
+      // Navigate to video call screen
+      router.push({
+        pathname: '/(tabs)/videocall',
+        params: {
+          channel: callData.channel,
+          userPhone: userPhone!,
+          targetPhone: callData.callerPhone,
+        },
+      });
+    } catch (error) {
+      console.error('❌ Error in handleCallAnswered:', error);
+    }
   };
 
   const handleCallDeclined = (callData: CallData) => {
