@@ -10,7 +10,6 @@ import { useAuth } from './AuthContext';
 import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager, { CallData } from '../services/CallStateManager';
 import PlatformCallAdapter from '../services/PlatformCallAdapter';
-import VoipPushService from '../services/VoipPushService';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 const socket = io(baseUrl, { transports: ['websocket'], secure: true });
@@ -60,24 +59,9 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       await PlatformCallAdapter.initialize();
       await CallNotificationService.initialize();
 
-      // Initialize VoIP push for iOS (enables background CallKit)
-      // NOTE: VoIP library may not be available in development builds without proper native linking
-      // This is OK - the app will use regular push notifications as fallback
-      if (Platform.OS === 'ios') {
-        try {
-          console.log('🚀 Starting VoIP push initialization...');
-          const voipToken = await VoipPushService.initialize();
-          if (voipToken) {
-            console.log('✅ VoIP push initialized with token');
-          } else {
-            console.log('⚠️ VoIP push not available (using regular push notifications as fallback)');
-            console.log('   This is expected in development builds without native VoIP library linking');
-          }
-        } catch (error) {
-          console.error('❌ VoIP push initialization error (non-fatal):', error);
-          // Continue without VoIP push - regular push notifications will work
-        }
-      }
+      // VoIP push is handled internally by CallKeep, no need to initialize separately
+      // This prevents conflicts between CallKeep and react-native-voip-push-notification
+      console.log('📱 VoIP push handled by CallKeep (no separate initialization needed)');
 
       // Setup CallKit callbacks
       setupCallKitCallbacks();
@@ -277,9 +261,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     CallStateManager.removeAllListeners();
     CallNotificationService.cleanup();
     PlatformCallAdapter.cleanup();
-    if (Platform.OS === 'ios') {
-      VoipPushService.cleanup();
-    }
+    // VoIP push cleanup not needed - handled by CallKeep
   };
 
   return (
