@@ -1,9 +1,9 @@
 /**
- * app/_layout.tsx - New simplified layout using clean call system
- * Replaces the complex old layout with professional implementation
+ * app/_layout.tsx - Modern calling system with native CallKit (iOS) / custom UI (Android)
+ * WhatsApp-style implementation: Pure native on iOS, custom overlay on Android
  */
 import { Stack } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { NewCallProvider, useNewCall } from '../contexts/NewCallContext';
@@ -24,6 +24,10 @@ function InnerLayout() {
 
   const isIncomingCall = activeCall?.callState === 'incoming';
 
+  // On iOS, CallKit handles the native UI - don't show custom overlay
+  // On Android, show custom IncomingCallScreen
+  const shouldShowCustomCallScreen = isIncomingCall && Platform.OS === 'android';
+
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>
@@ -33,9 +37,9 @@ function InnerLayout() {
           <Stack.Screen name="(auth)" />
         )}
       </Stack>
-      
-      {/* Show incoming call screen for incoming calls only */}
-      {isIncomingCall && activeCall && (
+
+      {/* Show custom incoming call screen on Android only (iOS uses native CallKit) */}
+      {shouldShowCustomCallScreen && activeCall && (
         <IncomingCallScreen
           visible={true}
           callerName={activeCall.callerName || resolveContact(activeCall.callerPhone).name}
