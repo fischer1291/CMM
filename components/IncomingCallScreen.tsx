@@ -122,14 +122,14 @@ export default function IncomingCallScreen({
               ) : (
                 <View style={[styles.avatar, styles.defaultAvatar]}>
                   <Text style={styles.avatarInitial}>
-                    {callerName.charAt(0).toUpperCase()}
+                    {(callerName || '?').charAt(0).toUpperCase()}
                   </Text>
                 </View>
               )}
             </Animated.View>
             
-            <Text style={styles.callerName}>{callerName}</Text>
-            <Text style={styles.callerPhone}>{callerPhone}</Text>
+            <Text style={styles.callerName}>{callerName || 'Unknown'}</Text>
+            <Text style={styles.callerPhone}>{callerPhone || ''}</Text>
           </View>
 
           {/* Bottom section with action buttons */}

@@ -84,28 +84,40 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   const setupCallKitCallbacks = () => {
     // When user answers call via CallKit
     PlatformCallAdapter.setOnAnswerCallCallback((callId) => {
-      console.log('📱 CallKit answer callback triggered:', callId);
-      CallNotificationService.answerCall();
+      try {
+        console.log('📱 CallKit answer callback triggered:', callId);
+        CallNotificationService.answerCall();
+      } catch (error) {
+        console.error('❌ Error in CallKit answer callback:', error);
+      }
     });
 
     // When user ends call via CallKit
     PlatformCallAdapter.setOnEndCallCallback((callId) => {
-      console.log('📱 CallKit end callback triggered:', callId);
-      const call = CallStateManager.getActiveCall();
-      if (call) {
-        // Notify backend that call ended
-        socket.emit('call:end', {
-          channel: call.channel,
-          calleePhone: call.callerPhone === userPhone ? call.targetPhone : call.callerPhone,
-        });
+      try {
+        console.log('📱 CallKit end callback triggered:', callId);
+        const call = CallStateManager.getActiveCall();
+        if (call) {
+          // Notify backend that call ended
+          socket.emit('call:end', {
+            channel: call.channel,
+            calleePhone: call.callerPhone === userPhone ? call.targetPhone : call.callerPhone,
+          });
+        }
+        CallStateManager.endCall();
+      } catch (error) {
+        console.error('❌ Error in CallKit end callback:', error);
       }
-      CallStateManager.endCall();
     });
 
     // When user rejects call via CallKit
     PlatformCallAdapter.setOnRejectCallCallback((callId) => {
-      console.log('📱 CallKit reject callback triggered:', callId);
-      CallNotificationService.declineCall();
+      try {
+        console.log('📱 CallKit reject callback triggered:', callId);
+        CallNotificationService.declineCall();
+      } catch (error) {
+        console.error('❌ Error in CallKit reject callback:', error);
+      }
     });
   };
 

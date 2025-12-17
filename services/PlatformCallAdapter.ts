@@ -177,33 +177,53 @@ class PlatformCallAdapter {
   private setupCallKeepEventListeners(): void {
     // Answer call event
     RNCallKeep.addEventListener('answerCall', ({ callUUID }) => {
-      console.log('📱 CallKeep: Answer call', callUUID);
-      if (this.onAnswerCallCallback) {
-        this.onAnswerCallCallback(callUUID);
+      try {
+        console.log('📱 CallKeep: Answer call', callUUID);
+        if (this.onAnswerCallCallback) {
+          this.onAnswerCallCallback(callUUID);
+        }
+      } catch (error) {
+        console.error('❌ Error in answerCall event handler:', error);
       }
     });
 
     // End call event
     RNCallKeep.addEventListener('endCall', ({ callUUID }) => {
-      console.log('📱 CallKeep: End call', callUUID);
-      if (this.onEndCallCallback) {
-        this.onEndCallCallback(callUUID);
+      try {
+        console.log('📱 CallKeep: End call', callUUID);
+        if (this.onEndCallCallback) {
+          this.onEndCallCallback(callUUID);
+        }
+      } catch (error) {
+        console.error('❌ Error in endCall event handler:', error);
       }
     });
 
     // Reject call event (iOS only)
     RNCallKeep.addEventListener('didPerformDTMFAction', ({ callUUID, digits }) => {
-      console.log('📱 CallKeep: DTMF action', callUUID, digits);
+      try {
+        console.log('📱 CallKeep: DTMF action', callUUID, digits);
+      } catch (error) {
+        console.error('❌ Error in didPerformDTMFAction event handler:', error);
+      }
     });
 
     // Call display event
     RNCallKeep.addEventListener('didDisplayIncomingCall', ({ callUUID, handle, fromPushKit }) => {
-      console.log('📱 CallKeep: Did display incoming call', callUUID, handle, fromPushKit);
+      try {
+        console.log('📱 CallKeep: Did display incoming call', callUUID, handle, fromPushKit);
+      } catch (error) {
+        console.error('❌ Error in didDisplayIncomingCall event handler:', error);
+      }
     });
 
     // Mute/unmute events
     RNCallKeep.addEventListener('didPerformSetMutedCallAction', ({ muted, callUUID }) => {
-      console.log('📱 CallKeep: Set muted', muted, callUUID);
+      try {
+        console.log('📱 CallKeep: Set muted', muted, callUUID);
+      } catch (error) {
+        console.error('❌ Error in didPerformSetMutedCallAction event handler:', error);
+      }
     });
   }
 
