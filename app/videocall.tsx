@@ -22,12 +22,12 @@ import {
 } from 'react-native-agora';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ViewShot from 'react-native-view-shot';
-import { useAuth } from '../../contexts/AuthContext';
-import { useNewCall } from '../../contexts/NewCallContext';
-import CallMomentCaptureModal from '../components/callmoments/CallMomentCaptureModal';
-import { resolveContact, normalizePhone } from '../../utils/contactResolver';
-import CallNotificationService from '../../services/CallNotificationService';
-import { fetchWithTimeout } from '../../utils/apiUtils';
+import { useAuth } from '../contexts/AuthContext';
+import { useNewCall } from '../contexts/NewCallContext';
+import CallMomentCaptureModal from './components/callmoments/CallMomentCaptureModal';
+import { resolveContact, normalizePhone } from '../utils/contactResolver';
+import CallNotificationService from '../services/CallNotificationService';
+import { fetchWithTimeout } from '../utils/apiUtils';
 
 const APP_ID = '28a507f76f1a400ba047aa629af4b81d';
 
