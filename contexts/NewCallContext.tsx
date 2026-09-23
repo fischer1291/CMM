@@ -3,7 +3,7 @@
  * Replaces the complex existing CallContext
  */
 import { useRouter } from 'expo-router';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
@@ -33,15 +33,25 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [activeCall, setActiveCall] = useState<CallData | null>(null);
   const [hasActiveCall, setHasActiveCall] = useState(false);
+  const servicesInitialized = useRef(false);
 
   // Initialize services
   useEffect(() => {
-    if (!isLoading && userPhone) {
+    console.log('🔍 NewCallProvider: useEffect triggered', {
+      isLoading,
+      userPhone: userPhone?.substring(0, 8) + '...',
+      servicesInitialized: servicesInitialized.current
+    });
+
+    if (!isLoading && userPhone && !servicesInitialized.current) {
       initializeServices();
     }
-    
+
     return () => {
-      cleanup();
+      // Only cleanup if services were actually initialized
+      if (servicesInitialized.current) {
+        cleanup();
+      }
     };
   }, [userPhone, isLoading]);
 
@@ -55,7 +65,19 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       // Register user with socket
       socket.emit('register', userPhone);
 
-      // Initialize services
+      // CRITICAL: Setup CallKit callbacks BEFORE initializing PlatformCallAdapter
+      // This prevents a race condition where events can fire before callbacks are registered
+      console.log('🔧 Setting up CallKit callbacks BEFORE platform initialization...');
+      setupCallKitCallbacks();
+
+      // Setup call state listeners before initialization
+      setupCallStateListeners();
+
+      // Setup socket listeners before initialization
+      setupSocketListeners();
+
+      // NOW initialize services - event listeners will be ready to receive events
+      console.log('🚀 Initializing platform services with callbacks already registered...');
       await PlatformCallAdapter.initialize();
       await CallNotificationService.initialize();
 
@@ -63,14 +85,8 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       // This prevents conflicts between CallKeep and react-native-voip-push-notification
       console.log('📱 VoIP push handled by CallKeep (no separate initialization needed)');
 
-      // Setup CallKit callbacks
-      setupCallKitCallbacks();
-
-      // Setup call state listeners
-      setupCallStateListeners();
-
-      // Setup socket listeners
-      setupSocketListeners();
+      // Mark services as initialized
+      servicesInitialized.current = true;
 
       console.log('✅ NewCallContext: Services initialized successfully');
     } catch (error) {
@@ -125,22 +141,38 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
    * Setup call state event listeners
    */
   const setupCallStateListeners = () => {
+    // CRITICAL: Remove ALL listeners first to prevent duplicates
+    // We must use removeAllListeners because the handler functions are recreated on each render
+    CallStateManager.removeAllListeners('call:incoming');
+    CallStateManager.removeAllListeners('call:answered');
+    CallStateManager.removeAllListeners('call:declined');
+    CallStateManager.removeAllListeners('call:ended');
+
     CallStateManager.on('call:incoming', handleCallIncoming);
     CallStateManager.on('call:answered', handleCallAnswered);
     CallStateManager.on('call:declined', handleCallDeclined);
     CallStateManager.on('call:ended', handleCallEnded);
+
+    console.log('✅ CallStateManager listeners set up (duplicates removed)');
   };
 
   /**
    * Setup socket event listeners
    */
   const setupSocketListeners = () => {
+    // CRITICAL: Remove any existing listeners first to prevent duplicates
+    socket.off('connect');
+    socket.off('incomingCall');
+    socket.off('callEnded');
+
     socket.on('connect', () => {
       console.log('🔌 Socket connected');
     });
 
     socket.on('incomingCall', handleSocketIncomingCall);
     socket.on('callEnded', handleSocketCallEnded);
+
+    console.log('✅ Socket listeners set up (duplicates removed)');
   };
 
   /**
@@ -153,17 +185,42 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!from || !channel) return;
+    // CRITICAL: Validate incoming data from socket to prevent crashes
+    if (!from || typeof from !== 'string') {
+      console.error('❌ Invalid callerPhone from socket:', from);
+      return;
+    }
 
-    // Create incoming call through notification service
-    await CallNotificationService.handleIncomingCall({
-      type: 'incoming_call',
-      callerPhone: from,
-      calleePhone: userPhone!,
+    if (!channel || typeof channel !== 'string') {
+      console.error('❌ Invalid channel from socket:', channel);
+      return;
+    }
+
+    if (!userPhone) {
+      console.error('❌ No authenticated user phone available');
+      return;
+    }
+
+    console.log('📞 Socket incoming call:', {
+      from,
       channel,
-      callerName,
-      hasVideo: true,
+      callerName: callerName || 'Unknown',
+      userPhone,
     });
+
+    try {
+      // Create incoming call through notification service
+      await CallNotificationService.handleIncomingCall({
+        type: 'incoming_call',
+        callerPhone: from,
+        calleePhone: userPhone,
+        channel,
+        callerName: callerName || undefined,
+        hasVideo: true,
+      });
+    } catch (error) {
+      console.error('❌ Error handling socket incoming call:', error);
+    }
   };
 
   /**
@@ -177,6 +234,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
    * Handle call state events
    */
   const handleCallIncoming = (callData: CallData) => {
+    console.log('📥 handleCallIncoming triggered:', callData.callId);
     setActiveCall(callData);
     setHasActiveCall(true);
   };
@@ -191,6 +249,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       setActiveCall(callData);
 
       // Navigate to video call screen (receiver answered)
+      console.log('🚀 handleCallAnswered: Navigating to /videocall');
       router.push({
         pathname: '/videocall',
         params: {
@@ -200,6 +259,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
           isOutgoing: 'false', // Receiver side
         },
       });
+      console.log('✅ handleCallAnswered: Navigation called');
 
       // Notify backend that call was accepted
       socket.emit('acceptCall', {
@@ -274,6 +334,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       });
 
       // Navigate to video call screen (caller side)
+      console.log('🚀 startVideoCall: Navigating to /videocall');
       router.push({
         pathname: '/videocall',
         params: {
@@ -283,6 +344,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
           isOutgoing: 'true', // Caller side
         },
       });
+      console.log('✅ startVideoCall: Navigation called');
     } catch (error) {
       console.error('❌ Error starting video call:', error);
     }
@@ -292,12 +354,25 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
    * Cleanup services
    */
   const cleanup = () => {
+    console.log('🧹 NewCallContext: Cleaning up...');
+
+    // Remove socket listeners
+    socket.off('connect');
     socket.off('incomingCall');
     socket.off('callEnded');
+
+    // Remove CallStateManager listeners
     CallStateManager.removeAllListeners();
+
+    // Cleanup services
     CallNotificationService.cleanup();
     PlatformCallAdapter.cleanup();
     // VoIP push cleanup not needed - handled by CallKeep
+
+    // Reset initialization flag
+    servicesInitialized.current = false;
+
+    console.log('✅ NewCallContext: Cleanup complete');
   };
 
   return (

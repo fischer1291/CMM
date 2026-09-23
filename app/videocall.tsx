@@ -36,22 +36,64 @@ export default function VideoCallScreen() {
   const { userPhone: authUserPhone, userProfile } = useAuth();
   const { endCall } = useNewCall();
   const rawParams = useLocalSearchParams();
-  const channel = Array.isArray(rawParams.channel) ? rawParams.channel[0] : rawParams.channel;
-  let userPhone = Array.isArray(rawParams.userPhone) ? rawParams.userPhone[0] : rawParams.userPhone;
-  if (typeof userPhone === "string" && userPhone.startsWith("+")) {
-    userPhone = userPhone.substring(1);
-  }
-  const agoraSafeUserAccount = userPhone;
-  const targetPhone = Array.isArray(rawParams.targetPhone) ? rawParams.targetPhone[0] : rawParams.targetPhone;
-  const isOutgoing = rawParams.isOutgoing === 'true';
 
-  // DIAGNOSTIC: Log when videocall screen mounts
-  console.log('🎥 VideoCallScreen mounted with params:', {
-    channel,
-    userPhone,
-    targetPhone,
-    isOutgoing
-  });
+  // CRITICAL: Use useMemo to prevent params from changing on every render
+  const channel = React.useMemo(() =>
+    Array.isArray(rawParams.channel) ? rawParams.channel[0] : rawParams.channel,
+    [rawParams.channel]
+  );
+
+  const userPhone = React.useMemo(() => {
+    let phone = Array.isArray(rawParams.userPhone) ? rawParams.userPhone[0] : rawParams.userPhone;
+    if (typeof phone === "string" && phone.startsWith("+")) {
+      phone = phone.substring(1);
+    }
+    return phone;
+  }, [rawParams.userPhone]);
+
+  const agoraSafeUserAccount = userPhone;
+
+  const targetPhone = React.useMemo(() =>
+    Array.isArray(rawParams.targetPhone) ? rawParams.targetPhone[0] : rawParams.targetPhone,
+    [rawParams.targetPhone]
+  );
+
+  const isOutgoing = React.useMemo(() =>
+    rawParams.isOutgoing === 'true',
+    [rawParams.isOutgoing]
+  );
+
+  // DIAGNOSTIC: Log when videocall screen mounts - use ref to only log on actual mount
+  const mountCountRef = useRef(0);
+  useEffect(() => {
+    mountCountRef.current += 1;
+    console.log('🎥 VideoCallScreen mounted (#' + mountCountRef.current + ') with params:', {
+      channel,
+      userPhone,
+      targetPhone,
+      isOutgoing,
+      authUserPhone
+    });
+  }, []); // Empty deps - only log on actual mount
+
+  // CRITICAL GUARD: Verify userPhone matches authenticated user
+  // Normalize phones for comparison (remove + prefix)
+  const normalizedAuthPhone = authUserPhone?.startsWith('+')
+    ? authUserPhone.substring(1)
+    : authUserPhone;
+  const normalizedParamPhone = userPhone?.startsWith('+')
+    ? userPhone.substring(1)
+    : userPhone;
+
+  if (normalizedAuthPhone && normalizedParamPhone && normalizedAuthPhone !== normalizedParamPhone) {
+    console.error('❌ VideoCallScreen: userPhone param doesn\'t match authenticated user!', {
+      authUserPhone: normalizedAuthPhone,
+      paramUserPhone: normalizedParamPhone
+    });
+    console.error('❌ This device should not be on this call - navigating back');
+    router.replace('/(tabs)/contacts');
+    return null;
+  }
 
   // CRITICAL GUARD: Prevent unauthorized mounting
   useEffect(() => {
@@ -247,25 +289,43 @@ export default function VideoCallScreen() {
     }
   };
 
+  // CRITICAL: Track if engine is being initialized to prevent multiple simultaneous inits
+  const initializingRef = useRef(false);
+  const setupCompleteRef = useRef(false);
+
   useEffect(() => {
+    // Prevent duplicate setup
+    if (setupCompleteRef.current || initializingRef.current) {
+      console.log('⏭️  Skipping duplicate setup call');
+      return;
+    }
+
     const setupCall = async () => {
-      // Stop any ringing when entering video call
+      initializingRef.current = true;
+
       try {
+        // Stop any ringing when entering video call
         if (channel) {
           console.log('🔇 Stopping call notifications for channel:', channel);
           CallNotificationService.endCallByChannel(channel);
         }
-      } catch (error) {
-        console.log('Error stopping call notifications:', error);
-      }
 
-      await initializeEngine();
+        await initializeEngine();
+        setupCompleteRef.current = true;
+      } catch (error) {
+        console.error('❌ Error in setupCall:', error);
+      } finally {
+        initializingRef.current = false;
+      }
     };
 
     setupCall();
 
     return () => {
       // Cleanup on unmount
+      console.log('🧹 VideoCallScreen: Cleanup triggered');
+      setupCompleteRef.current = false;
+
       if (engineRef.current) {
         try {
           engineRef.current.leaveChannel();
@@ -288,7 +348,7 @@ export default function VideoCallScreen() {
         engineRef.current = null;
       }
     };
-  }, [channel]); // Include channel as dependency
+  }, []); // CRITICAL: Empty deps - only run once on mount
 
   // Note: Call ending is now handled by the NewCallContext automatically
 
@@ -312,14 +372,35 @@ export default function VideoCallScreen() {
     };
   }, [callStartTime, joined]);
 
+  // CRITICAL: Track if we've already joined to prevent duplicate joins
+  const joinedRef = useRef(false);
+  const joiningRef = useRef(false);
+
   useEffect(() => {
+    // Prevent duplicate joins
+    if (joinedRef.current || joiningRef.current) {
+      console.log('⏭️  Skipping duplicate join attempt');
+      return;
+    }
+
+    if (!channel || !userPhone) {
+      console.warn('⚠️  Missing channel or userPhone, skipping join');
+      return;
+    }
+
     const fetchTokenAndJoin = async () => {
+      joiningRef.current = true;
+
       try {
-        // Ensure engine is initialized before joining
-        await initializeEngine();
+        // Wait for engine to be ready
+        let attempts = 0;
+        while (!engineRef.current && attempts < 50) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
 
         if (!engineRef.current) {
-          console.error('❌ Agora Engine not initialized');
+          console.error('❌ Agora Engine not initialized after waiting');
           Alert.alert(
             'Initialisierungsfehler',
             'Die Video-Engine konnte nicht initialisiert werden.',
@@ -328,6 +409,7 @@ export default function VideoCallScreen() {
           return;
         }
 
+        console.log('🔑 Fetching RTC token for channel:', channel);
         const res = await fetchWithTimeout(
           "https://cmm-backend-gdqx.onrender.com/rtcToken",
           {
@@ -347,12 +429,15 @@ export default function VideoCallScreen() {
         const data = await res.json();
         const token = data.token;
 
+        console.log('🚪 Joining Agora channel:', channel);
         // Restart video and preview before joining channel
         await engineRef.current.enableVideo();
         await engineRef.current.startPreview();
 
         await engineRef.current.joinChannelWithUserAccount(token, channel, userPhone);
         setLocalUid(agoraSafeUserAccount);
+        joinedRef.current = true;
+        console.log('✅ Successfully joined channel');
       } catch (err) {
         console.error('❌ Failed to fetch token or join channel:', err);
 
@@ -375,13 +460,13 @@ export default function VideoCallScreen() {
             { text: 'OK', onPress: () => router.replace('/(tabs)/contacts') }
           ]
         );
+      } finally {
+        joiningRef.current = false;
       }
     };
 
-    if (channel && userPhone) {
-      fetchTokenAndJoin();
-    }
-  }, [channel, userPhone]);
+    fetchTokenAndJoin();
+  }, []); // CRITICAL: Empty deps - only join once on mount
 
   const cleanupCall = async (notifyRemote = false) => {
     console.log('🧹 Starting call cleanup, notifyRemote:', notifyRemote);

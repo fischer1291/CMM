@@ -14,7 +14,6 @@ export default function TabsLayout() {
           contacts: 'people',
           callmoments: 'camera',
           settings: 'settings',
-          videocall: 'videocam',
         };
 
         return {
@@ -39,7 +38,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="contacts" options={{ title: 'Kontakte' }} />
       <Tabs.Screen name="callmoments" options={{ title: 'CallMoments' }} />
       <Tabs.Screen name="settings" options={{ title: 'Einstellungen' }} />
-      <Tabs.Screen name="videocall" options={{ href: null }} />
     </Tabs>
   );
 }

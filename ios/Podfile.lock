@@ -2329,8 +2329,6 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - RNVoipPushNotification (3.3.3):
-    - React-Core
   - RNWorklets (0.5.1):
     - hermes-engine
     - RCTRequired
@@ -2529,7 +2527,6 @@ DEPENDENCIES:
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
-  - RNVoipPushNotification (from `../node_modules/react-native-voip-push-notification`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
@@ -2773,8 +2770,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-screens"
   RNVectorIcons:
     :path: "../node_modules/react-native-vector-icons"
-  RNVoipPushNotification:
-    :path: "../node_modules/react-native-voip-push-notification"
   RNWorklets:
     :path: "../node_modules/react-native-worklets"
   Yoga:
@@ -2900,7 +2895,6 @@ SPEC CHECKSUMS:
   RNReanimated: 1442a577e066e662f0ce1cd1864a65c8e547aee0
   RNScreens: d8d6f1792f6e7ac12b0190d33d8d390efc0c1845
   RNVectorIcons: 4351544f100d4f12cac156a7c13399e60bab3e26
-  RNVoipPushNotification: 4998fe6724d421da616dca765da7dc421ff54c4e
   RNWorklets: 76fce72926e28e304afb44f0da23b2d24f2c1fa0
   SDWebImage: 16309af6d214ba3f77a7c6f6fdda888cb313a50a
   SDWebImageAVIFCoder: afe194a084e851f70228e4be35ef651df0fc5c57

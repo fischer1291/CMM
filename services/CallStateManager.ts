@@ -14,6 +14,16 @@ class SimpleEventEmitter {
     this.listeners.get(event)!.push(listener);
   }
 
+  off(event: string, listener: Function): void {
+    const eventListeners = this.listeners.get(event);
+    if (eventListeners) {
+      const index = eventListeners.indexOf(listener);
+      if (index > -1) {
+        eventListeners.splice(index, 1);
+      }
+    }
+  }
+
   emit(event: string, ...args: any[]): void {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {

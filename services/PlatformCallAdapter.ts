@@ -141,6 +141,11 @@ class PlatformCallAdapter {
       // Setup CallKeep
       await RNCallKeep.setup(this.callKeepOptions);
 
+      // CRITICAL: Delay event listener setup to ensure JS runtime is fully ready
+      // This prevents TurboModule bridge crashes when native tries to invoke JS callbacks
+      console.log('⏳ Waiting for JS runtime to be ready before registering event listeners...');
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       // Register event listeners
       this.setupCallKeepEventListeners();
 
@@ -173,78 +178,198 @@ class PlatformCallAdapter {
 
   /**
    * Setup CallKeep event listeners
+   * CRITICAL: Defensive event handling to prevent TurboModule bridge crashes
    */
   private setupCallKeepEventListeners(): void {
+    console.log('🔧 Setting up CallKeep event listeners with defensive error handling...');
+
+    // CRITICAL: Wrap ALL event listeners with maximum defensive checks
+    // to prevent native TurboModule bridge crashes
+
     // Answer call event
-    RNCallKeep.addEventListener('answerCall', ({ callUUID }) => {
+    RNCallKeep.addEventListener('answerCall', (data: any) => {
+      // CRITICAL: Don't destructure - validate payload first
       try {
-        console.log('📱 CallKeep: Answer call', callUUID);
-        if (this.onAnswerCallCallback) {
-          this.onAnswerCallCallback(callUUID);
+        console.log('📱 CallKeep: Answer call event received', data);
+
+        // Validate payload structure
+        if (!data || typeof data !== 'object') {
+          console.error('❌ Invalid answerCall event payload:', data);
+          return;
         }
-      } catch (error) {
-        console.error('❌ Error in answerCall event handler:', error);
+
+        const callUUID = data.callUUID || data.callId;
+        if (!callUUID || typeof callUUID !== 'string') {
+          console.error('❌ Invalid callUUID in answerCall event:', callUUID);
+          return;
+        }
+
+        console.log('✅ Validated callUUID:', callUUID);
+
+        // CRITICAL: Validate callback exists AND is a function
+        if (typeof this.onAnswerCallCallback === 'function') {
+          try {
+            console.log('🎯 Invoking onAnswerCallCallback');
+            this.onAnswerCallCallback(callUUID);
+            console.log('✅ onAnswerCallCallback completed');
+          } catch (callbackError: any) {
+            console.error('❌ Error invoking onAnswerCallCallback:', {
+              error: callbackError,
+              message: callbackError?.message,
+              stack: callbackError?.stack,
+            });
+          }
+        } else {
+          console.warn('⚠️  onAnswerCallCallback not set or not a function:', typeof this.onAnswerCallCallback);
+        }
+      } catch (error: any) {
+        console.error('❌ Critical error in answerCall event handler:', {
+          error: error,
+          message: error?.message,
+          stack: error?.stack,
+        });
       }
     });
 
     // End call event
-    RNCallKeep.addEventListener('endCall', ({ callUUID }) => {
+    RNCallKeep.addEventListener('endCall', (data: any) => {
       try {
-        console.log('📱 CallKeep: End call', callUUID);
-        if (this.onEndCallCallback) {
-          this.onEndCallCallback(callUUID);
+        console.log('📱 CallKeep: End call event received', data);
+
+        if (!data || typeof data !== 'object') {
+          console.error('❌ Invalid endCall event payload:', data);
+          return;
         }
-      } catch (error) {
-        console.error('❌ Error in endCall event handler:', error);
+
+        const callUUID = data.callUUID || data.callId;
+        if (!callUUID || typeof callUUID !== 'string') {
+          console.error('❌ Invalid callUUID in endCall event:', callUUID);
+          return;
+        }
+
+        if (typeof this.onEndCallCallback === 'function') {
+          try {
+            this.onEndCallCallback(callUUID);
+          } catch (callbackError: any) {
+            console.error('❌ Error invoking onEndCallCallback:', {
+              error: callbackError,
+              message: callbackError?.message,
+            });
+          }
+        } else {
+          console.warn('⚠️  onEndCallCallback not set or not a function');
+        }
+      } catch (error: any) {
+        console.error('❌ Critical error in endCall event handler:', {
+          error: error,
+          message: error?.message,
+        });
       }
     });
 
     // Reject call event (iOS only)
-    RNCallKeep.addEventListener('didPerformDTMFAction', ({ callUUID, digits }) => {
+    RNCallKeep.addEventListener('didPerformDTMFAction', (data: any) => {
       try {
+        console.log('📱 CallKeep: DTMF action event received', data);
+
+        if (!data || typeof data !== 'object') {
+          console.error('❌ Invalid DTMF event payload:', data);
+          return;
+        }
+
+        const callUUID = data.callUUID || data.callId;
+        const digits = data.digits;
         console.log('📱 CallKeep: DTMF action', callUUID, digits);
-      } catch (error) {
-        console.error('❌ Error in didPerformDTMFAction event handler:', error);
+      } catch (error: any) {
+        console.error('❌ Error in didPerformDTMFAction event handler:', {
+          error: error,
+          message: error?.message,
+        });
       }
     });
 
     // Call display event
-    RNCallKeep.addEventListener('didDisplayIncomingCall', ({ callUUID, handle, fromPushKit }) => {
+    RNCallKeep.addEventListener('didDisplayIncomingCall', (data: any) => {
       try {
-        console.log('📱 CallKeep: Did display incoming call', callUUID, handle, fromPushKit);
-      } catch (error) {
-        console.error('❌ Error in didDisplayIncomingCall event handler:', error);
+        console.log('📱 CallKeep: Did display incoming call event received', data);
+
+        if (!data || typeof data !== 'object') {
+          console.error('❌ Invalid didDisplayIncomingCall event payload:', data);
+          return;
+        }
+
+        const callUUID = data.callUUID || data.callId;
+        const handle = data.handle;
+        const fromPushKit = data.fromPushKit;
+        console.log('✅ CallKeep: Successfully displayed incoming call', callUUID, handle, fromPushKit);
+      } catch (error: any) {
+        console.error('❌ Error in didDisplayIncomingCall event handler:', {
+          error: error,
+          message: error?.message,
+        });
       }
     });
 
     // Mute/unmute events
-    RNCallKeep.addEventListener('didPerformSetMutedCallAction', ({ muted, callUUID }) => {
+    RNCallKeep.addEventListener('didPerformSetMutedCallAction', (data: any) => {
       try {
+        console.log('📱 CallKeep: Set muted event received', data);
+
+        if (!data || typeof data !== 'object') {
+          console.error('❌ Invalid mute event payload:', data);
+          return;
+        }
+
+        const muted = data.muted;
+        const callUUID = data.callUUID || data.callId;
         console.log('📱 CallKeep: Set muted', muted, callUUID);
-      } catch (error) {
-        console.error('❌ Error in didPerformSetMutedCallAction event handler:', error);
+      } catch (error: any) {
+        console.error('❌ Error in didPerformSetMutedCallAction event handler:', {
+          error: error,
+          message: error?.message,
+        });
       }
     });
+
+    console.log('✅ CallKeep event listeners registered successfully');
   }
 
   /**
    * Set callback for when call is answered
+   * CRITICAL: Validate callback is a function to prevent TurboModule crashes
    */
   setOnAnswerCallCallback(callback: (callId: string) => void): void {
+    if (typeof callback !== 'function') {
+      console.error('❌ setOnAnswerCallCallback: callback is not a function:', typeof callback);
+      return;
+    }
+    console.log('✅ setOnAnswerCallCallback: Callback registered');
     this.onAnswerCallCallback = callback;
   }
 
   /**
    * Set callback for when call is ended
+   * CRITICAL: Validate callback is a function to prevent TurboModule crashes
    */
   setOnEndCallCallback(callback: (callId: string) => void): void {
+    if (typeof callback !== 'function') {
+      console.error('❌ setOnEndCallCallback: callback is not a function:', typeof callback);
+      return;
+    }
+    console.log('✅ setOnEndCallCallback: Callback registered');
     this.onEndCallCallback = callback;
   }
 
   /**
    * Set callback for when call is rejected
+   * CRITICAL: Validate callback is a function to prevent TurboModule crashes
    */
   setOnRejectCallCallback(callback: (callId: string) => void): void {
+    if (typeof callback !== 'function') {
+      console.error('❌ setOnRejectCallCallback: callback is not a function:', typeof callback);
+      return;
+    }
+    console.log('✅ setOnRejectCallCallback: Callback registered');
     this.onRejectCallCallback = callback;
   }
 
@@ -282,21 +407,73 @@ class PlatformCallAdapter {
    */
   private async displayCallKitIncomingCall(callData: CallData): Promise<void> {
     try {
+      // CRITICAL: Check if CallKeep is loaded before attempting to use it
+      if (!isCallKeepAvailable || !RNCallKeep) {
+        console.warn('⚠️ CallKeep not loaded, cannot display incoming call');
+        throw new Error('CallKeep not available');
+      }
+
       const { callId, callerPhone, callerName } = callData;
 
-      // Display incoming call in CallKit
-      await RNCallKeep.displayIncomingCall(
+      // CRITICAL: Validate all parameters before calling CallKeep
+      // to prevent native crashes in TurboModule bridge
+      if (!callId || typeof callId !== 'string') {
+        throw new Error(`Invalid callId: ${callId}`);
+      }
+
+      if (!callerPhone || typeof callerPhone !== 'string') {
+        throw new Error(`Invalid callerPhone: ${callerPhone}`);
+      }
+
+      // Sanitize caller name to prevent special characters causing issues
+      const sanitizedCallerName = (callerName || 'Unknown Caller')
+        .replace(/[^\w\s\-]/g, '') // Remove special characters
+        .trim()
+        .substring(0, 100) || 'Unknown Caller'; // Max 100 chars
+
+      console.log('📱 Calling RNCallKeep.displayIncomingCall with:', {
         callId,
         callerPhone,
-        callerName || 'Unknown',
-        'generic',
-        true // hasVideo
-      );
+        sanitizedCallerName,
+      });
 
-      console.log('✅ CallKit incoming call displayed:', callId);
-    } catch (error) {
-      console.error('❌ Failed to display CallKit incoming call:', error);
-      throw error;
+      // Double try-catch to catch any native exception
+      try {
+        await RNCallKeep.displayIncomingCall(
+          callId,
+          callerPhone,
+          sanitizedCallerName,
+          'generic',
+          true // hasVideo
+        );
+        console.log('✅ CallKit incoming call displayed:', callId);
+      } catch (nativeError: any) {
+        console.error('❌ Native CallKeep.displayIncomingCall failed:', {
+          error: nativeError,
+          message: nativeError?.message,
+          code: nativeError?.code,
+          callId,
+          callerPhone,
+        });
+
+        // Log detailed error for debugging
+        if (nativeError?.message?.includes('permissions')) {
+          console.error('⚠️  CallKit permissions may not be granted. Check Info.plist and iOS Settings.');
+        }
+
+        // CRITICAL: Do NOT rethrow - rethrowing causes TurboModule bridge to crash
+        // Instead, log and return gracefully
+        console.error('⚠️  CallKit failed, system will fall back to notification-based calling');
+        return;
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to display CallKit incoming call:', {
+        error: error,
+        message: error?.message,
+        callData,
+      });
+      // CRITICAL: Do NOT rethrow - return gracefully to prevent TurboModule crash
+      return;
     }
   }
 
@@ -305,21 +482,71 @@ class PlatformCallAdapter {
    */
   private async displayAndroidIncomingCall(callData: CallData): Promise<void> {
     try {
+      // CRITICAL: Check if CallKeep is loaded before attempting to use it
+      if (!isCallKeepAvailable || !RNCallKeep) {
+        console.warn('⚠️ CallKeep not loaded, cannot display incoming call');
+        throw new Error('CallKeep not available');
+      }
+
       const { callId, callerPhone, callerName } = callData;
 
-      // Display incoming call in Android
-      await RNCallKeep.displayIncomingCall(
+      // CRITICAL: Validate all parameters before calling CallKeep
+      if (!callId || typeof callId !== 'string') {
+        throw new Error(`Invalid callId: ${callId}`);
+      }
+
+      if (!callerPhone || typeof callerPhone !== 'string') {
+        throw new Error(`Invalid callerPhone: ${callerPhone}`);
+      }
+
+      // Sanitize caller name to prevent special characters causing issues
+      const sanitizedCallerName = (callerName || 'Unknown')
+        .replace(/[^\w\s\-]/g, '')
+        .trim()
+        .substring(0, 100) || 'Unknown';
+
+      console.log('📱 Calling RNCallKeep.displayIncomingCall (Android) with:', {
         callId,
         callerPhone,
-        callerName || 'Unknown',
-        'generic',
-        true // hasVideo
-      );
+        sanitizedCallerName,
+      });
 
-      console.log('✅ Android incoming call displayed:', callId);
-    } catch (error) {
-      console.error('❌ Failed to display Android incoming call:', error);
-      throw error;
+      try {
+        // Display incoming call in Android
+        await RNCallKeep.displayIncomingCall(
+          callId,
+          callerPhone,
+          sanitizedCallerName,
+          'generic',
+          true // hasVideo
+        );
+
+        console.log('✅ Android incoming call displayed:', callId);
+      } catch (nativeError: any) {
+        console.error('❌ Native CallKeep.displayIncomingCall (Android) failed:', {
+          error: nativeError,
+          message: nativeError?.message,
+          code: nativeError?.code,
+          callId,
+          callerPhone,
+        });
+
+        if (nativeError?.message?.includes('permissions')) {
+          console.error('⚠️  Android call permissions may not be granted. Check AndroidManifest.xml.');
+        }
+
+        // CRITICAL: Do NOT rethrow - rethrowing causes TurboModule bridge to crash
+        console.error('⚠️  CallKeep failed, system will fall back to notification-based calling');
+        return;
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to display Android incoming call:', {
+        error: error,
+        message: error?.message,
+        callData,
+      });
+      // CRITICAL: Do NOT rethrow - return gracefully to prevent TurboModule crash
+      return;
     }
   }
 
@@ -330,10 +557,38 @@ class PlatformCallAdapter {
     console.log('📱 PlatformCallAdapter: Call answered:', callData.callId);
 
     try {
+      if (!isCallKeepAvailable || !RNCallKeep) {
+        console.warn('⚠️ CallKeep not available, skipping startCall');
+        return;
+      }
+
+      if (!callData?.callId || typeof callData.callId !== 'string') {
+        console.error('❌ Invalid callId in onCallAnswered:', callData?.callId);
+        return;
+      }
+
       if (Platform.OS === 'ios' || Platform.OS === 'android') {
-        // Start call in CallKeep (changes UI state to "in call")
-        RNCallKeep.startCall(callData.callId, callData.callerPhone, callData.callerName || 'Unknown');
-        console.log('✅ CallKeep call started:', callData.callId);
+        // Validate and sanitize parameters
+        const sanitizedCallerName = (callData.callerName || 'Unknown')
+          .replace(/[^\w\s\-]/g, '')
+          .trim()
+          .substring(0, 100) || 'Unknown';
+
+        try {
+          // Start call in CallKeep (changes UI state to "in call")
+          RNCallKeep.startCall(
+            callData.callId,
+            callData.callerPhone || 'Unknown',
+            sanitizedCallerName
+          );
+          console.log('✅ CallKeep call started:', callData.callId);
+        } catch (nativeError: any) {
+          console.error('❌ Native startCall failed:', {
+            error: nativeError,
+            message: nativeError?.message,
+            callId: callData.callId,
+          });
+        }
       }
     } catch (error) {
       console.error('❌ Failed to start CallKeep call:', error);
@@ -347,10 +602,28 @@ class PlatformCallAdapter {
     console.log('📱 PlatformCallAdapter: Call declined:', callData.callId);
 
     try {
+      if (!isCallKeepAvailable || !RNCallKeep) {
+        console.warn('⚠️ CallKeep not available, skipping endCall');
+        return;
+      }
+
+      if (!callData?.callId || typeof callData.callId !== 'string') {
+        console.error('❌ Invalid callId in onCallDeclined:', callData?.callId);
+        return;
+      }
+
       if (Platform.OS === 'ios' || Platform.OS === 'android') {
-        // End call in CallKeep
-        RNCallKeep.endCall(callData.callId);
-        console.log('✅ CallKeep call declined:', callData.callId);
+        try {
+          // End call in CallKeep
+          RNCallKeep.endCall(callData.callId);
+          console.log('✅ CallKeep call declined:', callData.callId);
+        } catch (nativeError: any) {
+          console.error('❌ Native endCall failed:', {
+            error: nativeError,
+            message: nativeError?.message,
+            callId: callData.callId,
+          });
+        }
       }
     } catch (error) {
       console.error('❌ Failed to end CallKeep call:', error);
@@ -364,10 +637,28 @@ class PlatformCallAdapter {
     console.log('📱 PlatformCallAdapter: Call ended:', callData.callId);
 
     try {
+      if (!isCallKeepAvailable || !RNCallKeep) {
+        console.warn('⚠️ CallKeep not available, skipping endCall');
+        return;
+      }
+
+      if (!callData?.callId || typeof callData.callId !== 'string') {
+        console.error('❌ Invalid callId in onCallEnded:', callData?.callId);
+        return;
+      }
+
       if (Platform.OS === 'ios' || Platform.OS === 'android') {
-        // End call in CallKeep
-        RNCallKeep.endCall(callData.callId);
-        console.log('✅ CallKeep call ended:', callData.callId);
+        try {
+          // End call in CallKeep
+          RNCallKeep.endCall(callData.callId);
+          console.log('✅ CallKeep call ended:', callData.callId);
+        } catch (nativeError: any) {
+          console.error('❌ Native endCall failed:', {
+            error: nativeError,
+            message: nativeError?.message,
+            callId: callData.callId,
+          });
+        }
       }
     } catch (error) {
       console.error('❌ Failed to end CallKeep call:', error);
