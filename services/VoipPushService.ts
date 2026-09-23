@@ -8,8 +8,7 @@
  */
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { fetchWithTimeout } from '../utils/apiUtils';
-import { API_BASE_URL } from '../config/env';
+import { apiFetch } from '../utils/api';
 
 // Lazy-loaded like CallKeep, so a missing native module cannot crash app launch
 let RNVoipPush: any = null;
@@ -78,8 +77,8 @@ class VoipPushService {
     if (!userPhone || !voipToken || this.registeredFor === `${userPhone}:${voipToken}`) return;
 
     try {
-      const response = await fetchWithTimeout(
-        `${API_BASE_URL}/user/voip-token`,
+      const response = await apiFetch(
+        `/user/voip-token`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

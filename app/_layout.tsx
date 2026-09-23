@@ -1,6 +1,6 @@
 /**
- * app/_layout.tsx - Modern calling system with native CallKit (iOS) / custom UI (Android)
- * WhatsApp-style implementation: Pure native on iOS, custom overlay on Android
+ * Root layout. Which area is reachable depends on the auth state:
+ * signed out -> (auth), new user -> profile-setup, signed in -> tabs + call.
  */
 import { Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
@@ -9,7 +9,8 @@ import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { NewCallProvider } from '../contexts/NewCallContext';
 
 function InnerLayout() {
-  const { userPhone, isLoading } = useAuth();
+  const { userPhone, isLoading, needsProfileSetup } = useAuth();
+  const signedIn = !!userPhone;
 
   if (isLoading) {
     return (
@@ -21,22 +22,24 @@ function InnerLayout() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      {userPhone ? (
-        <>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="videocall"
-            options={{
-              presentation: 'fullScreenModal',
-              animation: 'none',
-              // Prevent unmounting when parent re-renders
-              freezeOnBlur: true,
-            }}
-          />
-        </>
-      ) : (
+      <Stack.Protected guard={signedIn && !needsProfileSetup}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="videocall"
+          options={{
+            presentation: 'fullScreenModal',
+            animation: 'none',
+            // Prevent unmounting when parent re-renders
+            freezeOnBlur: true,
+          }}
+        />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn && needsProfileSetup}>
+        <Stack.Screen name="profile-setup" />
+      </Stack.Protected>
+      <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="(auth)" />
-      )}
+      </Stack.Protected>
     </Stack>
   );
 }

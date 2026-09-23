@@ -28,9 +28,29 @@ import CallMomentCaptureModal from '../components/callmoments/CallMomentCaptureM
 import { resolveContact, normalizePhone } from '../utils/contactResolver';
 import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager from '../services/CallStateManager';
-import { fetchWithTimeout } from '../utils/apiUtils';
-import { AGORA_APP_ID, API_BASE_URL } from '../config/env';
+import { apiFetch, apiPostJson } from '../utils/api';
+import { AGORA_APP_ID } from '../config/env';
 
+
+/**
+ * Agora token for this call. The backend only issues it once it knows the
+ * call; the caller's socket callRequest may still be in flight, so a 403 is
+ * retried briefly.
+ */
+async function fetchRtcToken(channel: string, account: string): Promise<string> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await apiPostJson('/rtcToken', { channelName: channel, uid: account, role: 'publisher' }, 10000);
+    if (res.ok) {
+      const data = await res.json();
+      if (typeof data.token === 'string') return data.token;
+      throw new Error('RTC token missing in response');
+    }
+    if (res.status !== 403 || attempt >= 4) {
+      throw new Error(`RTC token request failed: ${res.status}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+}
 
 const firstParam = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
@@ -409,24 +429,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         }
 
         console.log('🔑 Fetching RTC token for channel:', channel);
-        const res = await fetchWithTimeout(
-          `${API_BASE_URL}/rtcToken`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              channelName: channel,
-              uid: agoraSafeUserAccount,
-              role: 'publisher',
-            }),
-          },
-          10000
-        );
-
-        const data = await res.json();
-        const token = data.token;
+        const token = await fetchRtcToken(channel, agoraSafeUserAccount);
 
         console.log('🚪 Joining Agora channel:', channel);
         // Restart video and preview before joining channel
@@ -602,8 +605,8 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         return;
       }
       
-      const response = await fetchWithTimeout(
-        `${API_BASE_URL}/moment/callmoment`,
+      const response = await apiFetch(
+        `/moment/callmoment`,
         {
           method: 'POST',
           headers: {
@@ -656,8 +659,8 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     // Fetch target user's profile from backend
     if (targetPhone) {
       try {
-        const response = await fetchWithTimeout(
-          `${API_BASE_URL}/me?phone=${encodeURIComponent(targetPhone)}`,
+        const response = await apiFetch(
+          `/me?phone=${encodeURIComponent(targetPhone)}`,
           {},
           10000
         );

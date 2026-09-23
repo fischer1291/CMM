@@ -1,5 +1,4 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,15 +13,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../theme';
-import { fetchWithTimeout } from '../../utils/apiUtils';
-import { API_BASE_URL } from '../../config/env';
+import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../theme';
+import { uploadAvatar } from '../services/avatar';
 
 export default function ProfileSetupScreen() {
   const { colors } = useTheme();
-  const { userPhone, updateUserProfile, isProfileLoading } = useAuth();
-  const router = useRouter();
+  const { userPhone, updateUserProfile, isProfileLoading, completeProfileSetup } = useAuth();
 
   const [name, setName] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
@@ -51,44 +48,7 @@ export default function ProfileSetupScreen() {
     }
   };
 
-  const uploadImage = async (imageUri: string): Promise<string | null> => {
-    try {
-      const formData = new FormData();
-      formData.append('avatar', {
-        uri: imageUri,
-        type: 'image/jpeg',
-        name: 'avatar.jpg',
-      } as any);
-      
-      // Add phone number to the request
-      if (userPhone) {
-        formData.append('phone', userPhone);
-      }
-
-      const response = await fetchWithTimeout(
-        `${API_BASE_URL}/upload/avatar`,
-        {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        },
-        15000 // Longer timeout for file upload
-      );
-
-      const data = await response.json();
-      
-      if (data.success && data.avatarUrl) {
-        return data.avatarUrl;
-      } else {
-        throw new Error('Upload failed');
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      return null;
-    }
-  };
+  const uploadImage = (imageUri: string) => uploadAvatar(imageUri, userPhone);
 
   const handleSaveProfile = async () => {
     if (!name.trim()) {
@@ -134,7 +94,7 @@ export default function ProfileSetupScreen() {
       avatarUrl,
     });
 
-    router.replace('/');
+    completeProfileSetup();
   };
 
   const handleSkip = () => {
@@ -143,7 +103,7 @@ export default function ProfileSetupScreen() {
       'Du kannst dein Profil später in den Einstellungen vervollständigen.',
       [
         { text: 'Abbrechen', style: 'cancel' },
-        { text: 'Überspringen', onPress: () => router.replace('/') },
+        { text: 'Überspringen', onPress: completeProfileSetup },
       ]
     );
   };

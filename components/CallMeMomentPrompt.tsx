@@ -7,8 +7,7 @@ import {
     View,
 } from 'react-native';
 import { useTheme } from '../theme';
-import { fetchWithTimeout } from '../utils/apiUtils';
-import { API_BASE_URL } from '../config/env';
+import { apiPostJson } from '../utils/api';
 
 const moods = ['😊', '😐', '😔'];
 
@@ -28,27 +27,8 @@ const CallMeMomentPrompt = ({
     if (!phone || !selectedMood) return;
     setPending(true);
     try {
-      // Schritt 1: Moment aktivieren
-      await fetchWithTimeout(
-        `${API_BASE_URL}/moment/confirm`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, mood: selectedMood }),
-        },
-        10000
-      );
-
-      // Schritt 2: isAvailable auf true setzen (zur Sicherheit)
-      await fetchWithTimeout(
-        `${API_BASE_URL}/status/set`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, isAvailable: true }),
-        },
-        10000
-      );
+      // Sets the user available for 15 minutes and notifies their contacts
+      await apiPostJson('/moment/confirm', { phone, mood: selectedMood }, 10000);
 
       onClose(true); // signalisiere Index.tsx, dass Reload nötig ist
     } catch (err) {

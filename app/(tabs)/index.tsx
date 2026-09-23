@@ -1,7 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
-import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Image,
@@ -16,17 +14,15 @@ import { useCountdown } from '../../hooks/useCountdown';
 import { useProfile } from '../../hooks/useProfile';
 import { useTheme } from '../../theme';
 import CallMeMomentPrompt from '../../components/CallMeMomentPrompt';
-import { fetchWithTimeout } from '../../utils/apiUtils';
-import { API_BASE_URL } from '../../config/env';
+import { apiFetch } from '../../utils/api';
 
 export default function IndexScreen() {
-  const [userPhone, setUserPhone] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState(true);
   const [showPrompt, setShowPrompt] = useState(false);
 
-  const router = useRouter();
   const { colors } = useTheme();
-  const { userPhone: authUserPhone, userProfile } = useAuth();
+  const { userPhone, userProfile } = useAuth();
+  const authUserPhone = userPhone;
 
   const {
     name,
@@ -44,13 +40,9 @@ export default function IndexScreen() {
         await Notifications.requestPermissionsAsync();
       }
 
-      const saved = await SecureStore.getItemAsync('userPhone');
-      if (saved) {
-        setUserPhone(saved);
-        await fetchStatus(saved);
+      if (userPhone) {
+        await fetchStatus(userPhone);
         reloadProfile();
-      } else {
-        router.replace('/(auth)/onboarding');
       }
     };
     init();
@@ -88,8 +80,8 @@ export default function IndexScreen() {
 
   const fetchStatus = async (phone: string) => {
     try {
-      const res = await fetchWithTimeout(
-        `${API_BASE_URL}/status/get?phone=${encodeURIComponent(phone)}`,
+      const res = await apiFetch(
+        `/status/get?phone=${encodeURIComponent(phone)}`,
         {},
         10000
       );
@@ -104,8 +96,8 @@ export default function IndexScreen() {
     const newStatus = !isAvailable;
     setIsAvailable(newStatus);
     try {
-      await fetchWithTimeout(
-        `${API_BASE_URL}/status/set`,
+      await apiFetch(
+        `/status/set`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

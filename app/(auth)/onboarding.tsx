@@ -14,7 +14,7 @@ export default function OnboardingScreen() {
                 Starte jetzt und finde heraus, wer erreichbar ist für authentische Begegnungen.
             </Text>
 
-            <Button title="Jetzt registrieren" onPress={() => router.replace('/(auth)/verify')} />
+            <Button title="Jetzt registrieren" onPress={() => router.push('/(auth)/verify')} />
         </View>
     );
 }
