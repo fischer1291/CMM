@@ -11,9 +11,9 @@ import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager, { CallData } from '../services/CallStateManager';
 import PlatformCallAdapter from '../services/PlatformCallAdapter';
 import VoipPushService from '../services/VoipPushService';
+import { API_BASE_URL } from '../config/env';
 
-const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
-const socket = io(baseUrl, { transports: ['websocket'], secure: true });
+const socket = io(API_BASE_URL, { transports: ['websocket'], secure: true });
 
 interface NewCallContextType {
   // Current call state

@@ -17,6 +17,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme';
 import { resolveContact, generateAvatarUrl } from '../../utils/contactResolver';
 import { fetchWithTimeout } from '../../utils/apiUtils';
+import { API_BASE_URL } from '../../config/env';
 
 interface Reaction {
     emoji: string;
@@ -63,7 +64,7 @@ export default function CallMomentsScreen() {
         
         try {
             const response = await fetchWithTimeout(
-                `https://cmm-backend-gdqx.onrender.com/moment/callmoments?userPhone=${encodeURIComponent(userPhone)}`,
+                `${API_BASE_URL}/moment/callmoments?userPhone=${encodeURIComponent(userPhone)}`,
                 {
                     method: 'GET',
                     headers: {
@@ -125,7 +126,7 @@ export default function CallMomentsScreen() {
                 const profilePromises = uniquePhones.map(async (phone: string) => {
                     try {
                         const response = await fetchWithTimeout(
-                            `https://cmm-backend-gdqx.onrender.com/me?phone=${encodeURIComponent(phone)}`,
+                            `${API_BASE_URL}/me?phone=${encodeURIComponent(phone)}`,
                             {},
                             10000
                         );
@@ -263,7 +264,7 @@ export default function CallMomentsScreen() {
             };
             
             const response = await fetchWithTimeout(
-                'https://cmm-backend-gdqx.onrender.com/moment/react',
+                `${API_BASE_URL}/moment/react`,
                 {
                     method: 'POST',
                     headers: {

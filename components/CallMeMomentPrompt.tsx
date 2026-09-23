@@ -6,8 +6,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { useTheme } from '../../theme';
-import { fetchWithTimeout } from '../../utils/apiUtils';
+import { useTheme } from '../theme';
+import { fetchWithTimeout } from '../utils/apiUtils';
+import { API_BASE_URL } from '../config/env';
 
 const moods = ['😊', '😐', '😔'];
 
@@ -29,7 +30,7 @@ const CallMeMomentPrompt = ({
     try {
       // Schritt 1: Moment aktivieren
       await fetchWithTimeout(
-        'https://cmm-backend-gdqx.onrender.com/moment/confirm',
+        `${API_BASE_URL}/moment/confirm`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -40,7 +41,7 @@ const CallMeMomentPrompt = ({
 
       // Schritt 2: isAvailable auf true setzen (zur Sicherheit)
       await fetchWithTimeout(
-        'https://cmm-backend-gdqx.onrender.com/status/set',
+        `${API_BASE_URL}/status/set`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
