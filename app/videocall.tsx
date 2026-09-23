@@ -27,6 +27,7 @@ import { useNewCall } from '../contexts/NewCallContext';
 import CallMomentCaptureModal from './components/callmoments/CallMomentCaptureModal';
 import { resolveContact, normalizePhone } from '../utils/contactResolver';
 import CallNotificationService from '../services/CallNotificationService';
+import CallStateManager from '../services/CallStateManager';
 import { fetchWithTimeout } from '../utils/apiUtils';
 
 const APP_ID = '28a507f76f1a400ba047aa629af4b81d';
@@ -304,11 +305,8 @@ export default function VideoCallScreen() {
       initializingRef.current = true;
 
       try {
-        // Stop any ringing when entering video call
-        if (channel) {
-          console.log('🔇 Stopping call notifications for channel:', channel);
-          CallNotificationService.endCallByChannel(channel);
-        }
+        // Do not end the call here: answering already stopped the ringing, and
+        // ending it would also end the CallKit call the user just answered.
 
         await initializeEngine();
         setupCompleteRef.current = true;
@@ -351,6 +349,23 @@ export default function VideoCallScreen() {
   }, []); // CRITICAL: Empty deps - only run once on mount
 
   // Note: Call ending is now handled by the NewCallContext automatically
+
+  // Leave the call when it ends elsewhere: hung up in the CallKit UI, or the
+  // other party ended it (socket) for an incoming or outgoing call
+  const cleanedUpRef = useRef(false);
+  useEffect(() => {
+    const onCallEnded = (call: { channel?: string } | null) => {
+      if (call?.channel === channel) {
+        cleanupCall(false);
+      }
+    };
+    CallStateManager.on('call:ended', onCallEnded);
+    CallStateManager.on('call:remote-ended', onCallEnded);
+    return () => {
+      CallStateManager.off('call:ended', onCallEnded);
+      CallStateManager.off('call:remote-ended', onCallEnded);
+    };
+  }, [channel]);
 
   // Timer useEffect
   useEffect(() => {
@@ -469,7 +484,19 @@ export default function VideoCallScreen() {
   }, []); // CRITICAL: Empty deps - only join once on mount
 
   const cleanupCall = async (notifyRemote = false) => {
+    // Ending the call emits call:ended, which calls cleanupCall again
+    if (cleanedUpRef.current) return;
+    cleanedUpRef.current = true;
     console.log('🧹 Starting call cleanup, notifyRemote:', notifyRemote);
+
+    // Notify the other user first: it needs the call state that ending clears
+    if (notifyRemote) {
+      try {
+        endCall(); // Use the new call context to handle ending
+      } catch (error) {
+        console.error('❌ Error notifying remote user:', error);
+      }
+    }
 
     // Stop any call notifications
     try {
@@ -505,15 +532,6 @@ export default function VideoCallScreen() {
       }
 
       engineRef.current = null;
-    }
-
-    // Notify other user that call has ended (only if we initiated the disconnect)
-    if (notifyRemote) {
-      try {
-        endCall(); // Use the new call context to handle ending
-      } catch (error) {
-        console.error('❌ Error notifying remote user:', error);
-      }
     }
 
     // Reset state

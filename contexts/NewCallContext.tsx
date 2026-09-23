@@ -35,6 +35,24 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   const [activeCall, setActiveCall] = useState<CallData | null>(null);
   const [hasActiveCall, setHasActiveCall] = useState(false);
   const servicesInitialized = useRef(false);
+  // Outgoing calls have no CallStateManager entry; remember who we are calling
+  const outgoingCallRef = useRef<{ channel: string; to: string } | null>(null);
+
+  /**
+   * Tell the other party (via backend socket) that the current call ended.
+   * Must run before CallStateManager.endCall(), which clears the call.
+   */
+  const notifyRemoteCallEnded = () => {
+    const call = CallStateManager.getActiveCall();
+    const channel = call?.channel ?? outgoingCallRef.current?.channel;
+    const to = call
+      ? (call.callerPhone === userPhone ? call.calleePhone : call.callerPhone)
+      : outgoingCallRef.current?.to;
+    if (channel && to) {
+      socket.emit('callEnded', { from: userPhone, to, channel });
+    }
+    outgoingCallRef.current = null;
+  };
 
   // Initialize services
   useEffect(() => {
@@ -112,14 +130,8 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     PlatformCallAdapter.setOnEndCallCallback((callId) => {
       try {
         console.log('📱 CallKit end callback triggered:', callId);
-        const call = CallStateManager.getActiveCall();
-        if (call) {
-          // Notify backend that call ended
-          socket.emit('call:end', {
-            channel: call.channel,
-            calleePhone: call.callerPhone === userPhone ? call.targetPhone : call.callerPhone,
-          });
-        }
+        // Covers declining and hanging up in the CallKit UI
+        notifyRemoteCallEnded();
         CallStateManager.endCall();
       } catch (error) {
         console.error('❌ Error in CallKit end callback:', error);
@@ -239,6 +251,11 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
    */
   const handleSocketCallEnded = ({ channel }: any) => {
     CallNotificationService.endCallByChannel(channel);
+    if (outgoingCallRef.current?.channel === channel) {
+      // The callee declined or hung up: close the caller's call screen
+      outgoingCallRef.current = null;
+      CallStateManager.emit('call:remote-ended', { channel });
+    }
   };
 
   /**
@@ -311,16 +328,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
    * End the current active call
    */
   const endCall = () => {
-    const call = CallStateManager.getActiveCall();
-    if (call) {
-      // Emit call ended to socket
-      socket.emit('callEnded', {
-        from: userPhone,
-        to: call.callerPhone,
-        channel: call.channel,
-      });
-    }
-    
+    notifyRemoteCallEnded();
     CallStateManager.endCall();
   };
 
@@ -336,6 +344,8 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       const channel = `call_${shortHash}`;
 
       console.log('📞 Starting outgoing call:', { from: callerPhone, to: calleePhone, channel });
+
+      outgoingCallRef.current = { channel, to: calleePhone };
 
       // Send call request to backend
       socket.emit('callRequest', {

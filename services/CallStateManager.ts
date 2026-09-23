@@ -62,7 +62,8 @@ export type CallStateEvent =
   | 'call:answered' 
   | 'call:declined'
   | 'call:ended'
-  | 'call:timeout';
+  | 'call:timeout'
+  | 'call:remote-ended'; // other party ended an outgoing call (no CallData)
 
 class CallStateManager extends SimpleEventEmitter {
   private static instance: CallStateManager;
