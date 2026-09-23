@@ -2,6 +2,7 @@
  * CallStateManager - Centralized call state management
  * Single source of truth for all call-related state
  */
+import { uuidv4 } from '../utils/uuid';
 
 // Simple event emitter implementation for React Native
 class SimpleEventEmitter {
@@ -103,7 +104,8 @@ class CallStateManager extends SimpleEventEmitter {
     }
 
     const callData: CallData = {
-      callId: `call_${Date.now()}`,
+      // Must be a UUID: CallKit rejects (and crashes on) any other id format
+      callId: uuidv4(),
       callState: 'incoming',
       startTime: new Date(),
       ...data,

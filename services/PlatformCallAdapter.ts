@@ -567,7 +567,10 @@ class PlatformCallAdapter {
         return;
       }
 
-      if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      // iOS: CallKit already marked the call active when the user answered in the
+      // native UI. startCall would request a second (outgoing) call with the same
+      // UUID, which CallKit rejects.
+      if (Platform.OS === 'android') {
         // Validate and sanitize parameters
         const sanitizedCallerName = (callData.callerName || 'Unknown')
           .replace(/[^\w\s\-]/g, '')
