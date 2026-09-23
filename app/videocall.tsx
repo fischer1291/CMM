@@ -19,7 +19,7 @@ import {
   createAgoraRtcEngine,
   IRtcEngine,
   RtcSurfaceView,
-} from 'react-native-agora';
+} from '../lib/agora';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ViewShot from 'react-native-view-shot';
 import { useAuth } from '../contexts/AuthContext';
