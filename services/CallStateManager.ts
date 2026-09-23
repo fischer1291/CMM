@@ -85,6 +85,7 @@ class CallStateManager extends SimpleEventEmitter {
    * Create a new incoming call
    */
   createIncomingCall(data: {
+    callId?: string;
     channel: string;
     callerPhone: string;
     calleePhone: string;
@@ -103,12 +104,14 @@ class CallStateManager extends SimpleEventEmitter {
       return this.activeCall;
     }
 
+    const { callId, ...rest } = data;
     const callData: CallData = {
-      // Must be a UUID: CallKit rejects (and crashes on) any other id format
-      callId: uuidv4(),
+      // Must be a UUID: CallKit rejects (and crashes on) any other id format.
+      // The backend assigns one per call so socket, VoIP push and CallKit agree.
+      callId: callId ? callId.toLowerCase() : uuidv4(),
       callState: 'incoming',
       startTime: new Date(),
-      ...data,
+      ...rest,
     };
 
     this.activeCall = callData;

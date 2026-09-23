@@ -18,6 +18,7 @@ Notifications.setNotificationHandler({
 
 interface IncomingCallNotification {
   type: 'incoming_call';
+  callId?: string;
   callerPhone: string;
   calleePhone: string;
   channel: string;
@@ -148,8 +149,15 @@ class CallNotificationService {
     try {
       console.log('📞 CallNotificationService: Handling incoming call:', notification);
 
+      // Socket, notification and VoIP push can all announce the same call
+      if (CallStateManager.getCallByChannel(notification.channel)) {
+        console.log('📞 CallNotificationService: Call already known for channel:', notification.channel);
+        return;
+      }
+
       // Create call in state manager
       const callData = CallStateManager.createIncomingCall({
+        callId: notification.callId,
         channel: notification.channel,
         callerPhone: notification.callerPhone,
         calleePhone: notification.calleePhone,
@@ -174,6 +182,33 @@ class CallNotificationService {
     } catch (error) {
       console.error('❌ CallNotificationService: Error handling incoming call:', error);
     }
+  }
+
+  /**
+   * Register a call that AppDelegate.swift already reported to CallKit from a
+   * VoIP push. Only the app state is created; CallKit is already ringing.
+   */
+  registerPushKitCall(callId: string, payload: any, calleePhone: string): void {
+    const existing = CallStateManager.getActiveCall();
+    if (existing?.callId === callId) {
+      return;
+    }
+    if (existing) {
+      // Same call announced under a different id (backend without callId), or
+      // busy with another call: end the extra CallKit call the push created
+      console.log('📞 CallNotificationService: Busy, ending VoIP call:', callId);
+      PlatformCallAdapter.onCallEnded({ ...existing, callId });
+      return;
+    }
+
+    CallStateManager.createIncomingCall({
+      callId,
+      channel: payload.channel,
+      callerPhone: payload.callerPhone,
+      calleePhone,
+      callerName: payload.callerName,
+      hasVideo: payload.hasVideo ?? true,
+    });
   }
 
   /**

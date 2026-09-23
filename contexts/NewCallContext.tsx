@@ -10,6 +10,7 @@ import { useAuth } from './AuthContext';
 import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager, { CallData } from '../services/CallStateManager';
 import PlatformCallAdapter from '../services/PlatformCallAdapter';
+import VoipPushService from '../services/VoipPushService';
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 const socket = io(baseUrl, { transports: ['websocket'], secure: true });
@@ -81,9 +82,8 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       await PlatformCallAdapter.initialize();
       await CallNotificationService.initialize();
 
-      // VoIP push is handled internally by CallKeep, no need to initialize separately
-      // This prevents conflicts between CallKeep and react-native-voip-push-notification
-      console.log('📱 VoIP push handled by CallKeep (no separate initialization needed)');
+      // iOS: send the PushKit token (received natively in AppDelegate.swift) to the backend
+      VoipPushService.initialize(userPhone!);
 
       // Mark services as initialized
       servicesInitialized.current = true;
@@ -123,6 +123,16 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
         CallStateManager.endCall();
       } catch (error) {
         console.error('❌ Error in CallKit end callback:', error);
+      }
+    });
+
+    // Call reported to CallKit natively from a VoIP push (app in background/killed)
+    PlatformCallAdapter.setOnPushIncomingCallCallback((callId, payload) => {
+      try {
+        console.log('📱 VoIP push call reported by CallKit:', callId);
+        CallNotificationService.registerPushKitCall(callId, payload, userPhone!);
+      } catch (error) {
+        console.error('❌ Error in VoIP push call callback:', error);
       }
     });
 
@@ -178,7 +188,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   /**
    * Handle socket incoming call event
    */
-  const handleSocketIncomingCall = async ({ from, channel, action, callerName }: any) => {
+  const handleSocketIncomingCall = async ({ from, channel, action, callerName, callId }: any) => {
     if (action === 'end') {
       // Handle call end from socket
       CallNotificationService.endCallByChannel(channel);
@@ -212,6 +222,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       // Create incoming call through notification service
       await CallNotificationService.handleIncomingCall({
         type: 'incoming_call',
+        callId: typeof callId === 'string' ? callId : undefined,
         callerPhone: from,
         calleePhone: userPhone,
         channel,
@@ -367,7 +378,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     // Cleanup services
     CallNotificationService.cleanup();
     PlatformCallAdapter.cleanup();
-    // VoIP push cleanup not needed - handled by CallKeep
+    VoipPushService.cleanup();
 
     // Reset initialization flag
     servicesInitialized.current = false;
