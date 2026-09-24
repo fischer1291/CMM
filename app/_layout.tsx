@@ -60,6 +60,9 @@ function InnerLayout() {
   return (
     <>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+        {/* Public: also reachable before signing in and on the web */}
+        <Stack.Screen name="datenschutz" />
+        <Stack.Screen name="impressum" />
         <Stack.Protected guard={signedIn && !needsProfileSetup}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="stats" />

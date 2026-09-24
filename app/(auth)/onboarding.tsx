@@ -4,5 +4,5 @@ import { OnboardingView } from '../../features/auth/OnboardingView';
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  return <OnboardingView onStart={() => router.push('/(auth)/verify')} />;
+  return <OnboardingView onStart={() => router.push('/(auth)/verify')} onOpenPrivacy={() => router.push('/datenschutz')} />;
 }

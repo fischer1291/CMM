@@ -10,7 +10,7 @@ const POINTS: { icon: keyof typeof Ionicons.glyphMap; title: string; text: strin
 ];
 
 /** First screen for new users. */
-export function OnboardingView({ onStart }: { onStart: () => void }) {
+export function OnboardingView({ onStart, onOpenPrivacy }: { onStart: () => void; onOpenPrivacy?: () => void }) {
   return (
     <Screen edges={['top', 'bottom']}>
       <View style={styles.hero}>
@@ -43,7 +43,10 @@ export function OnboardingView({ onStart }: { onStart: () => void }) {
       <View style={styles.footer}>
         <Button title="Los geht’s" icon="arrow-forward" onPress={onStart} />
         <AppText variant="caption" color={colors.textMuted} center>
-          Wir schicken dir einen Code per SMS, um deine Nummer zu bestätigen.
+          Wir schicken dir einen Code per SMS, um deine Nummer zu bestätigen.{' '}
+          <AppText variant="caption" color={colors.cyan} onPress={onOpenPrivacy} accessibilityRole="link">
+            Datenschutz
+          </AppText>
         </AppText>
       </View>
     </Screen>
