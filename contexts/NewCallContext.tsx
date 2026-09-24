@@ -194,6 +194,8 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     socket.off('connect');
     socket.off('incomingCall');
     socket.off('callEnded');
+    socket.off('callFailed');
+    socket.off('callAccepted');
 
     // Runs on every (re)connect: after a network drop the backend has
     // forgotten this socket, so the user must register again
@@ -204,6 +206,8 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
 
     socket.on('incomingCall', handleSocketIncomingCall);
     socket.on('callEnded', handleSocketCallEnded);
+    socket.on('callFailed', handleSocketCallFailed);
+    socket.on('callAccepted', handleSocketCallAccepted);
 
     console.log('✅ Socket listeners set up (duplicates removed)');
   };
@@ -260,13 +264,28 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   /**
    * Handle socket call ended event
    */
-  const handleSocketCallEnded = ({ channel }: any) => {
+  const handleSocketCallEnded = ({ channel, reason }: any) => {
     CallNotificationService.endCallByChannel(channel);
     if (outgoingCallRef.current?.channel === channel) {
-      // The callee declined or hung up: close the caller's call screen
+      // declined | missed | hangup: close the caller's call screen with a reason
       outgoingCallRef.current = null;
-      CallStateManager.emit('call:remote-ended', { channel });
+      CallStateManager.emit('call:remote-ended', { channel, reason });
     }
+  };
+
+  /** The call could not be started (busy, unreachable, ...). */
+  const handleSocketCallFailed = ({ channel, reason }: any) => {
+    const outgoing = outgoingCallRef.current;
+    // Older backends send no channel; any failure then belongs to the current call
+    if (outgoing && (!channel || channel === outgoing.channel)) {
+      outgoingCallRef.current = null;
+      CallStateManager.emit('call:remote-ended', { channel: outgoing.channel, reason: reason || 'failed' });
+    }
+  };
+
+  /** The callee answered: the caller's screen stops the ringback tone. */
+  const handleSocketCallAccepted = ({ channel }: any) => {
+    CallStateManager.emit('call:accepted', { channel });
   };
 
   /**
@@ -390,6 +409,8 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     socket.off('connect');
     socket.off('incomingCall');
     socket.off('callEnded');
+    socket.off('callFailed');
+    socket.off('callAccepted');
     socket.disconnect();
 
     // Remove CallStateManager listeners

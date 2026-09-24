@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
+import { Asset } from 'expo-asset';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -49,6 +50,40 @@ async function fetchRtcToken(channel: string, account: string): Promise<string> 
       throw new Error(`RTC token request failed: ${res.status}`);
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+}
+
+/** Local file path of the ringback tone for Agora's audio mixing. */
+async function ringbackPath(): Promise<string | null> {
+  try {
+    const asset = Asset.fromModule(require('../assets/sounds/ringback.wav'));
+    await asset.downloadAsync();
+    return asset.localUri ? decodeURI(asset.localUri.replace(/^file:\/\//, '')) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** What the caller sees when the call ends before or during the conversation. */
+function endMessageFor(reason: string | undefined, name: string): string | null {
+  switch (reason) {
+    case 'declined':
+      return `${name} hat abgelehnt`;
+    case 'missed':
+      return `${name} geht gerade nicht ran`;
+    case 'busy':
+      return `${name} telefoniert gerade`;
+    case 'unreachable':
+      return `${name} ist gerade nicht erreichbar`;
+    case 'hangup':
+      return 'Anruf beendet';
+    case 'invalid':
+    case 'server_error':
+    case 'channel_in_use':
+    case 'failed':
+      return 'Anruf konnte nicht aufgebaut werden';
+    default:
+      return null;
   }
 }
 
@@ -137,6 +172,37 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   const [capturedScreenshotBase64, setCapturedScreenshotBase64] = useState<string | null>(null);
   const [showCallMomentModal, setShowCallMomentModal] = useState(false);
   const [userProfiles, setUserProfiles] = useState<Map<string, any>>(new Map());
+  // Outgoing calls ring until the callee answers
+  const [answered, setAnswered] = useState(!isOutgoing);
+  const answeredRef = useRef(!isOutgoing);
+  const [endMessage, setEndMessage] = useState<string | null>(null);
+  const ringbackPlayingRef = useRef(false);
+
+  const startRingback = async () => {
+    const path = await ringbackPath();
+    const engine = engineRef.current;
+    if (!path || !engine || answeredRef.current) return;
+    if (engine.startAudioMixing(path, true, -1) === 0) {
+      ringbackPlayingRef.current = true;
+    }
+  };
+
+  const stopRingback = () => {
+    if (!ringbackPlayingRef.current) return;
+    ringbackPlayingRef.current = false;
+    try {
+      engineRef.current?.stopAudioMixing();
+    } catch (error) {
+      console.error('Error stopping ringback:', error);
+    }
+  };
+
+  const markAnswered = () => {
+    if (answeredRef.current) return;
+    answeredRef.current = true;
+    setAnswered(true);
+    stopRingback();
+  };
 
   const getQualityIcon = () => {
     switch (networkQuality) {
@@ -219,10 +285,14 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         onJoinChannelSuccess: (_connection, uid) => {
           setJoined(true);
           setIsConnecting(false);
-          setCallStartTime(Date.now());
+          // The caller hears the ringback tone until the other side joins
+          if (isOutgoing && !answeredRef.current) startRingback();
         },
         onUserJoined: (_connection, uid) => {
           setRemoteUid(uid);
+          markAnswered();
+          // The call duration counts from when both are in the call
+          setCallStartTime((prev) => prev ?? Date.now());
         },
         onUserOffline: (_connection, uid, reason) => {
           setRemoteUid(null);
@@ -363,11 +433,28 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         cleanupCall(false);
       }
     };
+    // Outgoing call ended by the other side: show why, then close
+    const onRemoteEnded = ({ channel: ended, reason }: { channel?: string; reason?: string }) => {
+      if (ended !== channel) return;
+      stopRingback();
+      const message = endMessageFor(reason, getContactName(targetPhone));
+      if (message) {
+        setEndMessage(message);
+        setTimeout(() => cleanupCall(false), 1800);
+      } else {
+        cleanupCall(false);
+      }
+    };
+    const onAccepted = ({ channel: accepted }: { channel?: string }) => {
+      if (accepted === channel) markAnswered();
+    };
     CallStateManager.on('call:ended', onCallEnded);
-    CallStateManager.on('call:remote-ended', onCallEnded);
+    CallStateManager.on('call:remote-ended', onRemoteEnded);
+    CallStateManager.on('call:accepted', onAccepted);
     return () => {
       CallStateManager.off('call:ended', onCallEnded);
-      CallStateManager.off('call:remote-ended', onCallEnded);
+      CallStateManager.off('call:remote-ended', onRemoteEnded);
+      CallStateManager.off('call:accepted', onAccepted);
     };
   }, [channel]);
 
@@ -475,6 +562,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     if (cleanedUpRef.current) return;
     cleanedUpRef.current = true;
     console.log('🧹 Starting call cleanup, notifyRemote:', notifyRemote);
+    stopRingback();
 
     // Notify the other user first: it needs the call state that ending clears
     if (notifyRemote) {
@@ -753,6 +841,12 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
               )}
             </ViewShot>
           </View>
+          {(endMessage || !answered) && (
+            <View style={styles.statusOverlay} pointerEvents="none">
+              <Text style={styles.statusName}>{getContactName(targetPhone)}</Text>
+              <Text style={styles.statusText}>{endMessage ?? 'Klingelt …'}</Text>
+            </View>
+          )}
           <View style={styles.controlsContainer}>
             <TouchableOpacity onPress={toggleMute} style={styles.iconButton}>
               <Icon name={micMuted ? 'mic-off' : 'mic'} size={24} color="#fff" />
@@ -880,6 +974,22 @@ const styles = StyleSheet.create({
     aspectRatio: 3/4, // Maintain natural aspect ratio
     maxWidth: '100%',
     maxHeight: '100%',
+  },
+  statusOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    gap: 8,
+  },
+  statusName: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '700',
+  },
+  statusText: {
+    color: '#ddd',
+    fontSize: 18,
   },
   controlsContainer: {
     flexDirection: 'row',
