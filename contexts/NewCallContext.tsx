@@ -5,19 +5,15 @@
 import { useRouter } from 'expo-router';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager, { CallData } from '../services/CallStateManager';
 import PlatformCallAdapter from '../services/PlatformCallAdapter';
 import VoipPushService from '../services/VoipPushService';
-import { syncContactsInBackground } from '../services/contactsService';
 import { session } from '../services/session';
-import { API_BASE_URL } from '../config/env';
+import { socket } from '../services/socket';
 import { uuidv4 } from '../utils/uuid';
 
-// Connected after login, with the auth token in the handshake
-const socket = io(API_BASE_URL, { transports: ['websocket'], secure: true, autoConnect: false });
 
 interface NewCallContextType {
   // Current call state
@@ -107,9 +103,6 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
 
       // iOS: send the PushKit token (received natively in AppDelegate.swift) to the backend
       VoipPushService.initialize(userPhone!);
-
-      // Keep the backend's contact list fresh, so contacts see this user's status
-      syncContactsInBackground(userPhone!);
 
       // Mark services as initialized
       servicesInitialized.current = true;

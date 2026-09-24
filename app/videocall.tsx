@@ -1,17 +1,12 @@
 import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
 import { Asset } from 'expo-asset';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   PermissionsAndroid,
   Platform,
-  SafeAreaView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import {
@@ -21,12 +16,13 @@ import {
   IRtcEngine,
   RtcSurfaceView,
 } from '../lib/agora';
-import { Ionicons as Icon } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot from 'react-native-view-shot';
 import { useAuth } from '../contexts/AuthContext';
 import { useNewCall } from '../contexts/NewCallContext';
 import CallMomentCaptureModal from '../components/callmoments/CallMomentCaptureModal';
 import { resolveContact, normalizePhone } from '../utils/contactResolver';
+import { CallPhase, CallView, localPreviewStyle } from '../features/call/CallView';
 import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager from '../services/CallStateManager';
 import { apiFetch, apiPostJson } from '../utils/api';
@@ -144,6 +140,7 @@ type VideoCallScreenProps = {
 
 function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoCallScreenProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { userPhone: authUserPhone, userProfile } = useAuth();
   const { endCall } = useNewCall();
   const agoraSafeUserAccount = userPhone;
@@ -163,7 +160,6 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   const viewShotRef = useRef<ViewShot | null>(null);
   const [micMuted, setMicMuted] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
-  const [localUid, setLocalUid] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   const [networkQuality, setNetworkQuality] = useState<'excellent' | 'good' | 'poor' | 'bad' | 'unknown'>('unknown');
   const [callStartTime, setCallStartTime] = useState<number | null>(null);
@@ -202,36 +198,6 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     answeredRef.current = true;
     setAnswered(true);
     stopRingback();
-  };
-
-  const getQualityIcon = () => {
-    switch (networkQuality) {
-      case 'excellent':
-        return '📶';
-      case 'good':
-        return '📶';
-      case 'poor':
-        return '📵';
-      case 'bad':
-        return '📵';
-      default:
-        return '❓';
-    }
-  };
-
-  const getQualityColor = () => {
-    switch (networkQuality) {
-      case 'excellent':
-        return '#00ff00';
-      case 'good':
-        return '#ffff00';
-      case 'poor':
-        return '#ff8800';
-      case 'bad':
-        return '#ff0000';
-      default:
-        return '#888888';
-    }
   };
 
   const toggleMute = () => {
@@ -524,7 +490,6 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         await engineRef.current.startPreview();
 
         await engineRef.current.joinChannelWithUserAccount(token, channel, userPhone);
-        setLocalUid(agoraSafeUserAccount);
         joinedRef.current = true;
         console.log('✅ Successfully joined channel');
       } catch (err) {
@@ -612,7 +577,6 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     // Reset state
     setJoined(false);
     setRemoteUid(null);
-    setLocalUid(null);
     setCallStartTime(null);
     setCallDuration('00:00');
 
@@ -790,80 +754,39 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     return getContactInfo(phone).name;
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Videoanruf</Text>
-        <View style={styles.headerRight}>
-          {joined && (
-            <Text style={styles.timer}>{callDuration}</Text>
-          )}
-          {!isConnecting && (
-            <View style={styles.qualityIndicator}>
-              <Text style={[styles.qualityIcon, { color: getQualityColor() }]}>
-                {getQualityIcon()}
-              </Text>
-            </View>
-          )}
+  const phase: CallPhase = endMessage ? 'ended' : isConnecting ? 'connecting' : !answered ? 'ringing' : 'connected';
+  const targetContact = getContactInfo(targetPhone);
+
+  // Remote video full screen, own camera as a tile; both inside ViewShot so a
+  // captured moment shows the call as seen
+  const videoLayer = isConnecting ? null : (
+    <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }} style={StyleSheet.absoluteFill}>
+      {remoteUid !== null && <RtcSurfaceView canvas={{ uid: remoteUid }} style={StyleSheet.absoluteFill} />}
+      {joined && (
+        <View style={localPreviewStyle(insets.top)}>
+          <RtcSurfaceView canvas={{ uid: 0 }} style={StyleSheet.absoluteFill} />
         </View>
-      </View>
-      {isConnecting ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.status}>Verbindung wird hergestellt...</Text>
-        </View>
-      ) : (
-        <>
-          <View style={styles.videoContainer}>
-            <ViewShot 
-              ref={viewShotRef} 
-              options={{ 
-                format: 'jpg', 
-                quality: 0.9
-              }} 
-              style={styles.liveVideoContainer}
-            >
-              <View style={styles.remoteVideoContainer}>
-                {remoteUid !== null && (
-                  <RtcSurfaceView
-                    canvas={{ uid: remoteUid }}
-                    style={styles.remoteVideo}
-                  />
-                )}
-              </View>
-              {joined && (
-                <View style={styles.localVideoOverlay}>
-                  <RtcSurfaceView
-                    canvas={{ uid: 0 }}
-                    style={styles.localVideo}
-                  />
-                </View>
-              )}
-            </ViewShot>
-          </View>
-          {(endMessage || !answered) && (
-            <View style={styles.statusOverlay} pointerEvents="none">
-              <Text style={styles.statusName}>{getContactName(targetPhone)}</Text>
-              <Text style={styles.statusText}>{endMessage ?? 'Klingelt …'}</Text>
-            </View>
-          )}
-          <View style={styles.controlsContainer}>
-            <TouchableOpacity onPress={toggleMute} style={styles.iconButton}>
-              <Icon name={micMuted ? 'mic-off' : 'mic'} size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={disconnectCall} style={[styles.iconButton, styles.hangupButton]}>
-              <Icon name="call" size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={switchCamera} style={styles.iconButton}>
-              <Icon name="camera-reverse" size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleTakeScreenshot} style={styles.iconButton}>
-              <Icon name="camera" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </>
       )}
-      
+    </ViewShot>
+  );
+
+  return (
+    <>
+      <CallView
+        name={targetContact.name}
+        avatarUrl={targetContact.avatarUrl ?? null}
+        phase={phase}
+        statusText={endMessage}
+        hasRemoteVideo={remoteUid !== null}
+        duration={callDuration}
+        quality={networkQuality}
+        videoLayer={videoLayer}
+        micMuted={micMuted}
+        onToggleMute={toggleMute}
+        onSwitchCamera={switchCamera}
+        onCapture={handleTakeScreenshot}
+        onHangup={disconnectCall}
+      />
       <CallMomentCaptureModal
         visible={showCallMomentModal}
         onClose={() => {
@@ -880,134 +803,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         callDuration={callDuration}
         userProfiles={createUserProfilesMap()}
       />
-    </SafeAreaView>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0e0e0e',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
-  },
-  title: {
-    color: '#fff',
-    fontSize: 22,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-  },
-  timer: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  qualityIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  qualityIcon: {
-    fontSize: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 20,
-  },
-  status: {
-    color: '#aaa',
-    fontSize: 16,
-  },
-  videoContainer: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  liveVideoContainer: {
-    width: '100%',
-    flex: 1, // Use full available height
-    backgroundColor: '#000',
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  remoteVideoContainer: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  remoteVideo: {
-    flex: 1,
-    aspectRatio: 16/9, // Maintain video's natural aspect ratio
-    maxWidth: '100%',
-    maxHeight: '100%',
-  },
-  localVideoOverlay: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    width: '25%', // Responsive width based on container
-    aspectRatio: 3/4, // Portrait aspect ratio for local video
-    borderRadius: 10,
-    overflow: 'hidden',
-    zIndex: 10,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    maxWidth: 120, // Maximum size on larger screens
-    minWidth: 80,  // Minimum size on smaller screens
-  },
-  localVideo: {
-    flex: 1,
-    aspectRatio: 3/4, // Maintain natural aspect ratio
-    maxWidth: '100%',
-    maxHeight: '100%',
-  },
-  statusOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    gap: 8,
-  },
-  statusName: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  statusText: {
-    color: '#ddd',
-    fontSize: 18,
-  },
-  controlsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-    bottom: 50,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-  },
-  iconButton: {
-    backgroundColor: '#555',
-    marginHorizontal: 10,
-    padding: 15,
-    borderRadius: 50,
-  },
-  hangupButton: {
-    backgroundColor: '#e53935',
-  },
-});
