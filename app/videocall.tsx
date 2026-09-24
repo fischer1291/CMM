@@ -1,9 +1,9 @@
-import * as FileSystem from 'expo-file-system';
 import { Asset } from 'expo-asset';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Dimensions,
   PermissionsAndroid,
   Platform,
   StyleSheet,
@@ -17,17 +17,20 @@ import {
   RtcSurfaceView,
 } from '../lib/agora';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import ViewShot from 'react-native-view-shot';
+import ViewShot, { captureRef } from 'react-native-view-shot';
 import { useAuth } from '../contexts/AuthContext';
 import { useNewCall } from '../contexts/NewCallContext';
 import { useContacts } from '../contexts/ContactsContext';
-import { MomentComposer } from '../features/moments/MomentComposer';
+import { MomentComposer, MomentDraft } from '../features/moments/MomentComposer';
 import { resolveContact, normalizePhone } from '../utils/contactResolver';
 import { CallPhase, CallView, localPreviewStyle } from '../features/call/CallView';
 import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager from '../services/CallStateManager';
 import { apiFetch, apiPostJson } from '../utils/api';
 import { AGORA_APP_ID } from '../config/env';
+
+// Client-side cap, below the backend's 1 MB data URI limit
+const MAX_MOMENT_IMAGE_LENGTH = 600_000;
 
 
 /**
@@ -167,7 +170,6 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   const [callStartTime, setCallStartTime] = useState<number | null>(null);
   const [callDuration, setCallDuration] = useState<string>('00:00');
   const [capturedScreenshot, setCapturedScreenshot] = useState<string | null>(null);
-  const [capturedScreenshotBase64, setCapturedScreenshotBase64] = useState<string | null>(null);
   const [showCallMomentModal, setShowCallMomentModal] = useState(false);
   const [userProfiles, setUserProfiles] = useState<Map<string, any>>(new Map());
   // Outgoing calls ring until the callee answers
@@ -590,114 +592,66 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     cleanupCall(true); // Notify remote user
   };
 
-  const convertToBase64 = async (uri: string): Promise<string> => {
-    try {
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: 'base64',
+  /**
+   * Capture the call as a downscaled JPEG data URI. The backend accepts data
+   * URIs up to 1 MB; we stay well below by shrinking until it fits.
+   */
+  const captureMoment = async (): Promise<string | null> => {
+    const ref = viewShotRef.current;
+    if (!ref || typeof ref.capture !== 'function') return null;
+    const { width, height } = Dimensions.get('window');
+    const attempts = [
+      { width: 720, quality: 0.6 },
+      { width: 540, quality: 0.45 },
+    ];
+    for (const attempt of attempts) {
+      const base64 = await captureRef(ref, {
+        format: 'jpg',
+        quality: attempt.quality,
+        result: 'base64',
+        width: attempt.width,
+        height: Math.round((attempt.width * height) / width),
       });
-      return `data:image/jpeg;base64,${base64}`;
-    } catch (error) {
-      throw new Error('Failed to convert image to base64');
+      const dataUri = `data:image/jpeg;base64,${base64}`;
+      if (dataUri.length <= MAX_MOMENT_IMAGE_LENGTH) return dataUri;
     }
+    return null;
   };
 
   const handleTakeScreenshot = async () => {
     try {
-      const ref = viewShotRef.current;
-      if (ref && typeof ref.capture === 'function') {
-        // Capture with settings optimized for call moments feed display
-        const uri = await ref.capture();
-        console.log('📸 Screenshot captured:', uri);
-        
-        // Store the original URI for display in modal
-        setCapturedScreenshot(uri);
-        
-        try {
-          // Convert to base64 for cross-device compatibility
-          const base64Image = await convertToBase64(uri);
-          console.log('📸 Base64 conversion successful, length:', base64Image.length);
-          setCapturedScreenshotBase64(base64Image);
-        } catch (base64Error) {
-          console.error('📸 Base64 conversion failed:', base64Error);
-          // If base64 conversion fails, still proceed with the local URI
-          setCapturedScreenshotBase64(uri);
-        }
-        
-        setShowCallMomentModal(true);
-      } else {
+      const dataUri = await captureMoment();
+      if (!dataUri) {
         Alert.alert('Fehler', 'Screenshot konnte nicht erstellt werden. Bitte versuche es erneut.');
+        return;
       }
+      setCapturedScreenshot(dataUri);
+      setShowCallMomentModal(true);
     } catch (error) {
       console.error('📸 Screenshot error:', error);
-      Alert.alert('Fehler', 'Screenshot fehlgeschlagen. Überprüfe die Berechtigung für den Fotospeicher in den Einstellungen.');
+      Alert.alert('Fehler', 'Screenshot konnte nicht erstellt werden. Bitte versuche es erneut.');
     }
   };
 
-  const handlePostCallMoment = async (callMomentData: any) => {
+  const handlePostCallMoment = async (draft: MomentDraft) => {
+    if (!capturedScreenshot) return;
     try {
-      // Use base64 version for posting if available, otherwise use original
-      const screenshotToSend = capturedScreenshotBase64 || callMomentData.screenshot;
-      
-      const postData = {
-        ...callMomentData,
-        screenshot: screenshotToSend,
-        timestamp: new Date().toISOString(),
-      };
-      
-      console.log('🚀 Posting CallMoment with data keys:', Object.keys(postData));
-      console.log('🚀 Screenshot length:', screenshotToSend?.length || 0);
-      
-      console.log('📸 Image size:', Math.round(screenshotToSend?.length/1000), 'KB');
-      
-      // Check if payload is too large (with 10MB server limit, 500KB should be safe)
-      if (screenshotToSend && screenshotToSend.length > 500000) {
-        Alert.alert(
-          'Bild zu groß',
-          `Das Screenshot ist zu groß für den Upload (${Math.round(screenshotToSend.length/1000)}KB). Bitte versuche es erneut.`,
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-      
-      const response = await apiFetch(
-        `/moment/callmoment`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(postData),
-        },
-        10000
+      const response = await apiPostJson(
+        '/moment/callmoment',
+        { ...draft, screenshot: capturedScreenshot, timestamp: new Date().toISOString() },
+        20000
       );
-
-      console.log('🚀 Response status:', response.status);
-      console.log('🚀 Response ok:', response.ok);
-      
-      const result = await response.json();
-      console.log('🚀 Response result:', result);
-      if (result.success) {
-        Alert.alert(
-          'CallMoment geteilt! 🎉',
-          'Dein CallMoment wurde erfolgreich geteilt.',
-          [{ text: 'OK' }]
-        );
+      const result = await response.json().catch(() => ({}));
+      if (response.ok && result.success) {
+        Alert.alert('Moment geteilt 🎉', 'Deine Kontakte sehen ihn jetzt in ihren Moments.');
         setShowCallMomentModal(false);
         setCapturedScreenshot(null);
-        setCapturedScreenshotBase64(null);
       } else {
-        Alert.alert(
-          'Fehler',
-          'CallMoment konnte nicht geteilt werden. Bitte versuche es erneut.',
-          [{ text: 'OK' }]
-        );
+        console.warn('📸 Moment rejected:', response.status, result?.error ?? result?.message);
+        Alert.alert('Fehler', 'Der Moment konnte nicht geteilt werden. Bitte versuche es erneut.');
       }
-    } catch (error) {
-      Alert.alert(
-        'Verbindungsfehler',
-        'CallMoment konnte nicht geteilt werden. Bitte überprüfe deine Internetverbindung.',
-        [{ text: 'OK' }]
-      );
+    } catch {
+      Alert.alert('Verbindungsfehler', 'Der Moment konnte nicht geteilt werden. Bitte prüfe deine Internetverbindung.');
     }
   };
 
@@ -760,7 +714,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   // Remote video full screen, own camera as a tile; both inside ViewShot so a
   // captured moment shows the call as seen
   const videoLayer = isConnecting ? null : (
-    <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }} style={StyleSheet.absoluteFill}>
+    <ViewShot ref={viewShotRef} style={StyleSheet.absoluteFill}>
       {remoteUid !== null && <RtcSurfaceView canvas={{ uid: remoteUid }} style={StyleSheet.absoluteFill} />}
       {joined && (
         <View style={localPreviewStyle(insets.top)}>
@@ -792,7 +746,6 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         onClose={() => {
           setShowCallMomentModal(false);
           setCapturedScreenshot(null);
-          setCapturedScreenshotBase64(null);
         }}
         onPost={handlePostCallMoment}
         screenshotUri={capturedScreenshot}
