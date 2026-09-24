@@ -15,13 +15,15 @@ type Props = {
   together: { seconds: number; talks: number } | null;
   shared: SharedStats | null;
   nudged: boolean;
+  /** e.g. "morgen ab 9:00" when nudged */
+  nextNudgeLabel?: string | null;
   onBack: () => void;
   onCall: () => void;
   onNudge: () => void;
 };
 
 /** A contact: call or nudge them, your time together, and their stats if they share them. */
-export function FriendView({ name, avatarUrl, available, statusText, together, shared, nudged, onBack, onCall, onNudge }: Props) {
+export function FriendView({ name, avatarUrl, available, statusText, together, shared, nudged, nextNudgeLabel, onBack, onCall, onNudge }: Props) {
   const firstName = name.split(' ')[0];
   return (
     <Screen scroll>
@@ -40,7 +42,7 @@ export function FriendView({ name, avatarUrl, available, statusText, together, s
         <Button title={`${firstName} anrufen`} icon="videocam" onPress={onCall} />
       ) : (
         <Button
-          title={nudged ? 'Heute schon angestupst' : `${firstName} anstupsen 👋`}
+          title={nudged ? `Angestupst ✓ · wieder ${nextNudgeLabel ?? 'später'}` : `${firstName} anstupsen 👋`}
           variant="secondary"
           disabled={nudged}
           onPress={onNudge}

@@ -1,3 +1,4 @@
+/* global Buffer */
 // Minimal PNG writer for opaque RGB images (colour type 2, no alpha channel)
 const zlib = require('zlib');
 const crcTable = new Int32Array(256).map((_, n) => {
