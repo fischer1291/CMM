@@ -1,6 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
-import * as Contacts from 'expo-contacts';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -17,8 +16,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNewCall } from '../../contexts/NewCallContext';
 import { useTheme } from '../../theme';
 import { normalizePhone, resolveContact, generateAvatarUrl } from '../../utils/contactResolver';
-import { fetchWithTimeout } from '../../utils/apiUtils';
-import { API_BASE_URL } from '../../config/env';
+import { ContactsPermissionError, matchContacts } from '../../services/contactsService';
 
 export default function ContactsScreen() {
     const { userPhone, isLoading, userProfile } = useAuth();
@@ -34,148 +32,68 @@ export default function ContactsScreen() {
     };
 
     const fetchContacts = async () => {
+        if (!userPhone) return;
         setIsLoadingContacts(true);
-        
-        const { status } = await Contacts.requestPermissionsAsync();
-        if (status !== 'granted') {
-            setIsLoadingContacts(false);
-            Alert.alert(
-                'Kontakt-Berechtigung benötigt',
-                'Um deine Kontakte anzuzeigen, benötigen wir Zugriff auf deine Kontakte. Bitte erlaube den Zugriff in den Einstellungen.',
-                [{ text: 'OK' }]
-            );
-            return;
-        }
-
-        const { data } = await Contacts.getContactsAsync({ fields: [Contacts.Fields.PhoneNumbers] });
-        const phoneNameMap: Record<string, string> = {};
-
-        data.forEach((contact) => {
-            (contact.phoneNumbers || []).forEach((p) => {
-                const num = normalizePhone(p.number || '');
-                if (num) phoneNameMap[num] = contact.name;
-            });
-        });
-
-        const phones = Object.keys(phoneNameMap);
 
         try {
-            const res = await fetchWithTimeout(
-                `${API_BASE_URL}/contacts/match`,
-                {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phones }),
-                },
-                10000
+            const { deviceNames, matched } = await matchContacts(userPhone, { askPermission: true });
+
+            // Profile name/avatar of registered users, address book names otherwise
+            const userProfilesMap = new Map(
+                matched.map((m) => [
+                    m.phone,
+                    { name: m.name, avatarUrl: m.avatarUrl, lastOnline: m.lastOnline || '', momentActiveUntil: null },
+                ])
             );
-            const result = await res.json();
-            if (!result.success) {
-                setIsLoadingContacts(false);
-                return;
-            }
+            const matchedByPhone = new Map(matched.map((m) => [m.phone, m]));
 
-            // Create user profiles map for contact resolution
-            const userProfilesMap = new Map();
-            if (userPhone && userProfile?.name) {
-                userProfilesMap.set(userPhone, userProfile);
-            }
-
-            // Fetch profile data ONLY for registered users (matched users)
-            const matchedPhones = result.matched.map((m: any) => m.phone);
-            if (matchedPhones.length > 0) {
-                try {
-                    const profilePromises = matchedPhones.map(async (phone: string) => {
-                        try {
-                            const response = await fetchWithTimeout(
-                                `${API_BASE_URL}/me?phone=${encodeURIComponent(phone)}`,
-                                {},
-                                10000
-                            );
-                            const data = await response.json();
-                            if (data.success && data.user && data.user.name) {
-                                return {
-                                    phone,
-                                    profile: {
-                                        name: data.user.name,
-                                        avatarUrl: data.user.avatarUrl || '',
-                                        lastOnline: data.user.lastOnline || '',
-                                        momentActiveUntil: data.user.momentActiveUntil || null,
-                                    }
-                                };
-                            }
-                        } catch (error) {
-                            console.log(`Could not fetch profile for ${phone}:`, error);
-                        }
-                        return null;
-                    });
-
-                    const profileResults = await Promise.all(profilePromises);
-                    profileResults.forEach((result) => {
-                        if (result) {
-                            userProfilesMap.set(result.phone, result.profile);
-                        }
-                    });
-                } catch (profileError) {
-                    console.log('Could not fetch profile data for contacts:', profileError);
-                    // Continue without profile data - will fall back to device contacts
-                }
-            }
-
-            // Create device contacts map
-            const deviceContactsMap = new Map(Object.entries(phoneNameMap));
-
-            // Include ALL contacts (registered and unregistered)
-            const all = phones.map((p) => {
-                const match = result.matched.find((m: any) => m.phone === p);
-                
-                // For UNREGISTERED users: Only use device contacts, no profile fetching
+            const all = [...deviceNames.keys()].map((p) => {
+                const match = matchedByPhone.get(p);
                 if (!match) {
                     return {
                         phone: p,
-                        name: phoneNameMap[p] || p, // Use device contact name directly
+                        name: deviceNames.get(p) || p,
                         isAvailable: null,
                         lastOnline: null,
-                        avatarUrl: null, // No custom avatar for unregistered users
-                        contactSource: 'device_contact'
+                        avatarUrl: null,
+                        contactSource: 'device_contact',
                     };
                 }
-                
-                // For REGISTERED users: Use full contact resolution with profiles
+
                 const contactInfo = resolveContact(p, {
                     userProfiles: userProfilesMap,
-                    deviceContacts: deviceContactsMap,
+                    deviceContacts: deviceNames,
                     fallbackToFormatted: true,
                 });
-                
                 return {
                     phone: p,
                     name: contactInfo.name,
                     isAvailable: match.isAvailable,
-                    lastOnline: match.lastOnline || null,
+                    lastOnline: match.lastOnline,
                     avatarUrl: contactInfo.avatarUrl || null,
-                    contactSource: contactInfo.source
+                    contactSource: contactInfo.source,
                 };
             });
 
             setContacts(all);
-        } catch {
-            Alert.alert(
-                'Verbindungsfehler',
-                'Kontakte konnten nicht geladen werden. Bitte prüfe deine Internetverbindung und versuche es erneut.',
-                [{ text: 'OK' }]
-            );
+        } catch (error) {
+            if (error instanceof ContactsPermissionError) {
+                Alert.alert(
+                    'Kontakt-Berechtigung benötigt',
+                    'Um zu sehen, wer von deinen Kontakten erreichbar ist, braucht die App Zugriff auf deine Kontakte. Du kannst ihn in den Einstellungen erlauben.',
+                    [{ text: 'OK' }]
+                );
+            } else {
+                Alert.alert(
+                    'Verbindungsfehler',
+                    'Kontakte konnten nicht geladen werden. Bitte prüfe deine Internetverbindung und versuche es erneut.',
+                    [{ text: 'OK' }]
+                );
+            }
         } finally {
             setIsLoadingContacts(false);
         }
     };
-    
-
-    useEffect(() => {
-        if (!isLoading && userPhone) {
-            fetchContacts();
-        }
-    }, [userPhone, isLoading, userProfile]);
 
     // Refresh contacts when tab comes into focus (e.g., after editing profile in settings)
     useFocusEffect(
@@ -183,7 +101,7 @@ export default function ContactsScreen() {
             if (!isLoading && userPhone) {
                 fetchContacts();
             }
-        }, [userPhone, isLoading, userProfile])
+        }, [userPhone, isLoading])
     );
     
     const filtered = contacts.filter((c) =>

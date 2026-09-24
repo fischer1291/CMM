@@ -11,9 +11,13 @@ import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager, { CallData } from '../services/CallStateManager';
 import PlatformCallAdapter from '../services/PlatformCallAdapter';
 import VoipPushService from '../services/VoipPushService';
+import { syncContactsInBackground } from '../services/contactsService';
+import { session } from '../services/session';
 import { API_BASE_URL } from '../config/env';
+import { uuidv4 } from '../utils/uuid';
 
-const socket = io(API_BASE_URL, { transports: ['websocket'], secure: true });
+// Connected after login, with the auth token in the handshake
+const socket = io(API_BASE_URL, { transports: ['websocket'], secure: true, autoConnect: false });
 
 interface NewCallContextType {
   // Current call state
@@ -81,9 +85,6 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('🚀 NewCallContext: Initializing services...');
 
-      // Register user with socket
-      socket.emit('register', userPhone);
-
       // CRITICAL: Setup CallKit callbacks BEFORE initializing PlatformCallAdapter
       // This prevents a race condition where events can fire before callbacks are registered
       console.log('🔧 Setting up CallKit callbacks BEFORE platform initialization...');
@@ -95,6 +96,10 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       // Setup socket listeners before initialization
       setupSocketListeners();
 
+      // Connect with the current token; 'connect' registers the user
+      socket.auth = { token: session.getToken() ?? undefined };
+      socket.connect();
+
       // NOW initialize services - event listeners will be ready to receive events
       console.log('🚀 Initializing platform services with callbacks already registered...');
       await PlatformCallAdapter.initialize();
@@ -102,6 +107,9 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
 
       // iOS: send the PushKit token (received natively in AppDelegate.swift) to the backend
       VoipPushService.initialize(userPhone!);
+
+      // Keep the backend's contact list fresh, so contacts see this user's status
+      syncContactsInBackground(userPhone!);
 
       // Mark services as initialized
       servicesInitialized.current = true;
@@ -187,8 +195,11 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     socket.off('incomingCall');
     socket.off('callEnded');
 
+    // Runs on every (re)connect: after a network drop the backend has
+    // forgotten this socket, so the user must register again
     socket.on('connect', () => {
       console.log('🔌 Socket connected');
+      socket.emit('register', userPhone);
     });
 
     socket.on('incomingCall', handleSocketIncomingCall);
@@ -337,11 +348,9 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
    */
   const startVideoCall = (calleePhone: string, callerPhone: string) => {
     try {
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substring(2, 8);
-      const raw = `${callerPhone}_${calleePhone}_${timestamp}_${randomId}`;
-      const shortHash = Math.abs(raw.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0)).toString(36).slice(0, 12);
-      const channel = `call_${shortHash}`;
+      // Unique per call; the backend rejects reused channels and only issues
+      // Agora tokens to the two participants
+      const channel = `call_${uuidv4()}`;
 
       console.log('📞 Starting outgoing call:', { from: callerPhone, to: calleePhone, channel });
 
@@ -377,10 +386,11 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   const cleanup = () => {
     console.log('🧹 NewCallContext: Cleaning up...');
 
-    // Remove socket listeners
+    // Remove socket listeners and drop the (authenticated) connection
     socket.off('connect');
     socket.off('incomingCall');
     socket.off('callEnded');
+    socket.disconnect();
 
     // Remove CallStateManager listeners
     CallStateManager.removeAllListeners();

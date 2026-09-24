@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchWithTimeout } from '../utils/apiUtils';
-import { API_BASE_URL } from '../config/env';
+import { apiFetch } from '../utils/api';
 
 export const useProfile = (phone: string | null) => {
   const [name, setName] = useState('');
@@ -14,7 +13,7 @@ export const useProfile = (phone: string | null) => {
     if (!phone) return;
 
     setLoading(true);
-    fetchWithTimeout(`${API_BASE_URL}/me?phone=${encodeURIComponent(phone)}`, {}, 10000)
+    apiFetch(`/me?phone=${encodeURIComponent(phone)}`, {}, 10000)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.user) {

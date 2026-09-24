@@ -16,8 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme';
 import { resolveContact, generateAvatarUrl } from '../../utils/contactResolver';
-import { fetchWithTimeout } from '../../utils/apiUtils';
-import { API_BASE_URL } from '../../config/env';
+import { apiFetch } from '../../utils/api';
 
 interface Reaction {
     emoji: string;
@@ -63,8 +62,8 @@ export default function CallMomentsScreen() {
         if (!userPhone) return; // Don't fetch if no user logged in
         
         try {
-            const response = await fetchWithTimeout(
-                `${API_BASE_URL}/moment/callmoments?userPhone=${encodeURIComponent(userPhone)}`,
+            const response = await apiFetch(
+                `/moment/callmoments?userPhone=${encodeURIComponent(userPhone)}`,
                 {
                     method: 'GET',
                     headers: {
@@ -125,8 +124,8 @@ export default function CallMomentsScreen() {
             try {
                 const profilePromises = uniquePhones.map(async (phone: string) => {
                     try {
-                        const response = await fetchWithTimeout(
-                            `${API_BASE_URL}/me?phone=${encodeURIComponent(phone)}`,
+                        const response = await apiFetch(
+                            `/me?phone=${encodeURIComponent(phone)}`,
                             {},
                             10000
                         );
@@ -263,8 +262,8 @@ export default function CallMomentsScreen() {
                 emoji
             };
             
-            const response = await fetchWithTimeout(
-                `${API_BASE_URL}/moment/react`,
+            const response = await apiFetch(
+                `/moment/react`,
                 {
                     method: 'POST',
                     headers: {

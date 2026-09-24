@@ -1,7 +1,3 @@
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
-import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,61 +10,33 @@ import {
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme';
-import { fetchWithTimeout } from '../../utils/apiUtils';
-import { API_BASE_URL } from '../../config/env';
+import { apiFetch, apiPostJson } from '../../utils/api';
+import { deviceRegion, toE164 } from '../../utils/phone';
 
 export default function VerifyScreen() {
   const { colors } = useTheme();
-  const { setUserPhone } = useAuth();
-  const router = useRouter();
+  const { signIn, pendingPhone } = useAuth();
 
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(pendingPhone ?? '');
+  const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
   const [code, setCode] = useState('');
-  const [codeRequested, setCodeRequested] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const registerForPushNotificationsAsync = async (): Promise<string | null> => {
-    if (!Device.isDevice) return null;
-
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    if (finalStatus !== 'granted') return null;
-
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
-    return token;
-  };
-
   const startVerification = async () => {
-    if (!phone.startsWith('+')) {
-      Alert.alert('Ungültige Nummer', 'Bitte gib eine Nummer im Format +49... ein.');
+    const e164 = toE164(phone, deviceRegion());
+    if (!e164) {
+      Alert.alert('Ungültige Nummer', 'Bitte gib deine Handynummer ein, z. B. 0171 1234567.');
       return;
     }
 
     setLoading(true);
-
     try {
-      const res = await fetchWithTimeout(
-        `${API_BASE_URL}/verify/start`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone }),
-        },
-        10000
-      );
+      const res = await apiPostJson('/verify/start', { phone: e164 }, 10000);
       const data = await res.json();
-
       if (data.success) {
-        setCodeRequested(true);
-        Alert.alert('Code gesendet');
+        setVerifiedPhone(e164);
       } else {
-        Alert.alert('Fehler', data.error || 'Unbekannter Fehler');
+        Alert.alert('Fehler', data.error || 'Code konnte nicht gesendet werden.');
       }
     } catch (e) {
       console.error('❌ Fehler bei startVerification:', e);
@@ -79,71 +47,32 @@ export default function VerifyScreen() {
   };
 
   const checkCode = async () => {
-    if (!phone || !code) {
-      Alert.alert('Fehler', 'Bitte gib deine Nummer und den Code ein.');
+    if (!verifiedPhone || !code) {
+      Alert.alert('Fehler', 'Bitte gib den Code aus der SMS ein.');
       return;
     }
 
     setLoading(true);
-
     try {
-      const res = await fetchWithTimeout(
-        `${API_BASE_URL}/verify/check`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, code }),
-        },
-        10000
-      );
+      const res = await apiPostJson('/verify/check', { phone: verifiedPhone, code: code.trim() }, 10000);
       const data = await res.json();
-
-      if (data.success) {
-        // 🔐 PushToken holen
-        const pushToken = await registerForPushNotificationsAsync();
-
-        // ✅ Registrierung im Backend mit optionalem pushToken
-        await fetchWithTimeout(
-          `${API_BASE_URL}/auth/register`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              phone,
-              ...(pushToken ? { pushToken } : {}),
-            }),
-          },
-          10000
-        );
-
-        // 📲 Persistieren und Weiterleitung
-        await SecureStore.setItemAsync('userPhone', phone);
-        setUserPhone(phone);
-        
-        // Check if user needs to set up profile
-        try {
-          const profileResponse = await fetchWithTimeout(
-            `${API_BASE_URL}/me?phone=${encodeURIComponent(phone)}`,
-            {},
-            10000
-          );
-          const profileData = await profileResponse.json();
-          
-          // If user has no name set, redirect to profile setup
-          if (!profileData.success || !profileData.user?.name) {
-            router.replace('/(auth)/profile-setup');
-          } else {
-            router.replace('/');
-          }
-        } catch (error) {
-          // On error, assume profile setup is needed
-          router.replace('/(auth)/profile-setup');
-        }
-        
-        console.log('✅ Registrierung abgeschlossen – Phone:', phone, 'PushToken:', pushToken);
-      } else {
+      if (!data.success) {
         Alert.alert('Fehler', data.error || 'Code ungültig');
+        return;
       }
+
+      const token: string | null = data.token ?? null;
+      if (!token) {
+        // Backend without token auth creates the account here
+        await apiPostJson('/auth/register', { phone: verifiedPhone }, 10000);
+      }
+      // New users set up their profile first; the root layout routes accordingly
+      let name: string | undefined = data.user?.name;
+      if (name === undefined) {
+        const profileRes = await apiFetch(`/me?phone=${encodeURIComponent(verifiedPhone)}`, {}, 10000);
+        name = (await profileRes.json())?.user?.name;
+      }
+      await signIn(verifiedPhone, token, { needsProfileSetup: !name });
     } catch (e) {
       console.error('❌ Fehler bei checkCode:', e);
       Alert.alert('Fehler', 'Netzwerkproblem. Bitte später erneut versuchen.');
@@ -156,22 +85,30 @@ export default function VerifyScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.title, { color: colors.text }]}>Verifizierung</Text>
 
-      {!codeRequested ? (
+      {pendingPhone && !verifiedPhone && (
+        <Text style={[styles.note, { color: colors.gray }]}>
+          Sicherheitsupdate: Bitte bestätige deine Nummer einmal neu per SMS.
+        </Text>
+      )}
+
+      {!verifiedPhone ? (
         <>
           <Text style={[styles.label, { color: colors.text }]}>Deine Nummer</Text>
           <TextInput
             style={[styles.input, { borderColor: colors.border, color: colors.text }]}
-            placeholder="+49..."
+            placeholder="0171 1234567"
             placeholderTextColor={colors.gray}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
+            textContentType="telephoneNumber"
+            autoComplete="tel"
           />
           <Button title="Code senden" onPress={startVerification} disabled={loading} />
         </>
       ) : (
         <>
-          <Text style={[styles.label, { color: colors.text }]}>Bestätigungscode</Text>
+          <Text style={[styles.label, { color: colors.text }]}>Code für {verifiedPhone}</Text>
           <TextInput
             style={[styles.input, { borderColor: colors.border, color: colors.text }]}
             placeholder="123456"
@@ -179,8 +116,11 @@ export default function VerifyScreen() {
             value={code}
             onChangeText={setCode}
             keyboardType="number-pad"
+            textContentType="oneTimeCode"
+            autoComplete="sms-otp"
           />
           <Button title="Bestätigen" onPress={checkCode} disabled={loading} />
+          <Button title="Andere Nummer" onPress={() => setVerifiedPhone(null)} disabled={loading} />
         </>
       )}
 
@@ -192,6 +132,7 @@ export default function VerifyScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, justifyContent: 'center' },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  note: { fontSize: 15, textAlign: 'center', marginBottom: 12 },
   label: { marginTop: 20, fontWeight: '600', fontSize: 16 },
   input: {
     borderWidth: 1,

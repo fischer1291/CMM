@@ -1,6 +1,4 @@
 import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import React, { useState } from 'react';
 import {
     Alert,
@@ -15,22 +13,18 @@ import {
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme';
-import { fetchWithTimeout } from '../../utils/apiUtils';
-import { API_BASE_URL } from '../../config/env';
+import { uploadAvatar } from '../../services/avatar';
 
 export default function SettingsScreen() {
     const { colors } = useTheme();
-    const { setUserPhone, userPhone, userProfile, updateUserProfile, reloadProfile } = useAuth();
+    const { signOut, userPhone, userProfile, updateUserProfile } = useAuth();
 
     const [modalVisible, setModalVisible] = useState(false);
     const [newName, setNewName] = useState('');
 
     const logout = async () => {
         try {
-            console.log('🔒 Logging out...');
-            await SecureStore.deleteItemAsync('userPhone');
-            setUserPhone(null);
-            router.replace('/(auth)/onboarding');
+            await signOut();
         } catch (e) {
             console.error('❌ Fehler beim Logout:', e);
             Alert.alert('Fehler', 'Abmelden fehlgeschlagen.');
@@ -47,51 +41,7 @@ export default function SettingsScreen() {
         }
     };
 
-    const uploadImage = async (imageUri: string): Promise<string | null> => {
-        try {
-            const formData = new FormData();
-            formData.append('avatar', {
-                uri: imageUri,
-                type: 'image/jpeg',
-                name: 'avatar.jpg',
-            } as any);
-            
-            // Add phone number to the request
-            if (userPhone) {
-                formData.append('phone', userPhone);
-            }
-
-            const response = await fetchWithTimeout(
-                `${API_BASE_URL}/upload/avatar`,
-                {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                    },
-                },
-                15000 // Longer timeout for file upload
-            );
-
-            const responseText = await response.text();
-            
-            let data;
-            try {
-                data = JSON.parse(responseText);
-            } catch (e) {
-                throw new Error(`Server error ${response.status}: ${responseText}`);
-            }
-            
-            if (data.success && data.avatarUrl) {
-                return data.avatarUrl;
-            } else {
-                throw new Error(`Upload failed: ${data.message || 'Unknown error'}`);
-            }
-        } catch (error) {
-            console.error('Upload error:', error);
-            return null;
-        }
-    };
+    const uploadImage = (imageUri: string) => uploadAvatar(imageUri, userPhone);
 
     const showImagePickerOptions = () => {
         Alert.alert(

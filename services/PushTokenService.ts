@@ -6,8 +6,8 @@
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { fetchWithTimeout } from '../utils/apiUtils';
-import { API_BASE_URL, EXPO_PROJECT_ID } from '../config/env';
+import { apiFetch } from '../utils/api';
+import { EXPO_PROJECT_ID } from '../config/env';
 
 export interface PushToken {
   token: string;
@@ -80,8 +80,8 @@ class PushTokenService {
 
       console.log('📤 Registering push token with backend...');
 
-      const response = await fetchWithTimeout(
-        `${API_BASE_URL}/user/push-token`,
+      const response = await apiFetch(
+        `/user/push-token`,
         {
           method: 'POST',
           headers: {
