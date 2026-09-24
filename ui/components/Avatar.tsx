@@ -80,7 +80,10 @@ export function Avatar({ name, uri, size = 56, available }: Props) {
           <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
         ) : (
           <LinearGradient colors={['#2B2B45', '#1A1A2B']} style={[StyleSheet.absoluteFill, styles.center]}>
-            <AppText style={{ fontFamily: fonts.semibold, fontSize: inner * 0.36 }} color={colors.textSecondary}>
+            <AppText
+              style={{ fontFamily: fonts.semibold, fontSize: inner * 0.36, lineHeight: inner * 0.46 }}
+              color={colors.textSecondary}
+            >
               {initialsOf(name)}
             </AppText>
           </LinearGradient>

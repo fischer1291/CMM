@@ -7,7 +7,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { CallView, localPreviewStyle } from '../features/call/CallView';
+import { OnboardingView } from '../features/auth/OnboardingView';
+import { VerifyView } from '../features/auth/VerifyView';
 import { ContactsView } from '../features/contacts/ContactsView';
+import { MomentsView } from '../features/moments/MomentsView';
+import { ProfileSetupView } from '../features/profile/ProfileSetupView';
+import { ProfileView } from '../features/profile/ProfileView';
+import { MomentComposer } from '../features/moments/MomentComposer';
+import CallMeMomentPrompt from '../components/CallMeMomentPrompt';
 import { StatusView } from '../features/status/StatusView';
 import { fetchPreviewState, PreviewState } from './previewControl';
 import {
@@ -146,7 +153,86 @@ function FakeVideo() {
 }
 
 /** Full-screen previews render outside the gallery's ScrollView. */
+const verifyProps = {
+  phone: '0160 93181888',
+  onPhoneChange: () => {},
+  onSubmitPhone: () => {},
+  code: '4821',
+  onCodeChange: () => {},
+  onSubmitCode: () => {},
+  sentTo: '+4916093181888',
+  resendIn: 17,
+  onResend: () => {},
+  onChangeNumber: () => {},
+  loading: false,
+};
+
+const MOMENTS = [
+  {
+    id: 'm1',
+    userPhone: '+491',
+    userName: 'Anna Berg',
+    targetPhone: '+49self',
+    targetName: 'Leroy',
+    screenshot: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&fit=crop',
+    note: 'Endlich mal wieder richtig gelacht 😄',
+    mood: '😂 albern',
+    callDuration: '23:41',
+    timestamp: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+    reactions: [
+      { emoji: '❤️', count: 4, userReacted: true },
+      { emoji: '😂', count: 2, userReacted: false },
+    ],
+    totalReactions: 6,
+  },
+];
+const person = (phone: string, name: string) => ({ name, avatarUrl: phone === '+491' ? PHOTO : null });
+
 const SCREENS: Record<string, () => React.ReactElement> = {
+  composer: () => (
+    <MomentComposer
+      visible
+      onClose={() => {}}
+      onPost={() => {}}
+      screenshotUri={MOMENTS[0].screenshot}
+      userPhone="+49self"
+      userName="Leroy"
+      targetPhone="+491"
+      targetName="Anna"
+      callDuration="23:41"
+    />
+  ),
+  profile: () => (
+    <ProfileView
+      name="Leroy Fischer"
+      phone="+4916093181888"
+      avatarUrl="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&fit=crop"
+      uploadingAvatar={false}
+      onChangeAvatar={() => {}}
+      onSaveName={async () => {}}
+      onOpenSystemSettings={() => {}}
+      onInvite={() => {}}
+      onSignOut={() => {}}
+      version="1.0.0"
+    />
+  ),
+  'moment-prompt': () => (
+    <Screen>
+      <CallMeMomentPrompt phone="+49" onClose={() => {}} />
+    </Screen>
+  ),
+  moments: () => (
+    <MomentsView moments={MOMENTS} loading={false} refreshing={false} onRefresh={() => {}} onReact={() => {}} person={person} onGoToContacts={() => {}} />
+  ),
+  'moments-empty': () => (
+    <MomentsView moments={[]} loading={false} refreshing={false} onRefresh={() => {}} onReact={() => {}} person={person} onGoToContacts={() => {}} />
+  ),
+  onboarding: () => <OnboardingView onStart={() => {}} />,
+  'verify-phone': () => <VerifyView {...verifyProps} step="phone" reverify />,
+  'verify-code': () => <VerifyView {...verifyProps} step="code" />,
+  'profile-setup': () => (
+    <ProfileSetupView name="Leroy" onNameChange={() => {}} avatarUri={null} onPickAvatar={() => {}} onSave={() => {}} onSkip={() => {}} saving={false} />
+  ),
   'call-ringing': () => <CallView {...callProps} phase="ringing" hasRemoteVideo={false} />,
   'call-connected': () => <CallView {...callProps} phase="connected" hasRemoteVideo videoLayer={<FakeVideo />} />,
   'call-ended': () => <CallView {...callProps} phase="ended" statusText="Anna hat abgelehnt" hasRemoteVideo={false} />,

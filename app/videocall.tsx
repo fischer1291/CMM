@@ -20,7 +20,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot from 'react-native-view-shot';
 import { useAuth } from '../contexts/AuthContext';
 import { useNewCall } from '../contexts/NewCallContext';
-import CallMomentCaptureModal from '../components/callmoments/CallMomentCaptureModal';
+import { useContacts } from '../contexts/ContactsContext';
+import { MomentComposer } from '../features/moments/MomentComposer';
 import { resolveContact, normalizePhone } from '../utils/contactResolver';
 import { CallPhase, CallView, localPreviewStyle } from '../features/call/CallView';
 import CallNotificationService from '../services/CallNotificationService';
@@ -143,6 +144,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   const insets = useSafeAreaInsets();
   const { userPhone: authUserPhone, userProfile } = useAuth();
   const { endCall } = useNewCall();
+  const { find: findContact } = useContacts();
   const agoraSafeUserAccount = userPhone;
 
   useEffect(() => {
@@ -736,18 +738,16 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   };
 
   // Create user profiles map for contact resolution
-  const createUserProfilesMap = () => {
-    return userProfiles;
-  };
-
   // Helper function to resolve contact information
-  const getContactInfo = (phone: string) => {
-    const userProfilesMap = createUserProfilesMap();
-    
-    return resolveContact(normalizePhone(phone), {
-      userProfiles: userProfilesMap,
-      fallbackToFormatted: true,
-    });
+  // Address book name first (what the user calls them), then the profile
+  const getContactInfo = (phone: string): { name: string; avatarUrl?: string } => {
+    const e164 = phone.startsWith('+') ? phone : `+${phone}`;
+    if (e164 === authUserPhone) {
+      return { name: userProfile?.name || 'Du', avatarUrl: userProfile?.avatarUrl || undefined };
+    }
+    const contact = findContact(e164);
+    if (contact) return { name: contact.name, avatarUrl: contact.avatarUrl ?? undefined };
+    return resolveContact(normalizePhone(phone), { userProfiles, fallbackToFormatted: true });
   };
 
   const getContactName = (phone: string) => {
@@ -787,7 +787,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         onCapture={handleTakeScreenshot}
         onHangup={disconnectCall}
       />
-      <CallMomentCaptureModal
+      <MomentComposer
         visible={showCallMomentModal}
         onClose={() => {
           setShowCallMomentModal(false);
@@ -801,7 +801,6 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         targetPhone={targetPhone || ''}
         targetName={getContactName(targetPhone || '')}
         callDuration={callDuration}
-        userProfiles={createUserProfilesMap()}
       />
     </>
   );

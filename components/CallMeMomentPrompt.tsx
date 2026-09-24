@@ -1,155 +1,87 @@
+import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
-import {
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-import { useTheme } from '../theme';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { AppText, Button, colors, glow, radius, spacing } from '../ui';
 import { apiPostJson } from '../utils/api';
 
-const moods = ['😊', '😐', '😔'];
+const MOODS = ['😊', '😌', '🤪', '😴', '🤔'];
 
-const CallMeMomentPrompt = ({
-  phone,
-  onClose,
-}: {
-  phone: string;
-  onClose: (shouldReload?: boolean) => void;
-}) => {
-  const [step, setStep] = useState<'confirm' | 'mood' | null>('confirm');
-  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+/**
+ * Asks after a "Call Me Moment" push whether the user has 15 minutes for a
+ * call; confirming makes them available to their contacts for that time.
+ */
+export default function CallMeMomentPrompt({ phone, onClose }: { phone: string; onClose: () => void }) {
+  const [mood, setMood] = useState(MOODS[0]);
   const [pending, setPending] = useState(false);
-  const { colors } = useTheme();
 
-  const confirmMoment = async () => {
-    if (!phone || !selectedMood) return;
+  const confirm = async () => {
     setPending(true);
     try {
-      // Sets the user available for 15 minutes and notifies their contacts
-      await apiPostJson('/moment/confirm', { phone, mood: selectedMood }, 10000);
-
-      onClose(true); // signalisiere Index.tsx, dass Reload nötig ist
+      await apiPostJson('/moment/confirm', { phone, mood }, 10000);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (err) {
       console.error('❌ Fehler beim Bestätigen des Moments:', err);
-      onClose(false);
     } finally {
       setPending(false);
-      setStep(null);
-      setSelectedMood(null);
+      onClose();
     }
   };
 
-  const handleReject = () => {
-    setStep(null);
-    setSelectedMood(null);
-    onClose(false); // kein reload nötig
-  };
-
   return (
-    <Modal visible={!!step} transparent animationType="fade">
-      <View style={styles.overlay}>
-        <View style={[styles.modalBox, { backgroundColor: colors.card }]}>
-          <Text style={[styles.title, { color: colors.text }]}>🎯 Call Me Moment</Text>
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.backdrop}>
+        <View style={[styles.card, glow(colors.violet, 0.4)]}>
+          <AppText variant="label" color={colors.cyan}>
+            Call Me Moment ✨
+          </AppText>
+          <AppText variant="h2">Hast du 15 Minuten für ein echtes Gespräch?</AppText>
+          <AppText variant="caption" color={colors.textSecondary}>
+            Deine Kontakte sehen dann, dass du gerade erreichbar bist. Wie ist deine Stimmung?
+          </AppText>
 
-          {step === 'confirm' && (
-            <>
-              <Text style={[styles.subtitle, { color: colors.text }]}>
-                Möchtest du 15 Minuten erreichbar sein?
-              </Text>
-              <View style={styles.actions}>
-                <TouchableOpacity onPress={handleReject}>
-                  <Text style={{ color: colors.gray }}>Nicht jetzt</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setStep('mood')}>
-                  <Text style={{ color: colors.primary, fontWeight: 'bold' }}>Ja, bin bereit</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+          <View style={styles.moods}>
+            {MOODS.map((m) => (
+              <Pressable
+                key={m}
+                onPress={() => setMood(m)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: mood === m }}
+                style={[styles.mood, mood === m && styles.moodActive]}
+              >
+                <AppText style={styles.moodEmoji}>{m}</AppText>
+              </Pressable>
+            ))}
+          </View>
 
-          {step === 'mood' && (
-            <>
-              <Text style={[styles.subtitle, { color: colors.text }]}>Wie fühlst du dich gerade?</Text>
-              <View style={styles.moodRow}>
-                {moods.map((mood) => (
-                  <TouchableOpacity
-                    key={mood}
-                    onPress={() => setSelectedMood(mood)}
-                    style={[
-                      styles.moodButton,
-                      {
-                        backgroundColor:
-                          selectedMood === mood ? colors.primary : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text style={{ fontSize: 24 }}>{mood}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <View style={styles.actions}>
-                <TouchableOpacity onPress={handleReject}>
-                  <Text style={{ color: colors.gray }}>Abbrechen</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  disabled={!selectedMood || pending}
-                  onPress={confirmMoment}
-                >
-                  <Text style={{ color: colors.primary, fontWeight: 'bold' }}>
-                    {pending ? '...' : 'Bestätigen'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+          <Button title="Für 15 Min. erreichbar" icon="flash" onPress={confirm} loading={pending} />
+          <Button title="Nicht jetzt" variant="ghost" onPress={onClose} disabled={pending} />
         </View>
       </View>
     </Modal>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: '#00000088',
-    justifyContent: 'center',
+  backdrop: { flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: spacing.xl },
+  card: {
+    gap: spacing.md,
+    padding: spacing.xl,
+    borderRadius: radius.xl,
+    backgroundColor: colors.bgElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderStrong,
+  },
+  moods: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: spacing.sm },
+  mood: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
-  },
-  modalBox: {
-    width: '80%',
-    padding: 24,
-    borderRadius: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  moodRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 24,
-  },
-  moodButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
     justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
+  moodActive: { borderColor: colors.cyan, backgroundColor: 'rgba(0,229,255,0.14)' },
+  moodEmoji: { fontSize: 26, lineHeight: 32 },
 });
-
-export default CallMeMomentPrompt;
