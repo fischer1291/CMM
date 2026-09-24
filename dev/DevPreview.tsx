@@ -343,12 +343,19 @@ const SCREENS: Record<string, () => React.ReactElement> = {
   ),
   notifications: () => (
     <NotificationsView
-      permission="undetermined"
+      permission="granted"
       prefs={{ available: true, nudges: true, moments: false, quietHours: { enabled: true, start: 22 * 60, end: 8 * 60 } }}
       onBack={() => {}}
       onAllow={() => {}}
       onOpenSettings={() => {}}
       onChange={() => {}}
+      recent={[
+        { type: 'contact_available', about: '+491', result: 'sent', at: new Date().toISOString() },
+        { type: 'contact_available', about: '+491', result: 'throttled', at: new Date(Date.now() - 5 * 60000).toISOString() },
+        { type: 'nudge', about: '+492', result: 'in_app', at: new Date(Date.now() - 60 * 60000).toISOString() },
+        { type: 'moment_shared', about: '+492', result: 'quiet_hours', at: new Date(Date.now() - 26 * 3600000).toISOString() },
+      ]}
+      nameOf={(phone) => (phone === '+491' ? 'Anna' : 'Ben')}
     />
   ),
   'notifications-denied': () => (
@@ -359,6 +366,8 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onAllow={() => {}}
       onOpenSettings={() => {}}
       onChange={() => {}}
+      recent={[]}
+      nameOf={() => 'Jemand'}
     />
   ),
   stats: () => (

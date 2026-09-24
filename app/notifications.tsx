@@ -4,7 +4,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Linking } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationsView } from '../features/notifications/NotificationsView';
-import { fetchNotificationPrefs, NotificationPrefs, saveNotificationPrefs } from '../services/notificationPrefs';
+import { useContacts } from '../contexts/ContactsContext';
+import {
+  fetchNotificationPrefs,
+  fetchRecentNotifications,
+  NotificationPrefs,
+  RecentPush,
+  saveNotificationPrefs,
+} from '../services/notificationPrefs';
 import PushTokenService, { PermissionState } from '../services/PushTokenService';
 
 export default function NotificationsScreen() {
@@ -12,12 +19,17 @@ export default function NotificationsScreen() {
   const { userPhone } = useAuth();
   const [permission, setPermission] = useState<PermissionState | null>(null);
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
+  const [recent, setRecent] = useState<RecentPush[]>([]);
+  const { find } = useContacts();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Also after returning from the system settings
   useFocusEffect(
     useCallback(() => {
       PushTokenService.permission().then(setPermission);
+      fetchRecentNotifications()
+        .then(setRecent)
+        .catch(() => {});
     }, [])
   );
 
@@ -67,6 +79,8 @@ export default function NotificationsScreen() {
       onAllow={allow}
       onOpenSettings={() => Linking.openSettings()}
       onChange={change}
+      recent={recent}
+      nameOf={(phone) => find(phone)?.name.split(' ')[0] || 'Jemand'}
     />
   );
 }

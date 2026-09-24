@@ -4,7 +4,7 @@
  */
 import { useRouter } from 'expo-router';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, NativeEventSubscription } from 'react-native';
 import { useAuth } from './AuthContext';
 import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager, { CallData } from '../services/CallStateManager';
@@ -36,6 +36,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   const [activeCall, setActiveCall] = useState<CallData | null>(null);
   const [hasActiveCall, setHasActiveCall] = useState(false);
   const servicesInitialized = useRef(false);
+  const appStateSub = useRef<NativeEventSubscription | null>(null);
   // Outgoing calls have no CallStateManager entry; remember who we are calling
   const outgoingCallRef = useRef<{ channel: string; to: string } | null>(null);
 
@@ -204,7 +205,13 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     socket.on('connect', () => {
       console.log('🔌 Socket connected');
       socket.emit('register', userPhone);
+      reportPresence();
     });
+
+    // While the app is in the foreground the backend sends no availability
+    // pushes: the app shows a live banner instead (components/InAppBanner)
+    appStateSub.current?.remove();
+    appStateSub.current = AppState.addEventListener('change', reportPresence);
 
     socket.on('incomingCall', handleSocketIncomingCall);
     socket.on('callEnded', handleSocketCallEnded);
@@ -212,6 +219,10 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     socket.on('callAccepted', handleSocketCallAccepted);
 
     console.log('✅ Socket listeners set up (duplicates removed)');
+  };
+
+  const reportPresence = () => {
+    if (socket.connected) socket.emit('presence', { foreground: AppState.currentState === 'active' });
   };
 
   /**
@@ -418,6 +429,8 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     socket.off('callFailed');
     socket.off('callAccepted');
     socket.disconnect();
+    appStateSub.current?.remove();
+    appStateSub.current = null;
 
     // Remove CallStateManager listeners
     CallStateManager.removeAllListeners();

@@ -24,3 +24,13 @@ export async function saveNotificationPrefs(prefs: Partial<NotificationPrefs>): 
   if (!res.ok || !data.prefs) throw new Error(`HTTP ${res.status}`);
   return data.prefs;
 }
+
+export type RecentPush = { type: string; about: string | null; result: string; at: string };
+
+/** The last pushes meant for me: sent, or why they were skipped. */
+export async function fetchRecentNotifications(): Promise<RecentPush[]> {
+  const res = await apiFetch('/me/notifications/recent', {}, 10000);
+  const data = await res.json();
+  if (!res.ok || !Array.isArray(data.recent)) throw new Error(`HTTP ${res.status}`);
+  return data.recent;
+}
