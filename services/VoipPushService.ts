@@ -15,6 +15,8 @@ let RNVoipPush: any = null;
 function loadVoipPushLibrary(): boolean {
   if (RNVoipPush) return true;
   try {
+    // iOS-only native module: loaded lazily so the web build works
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require('react-native-voip-push-notification');
     RNVoipPush = mod?.default || mod;
     return !!RNVoipPush;

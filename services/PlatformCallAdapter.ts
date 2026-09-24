@@ -23,6 +23,8 @@ function loadCallKeepLibrary(): boolean {
 
   try {
     console.log('📱 Attempting to load CallKeep library...');
+    // Native-only module: loaded lazily so the web build works
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const callKeepModule = require('react-native-callkeep');
     RNCallKeep = callKeepModule?.default || callKeepModule;
     isCallKeepAvailable = !!RNCallKeep;

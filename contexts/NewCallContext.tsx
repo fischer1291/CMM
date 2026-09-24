@@ -74,6 +74,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
         cleanup();
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- (re)initialize only when the user or auth state changes
   }, [userPhone, isLoading]);
 
   /**

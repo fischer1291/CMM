@@ -120,6 +120,7 @@ export default function VideoCallRoute() {
       });
       router.replace('/(tabs)/contacts');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only when validity changes
   }, [isValid]);
 
   if (!isValid) {
@@ -158,7 +159,8 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
       targetPhone,
       isOutgoing,
     });
-  }, []); // Empty deps - only log on actual mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- log once on mount
+  }, []);
 
   const [joined, setJoined] = useState(false);
   const [remoteUid, setRemoteUid] = useState<number | null>(null);
@@ -226,6 +228,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     if (authUserPhone && targetPhone) {
       fetchUserProfiles();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when the people change
   }, [authUserPhone, targetPhone]);
 
   const switchCamera = () => {
@@ -394,7 +397,8 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         engineRef.current = null;
       }
     };
-  }, []); // CRITICAL: Empty deps - only run once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- one Agora engine per call screen
+  }, []);
 
   // Note: Call ending is now handled by the NewCallContext automatically
 
@@ -431,6 +435,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
       CallStateManager.off('call:remote-ended', onRemoteEnded);
       CallStateManager.off('call:accepted', onAccepted);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- subscribe once per call channel
   }, [channel]);
 
   // Timer useEffect
@@ -529,7 +534,8 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     };
 
     fetchTokenAndJoin();
-  }, []); // CRITICAL: Empty deps - only join once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- join the channel exactly once
+  }, []);
 
   const cleanupCall = async (notifyRemote = false) => {
     // Ending the call emits call:ended, which calls cleanupCall again

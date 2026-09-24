@@ -31,7 +31,7 @@ export function StatusOrb({ available, onToggle, progress, caption, size = 220, 
     pulse.value = available
       ? withRepeat(withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.ease) }), -1, true)
       : withTiming(0, { duration: 300 });
-  }, [available]);
+  }, [available, pulse]);
 
   const haloStyle = useAnimatedStyle(() => ({
     opacity: 0.25 + pulse.value * 0.35,
