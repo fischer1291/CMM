@@ -1,4 +1,5 @@
 // contexts/AuthContext.tsx
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import PushTokenService from '../services/PushTokenService';
@@ -32,6 +33,16 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
+
+// Readable while the device is locked (after the first unlock since boot), so a
+// VoIP push that wakes the app on the lock screen still finds the logged-in user.
+const PHONE_KEYCHAIN_OPTIONS = { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK };
+
+// Accessibility is only applied when an item is created, so delete first.
+async function storeUserPhone(phone: string) {
+  await SecureStore.deleteItemAsync('userPhone');
+  await SecureStore.setItemAsync('userPhone', phone, PHONE_KEYCHAIN_OPTIONS);
+}
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userPhone, setUserPhoneState] = useState<string | null>(null);
@@ -139,9 +150,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     SecureStore.getItemAsync('userPhone')
       .then(async (stored) => {
         setUserPhoneState(stored || null);
-        
+
         // Only refresh push token if we don't have one stored
         if (stored) {
+          // Migrate items saved before PHONE_KEYCHAIN_OPTIONS existed
+          if (!(await AsyncStorage.getItem('userPhoneKeychainMigrated'))) {
+            await storeUserPhone(stored).catch(() => {});
+            await AsyncStorage.setItem('userPhoneKeychainMigrated', '1');
+          }
+
           const currentToken = PushTokenService.getPushToken();
           if (!currentToken) {
             console.log('🔄 No push token found, refreshing for standalone app...');
@@ -169,7 +186,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const setUserPhone = useCallback(async (phone: string | null) => {
     if (phone) {
-      await SecureStore.setItemAsync('userPhone', phone);
+      await storeUserPhone(phone);
       setUserPhoneState(phone);
       
       // Register for push notifications when user logs in (standalone app)

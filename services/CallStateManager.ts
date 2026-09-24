@@ -2,6 +2,7 @@
  * CallStateManager - Centralized call state management
  * Single source of truth for all call-related state
  */
+import { uuidv4 } from '../utils/uuid';
 
 // Simple event emitter implementation for React Native
 class SimpleEventEmitter {
@@ -12,6 +13,16 @@ class SimpleEventEmitter {
       this.listeners.set(event, []);
     }
     this.listeners.get(event)!.push(listener);
+  }
+
+  off(event: string, listener: Function): void {
+    const eventListeners = this.listeners.get(event);
+    if (eventListeners) {
+      const index = eventListeners.indexOf(listener);
+      if (index > -1) {
+        eventListeners.splice(index, 1);
+      }
+    }
   }
 
   emit(event: string, ...args: any[]): void {
@@ -51,7 +62,8 @@ export type CallStateEvent =
   | 'call:answered' 
   | 'call:declined'
   | 'call:ended'
-  | 'call:timeout';
+  | 'call:timeout'
+  | 'call:remote-ended'; // other party ended an outgoing call (no CallData)
 
 class CallStateManager extends SimpleEventEmitter {
   private static instance: CallStateManager;
@@ -74,6 +86,7 @@ class CallStateManager extends SimpleEventEmitter {
    * Create a new incoming call
    */
   createIncomingCall(data: {
+    callId?: string;
     channel: string;
     callerPhone: string;
     calleePhone: string;
@@ -92,11 +105,14 @@ class CallStateManager extends SimpleEventEmitter {
       return this.activeCall;
     }
 
+    const { callId, ...rest } = data;
     const callData: CallData = {
-      callId: `call_${Date.now()}`,
+      // Must be a UUID: CallKit rejects (and crashes on) any other id format.
+      // The backend assigns one per call so socket, VoIP push and CallKit agree.
+      callId: callId ? callId.toLowerCase() : uuidv4(),
       callState: 'incoming',
       startTime: new Date(),
-      ...data,
+      ...rest,
     };
 
     this.activeCall = callData;

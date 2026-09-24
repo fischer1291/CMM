@@ -1,0 +1,3 @@
+[submodule "CMM-backend-new"]
+	path = CMM-backend-new
+	url = https://github.com/fischer1291/CMM-backend-new.git
