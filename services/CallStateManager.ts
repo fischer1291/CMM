@@ -148,16 +148,16 @@ class CallStateManager extends SimpleEventEmitter {
       return false;
     }
 
-    this.activeCall.callState = 'ended';
-    this.activeCall.endTime = new Date();
-    this.callHistory.push(this.activeCall);
-    
-    this.emit('call:declined', this.activeCall);
-    
+    // Clear the active call before notifying listeners: a listener may end
+    // the call again (e.g. via CallKit), which must find nothing to end
     const endedCall = this.activeCall;
     this.activeCall = null;
-    
+    endedCall.callState = 'ended';
+    endedCall.endTime = new Date();
+    this.callHistory.push(endedCall);
+
     console.log('❌ CallStateManager: Call declined:', endedCall.callId);
+    this.emit('call:declined', endedCall);
     return true;
   }
 
@@ -170,16 +170,16 @@ class CallStateManager extends SimpleEventEmitter {
       return false;
     }
 
-    this.activeCall.callState = 'ended';
-    this.activeCall.endTime = new Date();
-    this.callHistory.push(this.activeCall);
-    
-    this.emit('call:ended', this.activeCall);
-    
+    // Clear the active call before notifying listeners: the call screen's
+    // cleanup ends the call again, which must find nothing to end
     const endedCall = this.activeCall;
     this.activeCall = null;
-    
+    endedCall.callState = 'ended';
+    endedCall.endTime = new Date();
+    this.callHistory.push(endedCall);
+
     console.log('🔚 CallStateManager: Call ended:', endedCall.callId);
+    this.emit('call:ended', endedCall);
     return true;
   }
 
