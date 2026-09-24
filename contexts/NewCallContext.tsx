@@ -25,7 +25,8 @@ interface NewCallContextType {
   answerCall: () => void;
   declineCall: () => void;
   endCall: () => void;
-  startVideoCall: (calleePhone: string, callerPhone: string) => void;
+  /** Outgoing call; `video: false` for audio only (camera can be turned on later) */
+  startVideoCall: (calleePhone: string, callerPhone: string, options?: { video?: boolean }) => void;
 }
 
 const NewCallContext = createContext<NewCallContextType | null>(null);
@@ -234,7 +235,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   /**
    * Handle socket incoming call event
    */
-  const handleSocketIncomingCall = async ({ from, channel, action, callerName, callId }: any) => {
+  const handleSocketIncomingCall = async ({ from, channel, action, callerName, callId, hasVideo }: any) => {
     if (action === 'end') {
       // Handle call end from socket
       CallNotificationService.endCallByChannel(channel);
@@ -273,7 +274,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
         calleePhone: userPhone,
         channel,
         callerName: callerName || undefined,
-        hasVideo: true,
+        hasVideo: hasVideo !== false,
       });
     } catch (error) {
       console.error('❌ Error handling socket incoming call:', error);
@@ -334,6 +335,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
           userPhone: userPhone!,
           targetPhone: callData.callerPhone,
           isOutgoing: 'false', // Receiver side
+          video: String(callData.hasVideo !== false),
         },
       });
       console.log('✅ handleCallAnswered: Navigation called');
@@ -388,7 +390,8 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   /**
    * Start a new video call (outgoing)
    */
-  const startVideoCall = (calleePhone: string, callerPhone: string) => {
+  const startVideoCall = (calleePhone: string, callerPhone: string, options?: { video?: boolean }) => {
+    const video = options?.video !== false;
     try {
       // Unique per call; the backend rejects reused channels and only issues
       // Agora tokens to the two participants
@@ -403,6 +406,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
         from: callerPhone,
         to: calleePhone,
         channel: channel,
+        video,
       });
 
       // Navigate to video call screen (caller side)
@@ -414,6 +418,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
           userPhone: callerPhone,
           targetPhone: calleePhone,
           isOutgoing: 'true', // Caller side
+          video: String(video),
         },
       });
       console.log('✅ startVideoCall: Navigation called');

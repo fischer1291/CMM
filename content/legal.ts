@@ -40,6 +40,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     paragraphs: [
       'Wenn du den Zugriff erlaubst, bildet die App aus den Nummern deines Adressbuchs Prüfwerte (SHA-256-Hashes) und gleicht sie mit registrierten Nutzern ab. Namen und andere Kontaktdaten verlassen dein Gerät nicht.',
       'Wir speichern nur, welche registrierten Nutzer in deinem Adressbuch stehen. Nummern von Menschen ohne Konto speichern wir nicht.',
+      'Lädst du jemanden ein, speichern wir bis zu 60 Tage einen Prüfwert (Hash) dieser Nummer. Meldet sich die Person an, seid ihr automatisch verbunden und du bekommst Bescheid.',
     ],
   },
   {
@@ -47,6 +48,13 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     paragraphs: [
       'Dein Name, dein Profilbild, ob du gerade erreichbar bist (und bis wann) sowie wann du zuletzt erreichbar warst, sehen Nutzer, die deine Nummer in ihrem Adressbuch haben.',
       'Profilbilder speichern wir bei Cloudinary (Cloudinary Ltd., mit Servern in den USA). Deinen Zeitplan und deine Zeitzone nutzen wir, um dich automatisch als erreichbar anzuzeigen und Ruhezeiten einzuhalten.',
+    ],
+  },
+  {
+    title: 'Kreise, Melden und Blockieren',
+    paragraphs: [
+      'Deine Kreise (z. B. „Familie“) und wer darin ist, speichern wir, damit nur die gewählten Kreise sehen, wann du erreichbar bist.',
+      'Blockierst du jemanden, speichern wir das, bis du es aufhebst. Meldungen (Grund, optionaler Hinweis, ggf. der betroffene Moment) speichern wir bis zu 6 Monate, um Missbrauch zu prüfen. Die gemeldete Person erfährt nicht, von wem die Meldung kommt.',
     ],
   },
   {

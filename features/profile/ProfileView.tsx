@@ -25,6 +25,8 @@ type Props = {
   onExportData: () => void;
   onOpenPrivacy: () => void;
   onOpenImprint: () => void;
+  onOpenCircles: () => void;
+  onOpenBlocked: () => void;
   onSignOut: () => void;
   onDeleteAccount: () => void;
   version: string;
@@ -95,6 +97,7 @@ export function ProfileView(props: Props) {
       <RowGroup
         rows={[
           { icon: 'calendar-outline', label: 'Zeitplan', onPress: props.onOpenSchedule },
+          { icon: 'people-circle-outline', label: 'Kreise & Sichtbarkeit', onPress: props.onOpenCircles },
           { icon: 'pulse-outline', label: 'Gesprächszeit & Freigabe', onPress: props.onOpenStats },
         ]}
       />
@@ -114,6 +117,7 @@ export function ProfileView(props: Props) {
       <RowGroup
         rows={[
           { icon: 'download-outline', label: 'Meine Daten exportieren', onPress: props.onExportData },
+          { icon: 'hand-left-outline', label: 'Blockierte Personen', onPress: props.onOpenBlocked },
           { icon: 'shield-checkmark-outline', label: 'Datenschutz', onPress: props.onOpenPrivacy },
           { icon: 'document-text-outline', label: 'Impressum', onPress: props.onOpenImprint },
         ]}

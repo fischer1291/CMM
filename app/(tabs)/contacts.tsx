@@ -5,12 +5,13 @@ import { Contact, useContacts } from '../../contexts/ContactsContext';
 import { useNewCall } from '../../contexts/NewCallContext';
 import { useRouter } from 'expo-router';
 import { useNudges } from '../../hooks/useNudges';
+import { inviteText } from '../../content/links';
+import { recordInvites } from '../../services/socialApi';
 import { ContactsView } from '../../features/contacts/ContactsView';
 
-const INVITE_TEXT = 'Hey! Ich nutze Call Me Maybe – da siehst du, wann ich Zeit für einen Anruf habe. Lad sie dir runter, dann können wir quatschen!';
 
 export default function ContactsScreen() {
-  const { userPhone } = useAuth();
+  const { userPhone, userProfile } = useAuth();
   const { contacts, loading, permissionDenied, refresh } = useContacts();
   const { startVideoCall } = useNewCall();
   const router = useRouter();
@@ -25,10 +26,11 @@ export default function ContactsScreen() {
   };
 
   const invite = (contact: Contact) => {
+    // Remembered (as a hash): when they sign up, you're connected right away
+    recordInvites([contact.phone]).catch(() => {});
+    const text = inviteText(userProfile?.name?.split(' ')[0]);
     // SMS to that contact; the share sheet if SMS isn't available (e.g. iPad)
-    Linking.openURL(`sms:${contact.phone}&body=${encodeURIComponent(INVITE_TEXT)}`).catch(() =>
-      Share.share({ message: INVITE_TEXT })
-    );
+    Linking.openURL(`sms:${contact.phone}&body=${encodeURIComponent(text)}`).catch(() => Share.share({ message: text }));
   };
 
   return (

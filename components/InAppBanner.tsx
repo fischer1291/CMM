@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Contact, useContacts } from '../contexts/ContactsContext';
 import { useNewCall } from '../contexts/NewCallContext';
 import CallStateManager from '../services/CallStateManager';
+import { contactJoinedEvents } from '../services/appEvents';
 import { markBannerShown } from '../services/bannerLog';
 import { startSession } from '../services/gamificationApi';
 import { socket } from '../services/socket';
@@ -18,7 +19,13 @@ type Banner = {
   phone: string;
   name: string;
   avatarUrl: string | null;
-  kind: 'available' | 'nudge';
+  kind: 'available' | 'nudge' | 'joined';
+};
+
+const TEXT = {
+  available: { title: (n: string) => `${n} ist jetzt erreichbar`, sub: 'Zeit für einen Anruf?', action: 'Anrufen' },
+  nudge: { title: (n: string) => `${n} möchte sprechen 👋`, sub: 'Nur wenn es dir passt', action: '30 Min.' },
+  joined: { title: (n: string) => `${n} ist jetzt dabei 🎉`, sub: 'Sag doch mal Hallo!', action: 'Hallo' },
 };
 
 const SHOW_MS = 6000;
@@ -50,7 +57,7 @@ export function InAppBanner() {
       // Never on top of a call
       if (CallStateManager.hasActiveCall() || pathnameRef.current === '/videocall') return;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      markBannerShown(next.kind === 'available' ? 'contact_available' : 'nudge', next.phone);
+      markBannerShown({ available: 'contact_available', nudge: 'nudge', joined: 'contact_joined' }[next.kind], next.phone);
       setBanner({ ...next, id: ++counter });
     };
 
@@ -68,11 +75,17 @@ export function InAppBanner() {
       show({ phone: from, name: contact?.name || name || 'Jemand', avatarUrl: contact?.avatarUrl ?? null, kind: 'nudge' });
     };
 
+    const offJoined = contactJoinedEvents.on(({ phone, name }) => {
+      const contact = contactsRef.current.find((c) => c.phone === phone);
+      show({ phone, name: contact?.name || name || 'Jemand', avatarUrl: contact?.avatarUrl ?? null, kind: 'joined' });
+    });
+
     socket.on('statusUpdate', onStatusUpdate);
     socket.on('nudge', onNudge);
     return () => {
       socket.off('statusUpdate', onStatusUpdate);
       socket.off('nudge', onNudge);
+      offJoined();
     };
   }, []);
 
@@ -86,7 +99,7 @@ export function InAppBanner() {
 
   const act = () => {
     setBanner(null);
-    if (banner.kind === 'available') {
+    if (banner.kind !== 'nudge') {
       if (userPhone) startVideoCall(banner.phone, userPhone);
     } else {
       startSession(30).catch(() => {});
@@ -123,32 +136,33 @@ export function BannerCard({
   onAction,
 }: Pick<Banner, 'name' | 'avatarUrl' | 'kind'> & { onPress: () => void; onAction: () => void }) {
   const firstName = name.split(' ')[0];
-  const available = kind === 'available';
+  const text = TEXT[kind];
+  const accent = kind === 'available' ? colors.cyan : kind === 'nudge' ? colors.pink : colors.violet;
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={available ? `${name} ist jetzt erreichbar` : `${name} würde gern mit dir sprechen`}
-      style={[styles.banner, glow(available ? colors.cyan : colors.pink, 0.45)]}
+      accessibilityLabel={text.title(name)}
+      style={[styles.banner, glow(accent, 0.45)]}
     >
-      <Avatar name={name} uri={avatarUrl} size={40} available={available ? true : undefined} />
+      <Avatar name={name} uri={avatarUrl} size={40} available={kind === 'available' ? true : undefined} />
       <View style={styles.text}>
         <AppText variant="bodyStrong" numberOfLines={1}>
-          {available ? `${firstName} ist jetzt erreichbar` : `${firstName} möchte sprechen 👋`}
+          {text.title(firstName)}
         </AppText>
         <AppText variant="caption" color={colors.textSecondary} numberOfLines={1}>
-          {available ? 'Zeit für einen Anruf?' : 'Nur wenn es dir passt'}
+          {text.sub}
         </AppText>
       </View>
       <Pressable
         onPress={onAction}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel={available ? `${name} anrufen` : '30 Minuten erreichbar'}
-        style={[styles.action, { backgroundColor: available ? colors.cyan : colors.pink }]}
+        accessibilityLabel={kind === 'nudge' ? '30 Minuten erreichbar' : `${name} anrufen`}
+        style={[styles.action, { backgroundColor: accent }]}
       >
-        <AppText variant="caption" color={colors.bg} style={styles.actionText}>
-          {available ? 'Anrufen' : '30 Min.'}
+        <AppText variant="caption" color={kind === 'joined' ? colors.text : colors.bg} style={styles.actionText}>
+          {text.action}
         </AppText>
       </Pressable>
     </Pressable>

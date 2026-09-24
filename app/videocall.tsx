@@ -105,6 +105,8 @@ export default function VideoCallRoute() {
   const userPhone = firstParam(rawParams.userPhone)?.replace(/^\+/, '');
   const targetPhone = firstParam(rawParams.targetPhone);
   const isOutgoing = firstParam(rawParams.isOutgoing) === 'true';
+  // Audio-only calls start with the camera off
+  const startWithVideo = firstParam(rawParams.video) !== 'false';
 
   // Only the authenticated user may join as userPhone
   const authPhone = authUserPhone?.replace(/^\+/, '');
@@ -133,6 +135,7 @@ export default function VideoCallRoute() {
       userPhone={userPhone!}
       targetPhone={targetPhone!}
       isOutgoing={isOutgoing}
+      startWithVideo={startWithVideo}
     />
   );
 }
@@ -142,9 +145,10 @@ type VideoCallScreenProps = {
   userPhone: string;
   targetPhone: string;
   isOutgoing: boolean;
+  startWithVideo: boolean;
 };
 
-function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoCallScreenProps) {
+function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing, startWithVideo }: VideoCallScreenProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { userPhone: authUserPhone, userProfile } = useAuth();
@@ -167,6 +171,10 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   const engineRef = useRef<IRtcEngine | null>(null);
   const viewShotRef = useRef<ViewShot | null>(null);
   const [micMuted, setMicMuted] = useState(false);
+  // Own camera on/off; the other side's video only while it actually arrives
+  const [cameraOn, setCameraOn] = useState(startWithVideo);
+  const cameraOnRef = useRef(startWithVideo);
+  const [remoteVideoOn, setRemoteVideoOn] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
   const [isConnecting, setIsConnecting] = useState(true);
   const [networkQuality, setNetworkQuality] = useState<'excellent' | 'good' | 'poor' | 'bad' | 'unknown'>('unknown');
@@ -231,6 +239,21 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when the people change
   }, [authUserPhone, targetPhone]);
 
+  const toggleCamera = () => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    const next = !cameraOnRef.current;
+    try {
+      engine.enableLocalVideo(next);
+      if (next) engine.startPreview();
+      else engine.stopPreview();
+      cameraOnRef.current = next;
+      setCameraOn(next);
+    } catch (error) {
+      console.error('❌ Error toggling camera:', error);
+    }
+  };
+
   const switchCamera = () => {
     if (engineRef.current) {
       try {
@@ -273,6 +296,11 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         },
         onUserOffline: (_connection, uid, reason) => {
           setRemoteUid(null);
+          setRemoteVideoOn(false);
+        },
+        onRemoteVideoStateChanged: (_connection, _uid, state) => {
+          // 2 = decoding, 3 = frozen (keep showing); 0 stopped, 4 failed
+          setRemoteVideoOn(state === 2 || state === 3);
         },
         onNetworkQuality: (_connection, uid, txQuality, rxQuality) => {
           // Only monitor local user's network quality
@@ -317,7 +345,12 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
       }
 
       await engine.enableVideo();
-      await engine.startPreview();
+      if (cameraOnRef.current) {
+        await engine.startPreview();
+      } else {
+        // Video stays possible, but the camera doesn't capture
+        engine.enableLocalVideo(false);
+      }
       await engine.setClientRole(ClientRoleType.ClientRoleBroadcaster);
     } catch (error) {
       console.error('❌ Agora initialization failed:', error);
@@ -501,7 +534,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         console.log('🚪 Joining Agora channel:', channel);
         // Restart video and preview before joining channel
         await engineRef.current.enableVideo();
-        await engineRef.current.startPreview();
+        if (cameraOnRef.current) await engineRef.current.startPreview();
 
         await engineRef.current.joinChannelWithUserAccount(token, channel, userPhone);
         joinedRef.current = true;
@@ -738,8 +771,8 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   // captured moment shows the call as seen
   const videoLayer = isConnecting ? null : (
     <ViewShot ref={viewShotRef} style={StyleSheet.absoluteFill}>
-      {remoteUid !== null && <RtcSurfaceView canvas={{ uid: remoteUid }} style={StyleSheet.absoluteFill} />}
-      {joined && (
+      {remoteUid !== null && remoteVideoOn && <RtcSurfaceView canvas={{ uid: remoteUid }} style={StyleSheet.absoluteFill} />}
+      {joined && cameraOn && (
         <View style={localPreviewStyle(insets.top)}>
           <RtcSurfaceView canvas={{ uid: 0 }} style={StyleSheet.absoluteFill} />
         </View>
@@ -754,7 +787,9 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         avatarUrl={targetContact.avatarUrl ?? null}
         phase={phase}
         statusText={endMessage}
-        hasRemoteVideo={remoteUid !== null}
+        hasRemoteVideo={remoteUid !== null && remoteVideoOn}
+        cameraOn={cameraOn}
+        onToggleCamera={toggleCamera}
         duration={callDuration}
         quality={networkQuality}
         videoLayer={videoLayer}

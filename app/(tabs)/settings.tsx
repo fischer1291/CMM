@@ -4,10 +4,10 @@ import React, { useState } from 'react';
 import { Alert, Linking, Share } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProfileView } from '../../features/profile/ProfileView';
+import { inviteText } from '../../content/links';
 import { deleteAccount, exportAccountData } from '../../services/account';
 import { pickAvatarImage, uploadAvatar } from '../../services/avatar';
 
-const INVITE_TEXT = 'Hey! Ich nutze Call Me Maybe – da siehst du, wann ich Zeit für einen Anruf habe. Lad sie dir runter, dann können wir quatschen!';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -91,10 +91,12 @@ export default function ProfileScreen() {
       onOpenNotifications={() => router.push('/notifications')}
       onOpenStats={() => router.push('/stats')}
       onOpenSchedule={() => router.push('/schedule')}
-      onInvite={() => Share.share({ message: INVITE_TEXT })}
+      onInvite={() => Share.share({ message: inviteText(userProfile?.name?.split(' ')[0]) })}
       onExportData={exportData}
       onOpenPrivacy={() => router.push('/datenschutz')}
       onOpenImprint={() => router.push('/impressum')}
+      onOpenCircles={() => router.push('/circles')}
+      onOpenBlocked={() => router.push('/blocked')}
       onSignOut={confirmSignOut}
       onDeleteAccount={confirmDelete}
       version={Constants.expoConfig?.version ?? '1.0.0'}

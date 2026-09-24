@@ -5,6 +5,7 @@ import { useContacts } from '../contexts/ContactsContext';
 import { useNewCall } from '../contexts/NewCallContext';
 import { FriendView } from '../features/contacts/FriendView';
 import { useNudges } from '../hooks/useNudges';
+import { useSafetyMenu } from '../hooks/useSafetyMenu';
 import { fetchSharedStats, fetchStats, nextNudgeLabel, SharedStats } from '../services/gamificationApi';
 import { formatLastSeen } from '../utils/time';
 
@@ -15,6 +16,7 @@ export default function FriendScreen() {
   const { contacts } = useContacts();
   const { startVideoCall } = useNewCall();
   const { nudge, nudged, nextNudge } = useNudges();
+  const safety = useSafetyMenu();
   const [shared, setShared] = useState<SharedStats | null>(null);
   const [together, setTogether] = useState<{ seconds: number; talks: number } | null>(null);
 
@@ -49,8 +51,9 @@ export default function FriendScreen() {
       nudged={nudged(phone)}
       nextNudgeLabel={nextNudge(phone) ? nextNudgeLabel(nextNudge(phone)!) : null}
       onBack={() => router.back()}
-      onCall={() => userPhone && startVideoCall(phone, userPhone)}
+      onCall={({ video }) => userPhone && startVideoCall(phone, userPhone, { video })}
       onNudge={() => nudge(phone, name)}
+      onMore={() => safety.open({ phone, name }, () => router.back())}
     />
   );
 }
