@@ -13,3 +13,6 @@ dist
 
 expo-env.d.ts
 # @end expo-cli
+
+# Release archives (scripts/testflight.sh)
+/build

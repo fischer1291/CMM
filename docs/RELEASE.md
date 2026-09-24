@@ -38,6 +38,14 @@ npx eas-cli build --platform ios --profile production
 npx eas-cli submit --platform ios --latest
 ```
 
+Oder direkt von diesem Mac mit dem in Xcode angemeldeten Apple-Konto
+(ohne EAS). Das Skript baut das Release-Archiv, zählt die Build-Nummer
+hoch und lädt es zu App Store Connect hoch:
+
+```bash
+scripts/testflight.sh
+```
+
 Alternativ über Xcode: `ios/CallMeMaybe.xcworkspace` öffnen, Schema
 `CallMeMaybe`, Ziel „Any iOS Device“, dann *Product → Archive* und
 *Distribute App → App Store Connect*.
