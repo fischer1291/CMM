@@ -15,7 +15,18 @@ export type Moment = {
   timestamp: string;
   reactions: Reaction[];
   totalReactions: number;
+  /** "pending" until the other person agreed */
+  status?: 'pending' | 'shared';
+  sharedAt?: string | null;
 };
+
+/** Server moment -> app moment */
+export const toMoment = (m: any): Moment => ({
+  ...m,
+  id: m._id ?? m.id,
+  reactions: m.reactions ?? [],
+  totalReactions: m.totalReactions ?? 0,
+});
 
 /** Optimistic local toggle of the user's reaction, mirroring the backend. */
 export function toggleReaction(moment: Moment, emoji: string): Moment {

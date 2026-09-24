@@ -14,6 +14,7 @@ import {
   StatusOrb,
   TAB_BAR_SPACE,
 } from '../../ui';
+import { DailyMomentCard } from './DailyMomentCard';
 
 export type AvailableContact = { phone: string; name: string; avatarUrl: string | null };
 export type ReceivedNudge = { from: string; name: string; avatarUrl: string | null };
@@ -37,6 +38,8 @@ type Props = {
   scheduleLabel: string | null;
   onOpenSchedule: () => void;
   onOpenProfile?: () => void;
+  /** The daily Call Me Moment while it runs */
+  daily?: React.ComponentProps<typeof DailyMomentCard> | null;
   /** "Nicht jetzt" on the nudge card */
   onDismissNudges: () => void;
   /** Explain notifications before the system asks */
@@ -156,6 +159,7 @@ export function StatusView({
   onOpenSchedule,
   onOpenProfile,
   onDismissNudges,
+  daily,
   showNotificationPrompt,
   onAllowNotifications,
   onDismissNotifications,
@@ -176,6 +180,8 @@ export function StatusView({
           <Avatar name={name || '?'} uri={avatarUrl} size={48} />
         </Pressable>
       </View>
+
+      {daily ? <DailyMomentCard {...daily} /> : null}
 
       <View style={styles.orb}>
         <StatusOrb

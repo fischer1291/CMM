@@ -134,7 +134,7 @@ export function MomentComposer({
             </View>
 
             <AppText variant="caption" color={colors.textSecondary}>
-              Sichtbar für deine Kontakte. {targetName} sieht den Moment auch.
+              {targetName} bekommt den Moment zuerst zu sehen. Erst wenn ihr beide einverstanden seid, sehen ihn eure Kontakte 24 Stunden lang.
             </AppText>
             <Button title="Teilen" icon="sparkles" onPress={post} disabled={!screenshotUri} />
           </View>

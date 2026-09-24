@@ -4,7 +4,10 @@ import React, { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useContacts } from '../../contexts/ContactsContext';
-import { Moment, toggleReaction } from '../../features/moments/model';
+import { Moment, toggleReaction, toMoment } from '../../features/moments/model';
+import { ConsentSheet } from '../../features/moments/ConsentSheet';
+import { answerMoment } from '../../services/dailyApi';
+import { socket } from '../../services/socket';
 import { MomentsView } from '../../features/moments/MomentsView';
 import { useSafetyMenu } from '../../hooks/useSafetyMenu';
 import { apiFetch, apiPostJson } from '../../utils/api';
@@ -14,6 +17,11 @@ export default function MomentsScreen() {
   const { userPhone, userProfile } = useAuth();
   const { find } = useContacts();
   const [moments, setMoments] = useState<Moment[]>([]);
+  const [requests, setRequests] = useState<Moment[]>([]);
+  const [waitingCount, setWaitingCount] = useState(0);
+  const [lock, setLock] = useState({ locked: false, count: 0 });
+  const [showRequests, setShowRequests] = useState(false);
+  const [answering, setAnswering] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const safety = useSafetyMenu();
@@ -23,14 +31,10 @@ export default function MomentsScreen() {
       const res = await apiFetch('/moment/callmoments', {}, 10000);
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
-      setMoments(
-        (data.callMoments ?? []).map((m: any) => ({
-          ...m,
-          id: m._id ?? m.id,
-          reactions: m.reactions ?? [],
-          totalReactions: m.totalReactions ?? 0,
-        }))
-      );
+      setMoments((data.callMoments ?? []).map(toMoment));
+      setRequests((data.pending ?? []).map(toMoment));
+      setWaitingCount((data.waiting ?? []).length);
+      setLock({ locked: !!data.locked, count: data.lockedCount ?? 0 });
     } catch {
       Alert.alert('Keine Verbindung', 'Moments konnten nicht geladen werden.');
     } finally {
@@ -42,8 +46,32 @@ export default function MomentsScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
+      // A consent request or an approval arrives live
+      socket.on('momentConsent', load);
+      socket.on('momentShared', load);
+      return () => {
+        socket.off('momentConsent', load);
+        socket.off('momentShared', load);
+      };
     }, [load])
   );
+
+  const answer = async (approve: boolean) => {
+    const request = requests[0];
+    if (!request) return;
+    setAnswering(true);
+    try {
+      await answerMoment(request.id, approve);
+      const rest = requests.slice(1);
+      setRequests(rest);
+      if (!rest.length) setShowRequests(false);
+      load();
+    } catch {
+      Alert.alert('Nicht gespeichert', 'Das hat leider nicht geklappt. Bitte versuche es erneut.');
+    } finally {
+      setAnswering(false);
+    }
+  };
 
   const react = async (momentId: string, emoji: string) => {
     const before = moments;
@@ -74,26 +102,45 @@ export default function MomentsScreen() {
   };
 
   return (
-    <MomentsView
-      myPhone={userPhone}
-      onMore={(moment) => {
-        const author = person(moment.userPhone, moment.userName);
-        const phone = moment.userPhone.startsWith('+') ? moment.userPhone : `+${moment.userPhone}`;
-        safety.open({ phone, name: author.name, momentId: moment.id }, () =>
-          // Blocked: their moments leave the feed
-          setMoments((prev) => prev.filter((m) => m.userPhone.replace(/^\+?/, '+') !== phone))
-        );
-      }}
-      moments={moments}
-      loading={loading}
-      refreshing={refreshing}
-      onRefresh={() => {
-        setRefreshing(true);
-        load();
-      }}
-      onReact={react}
-      person={person}
-      onGoToContacts={() => router.push('/(tabs)/contacts')}
-    />
+    <>
+      <MomentsView
+        requestCount={requests.length}
+        waitingCount={waitingCount}
+        locked={lock.locked}
+        lockedCount={lock.count}
+        onOpenRequests={() => setShowRequests(true)}
+        onOpenMemories={() => router.push('/memories')}
+        myPhone={userPhone}
+        onMore={(moment) => {
+          const author = person(moment.userPhone, moment.userName);
+          const phone = moment.userPhone.startsWith('+') ? moment.userPhone : `+${moment.userPhone}`;
+          safety.open({ phone, name: author.name, momentId: moment.id }, () =>
+            // Blocked: their moments leave the feed
+            setMoments((prev) => prev.filter((m) => m.userPhone.replace(/^\+?/, '+') !== phone))
+          );
+        }}
+        moments={moments}
+        loading={loading}
+        refreshing={refreshing}
+        onRefresh={() => {
+          setRefreshing(true);
+          load();
+        }}
+        onReact={react}
+        person={person}
+        onGoToContacts={() => router.push('/(tabs)/contacts')}
+      />
+      {showRequests && requests[0] && (
+        <ConsentSheet
+          request={requests[0]}
+          count={requests.length}
+          authorName={person(requests[0].userPhone, requests[0].userName).name}
+          busy={answering}
+          onApprove={() => answer(true)}
+          onDecline={() => answer(false)}
+          onClose={() => setShowRequests(false)}
+        />
+      )}
+    </>
   );
 }

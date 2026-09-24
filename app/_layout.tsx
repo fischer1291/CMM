@@ -87,6 +87,7 @@ function InnerLayout() {
           <Stack.Screen name="notifications" />
           <Stack.Screen name="circles" />
           <Stack.Screen name="blocked" />
+          <Stack.Screen name="memories" />
           <Stack.Screen
             name="videocall"
             options={{
