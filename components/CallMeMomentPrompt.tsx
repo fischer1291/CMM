@@ -1,29 +1,35 @@
 import * as Haptics from 'expo-haptics';
 import React, { useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
-import { AppText, Button, colors, glow, radius, spacing } from '../ui';
-import { apiPostJson } from '../utils/api';
+import { Alert, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { SessionMinutes, startSession } from '../services/gamificationApi';
+import { AppText, Button, colors, glow, radius, Segmented, spacing } from '../ui';
 
 const MOODS = ['😊', '😌', '🤪', '😴', '🤔'];
+const DURATIONS: { value: SessionMinutes; label: string }[] = [
+  { value: 15, label: '15 Min.' },
+  { value: 30, label: '30 Min.' },
+  { value: 60, label: '1 Std.' },
+];
 
 /**
- * Asks after a "Call Me Moment" push whether the user has 15 minutes for a
- * call; confirming makes them available to their contacts for that time.
+ * Asks after a "Call Me Moment" push whether the user has time for a call;
+ * confirming makes them available to their contacts for that long.
  */
-export default function CallMeMomentPrompt({ phone, onClose }: { phone: string; onClose: () => void }) {
+export default function CallMeMomentPrompt({ onClose }: { onClose: () => void }) {
   const [mood, setMood] = useState(MOODS[0]);
+  const [minutes, setMinutes] = useState<SessionMinutes>(15);
   const [pending, setPending] = useState(false);
 
   const confirm = async () => {
     setPending(true);
     try {
-      await apiPostJson('/moment/confirm', { phone, mood }, 10000);
+      await startSession(minutes, mood);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    } catch (err) {
-      console.error('❌ Fehler beim Bestätigen des Moments:', err);
+      onClose();
+    } catch {
+      Alert.alert('Nicht gespeichert', 'Das hat leider nicht geklappt. Bitte versuche es erneut.');
     } finally {
       setPending(false);
-      onClose();
     }
   };
 
@@ -34,9 +40,9 @@ export default function CallMeMomentPrompt({ phone, onClose }: { phone: string; 
           <AppText variant="label" color={colors.cyan}>
             Call Me Moment ✨
           </AppText>
-          <AppText variant="h2">Hast du 15 Minuten für ein echtes Gespräch?</AppText>
+          <AppText variant="h2">Hast du gerade Zeit für ein echtes Gespräch?</AppText>
           <AppText variant="caption" color={colors.textSecondary}>
-            Deine Kontakte sehen dann, dass du gerade erreichbar bist. Wie ist deine Stimmung?
+            Deine Kontakte sehen dann, dass du erreichbar bist. Wie ist deine Stimmung?
           </AppText>
 
           <View style={styles.moods}>
@@ -53,7 +59,9 @@ export default function CallMeMomentPrompt({ phone, onClose }: { phone: string; 
             ))}
           </View>
 
-          <Button title="Für 15 Min. erreichbar" icon="flash" onPress={confirm} loading={pending} />
+          <Segmented options={DURATIONS} value={minutes} onChange={setMinutes} />
+
+          <Button title="Erreichbar sein" icon="flash" onPress={confirm} loading={pending} />
           <Button title="Nicht jetzt" variant="ghost" onPress={onClose} disabled={pending} />
         </View>
       </View>

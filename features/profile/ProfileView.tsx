@@ -18,6 +18,8 @@ type Props = {
   onChangeAvatar: () => void;
   onSaveName: (name: string) => Promise<void>;
   onOpenSystemSettings: () => void;
+  onOpenStats: () => void;
+  onOpenSchedule: () => void;
   onInvite: () => void;
   onSignOut: () => void;
   version: string;
@@ -83,6 +85,14 @@ export function ProfileView(props: Props) {
           {props.phone}
         </AppText>
       </View>
+
+      <SectionHeader title="Erreichbarkeit" />
+      <RowGroup
+        rows={[
+          { icon: 'calendar-outline', label: 'Zeitplan', onPress: props.onOpenSchedule },
+          { icon: 'pulse-outline', label: 'Gesprächszeit & Freigabe', onPress: props.onOpenStats },
+        ]}
+      />
 
       <SectionHeader title="Einstellungen" />
       <RowGroup

@@ -1,10 +1,13 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import {
   AppText,
   Avatar,
+  Button,
   colors,
   GlassCard,
+  radius,
   Screen,
   SectionHeader,
   spacing,
@@ -13,6 +16,7 @@ import {
 } from '../../ui';
 
 export type AvailableContact = { phone: string; name: string; avatarUrl: string | null };
+export type ReceivedNudge = { from: string; name: string; avatarUrl: string | null };
 
 type Props = {
   name: string;
@@ -20,43 +24,89 @@ type Props = {
   available: boolean;
   onToggleAvailable: () => void;
   toggling?: boolean;
-  /** Running Call Me Moment: share left (0..1) and "mm:ss" */
-  momentProgress?: number | null;
-  momentRemaining?: string | null;
+  /** Timed availability (session or schedule): share left (0..1) and caption */
+  sessionProgress?: number | null;
+  sessionCaption?: string | null;
+  sessionOptions: { minutes: number; label: string }[];
+  onStartSession: (minutes: number) => void;
   availableContacts: AvailableContact[];
   onCallContact: (phone: string) => void;
-  stats: { conversations: number; minutes: number };
+  nudges: ReceivedNudge[];
+  week: { label: string; streak: number } | null;
+  onOpenStats: () => void;
+  scheduleLabel: string | null;
+  onOpenSchedule: () => void;
   onOpenProfile?: () => void;
 };
 
-function Stat({ value, label, accent }: { value: string; label: string; accent: string }) {
+function NudgeCard({ nudges, available, onCall, onStartSession }: { nudges: ReceivedNudge[]; available: boolean; onCall: (phone: string) => void; onStartSession: () => void }) {
+  const first = nudges[0];
+  const others = nudges.length - 1;
+  const who = others > 0 ? `${first.name.split(' ')[0]} und ${others} ${others === 1 ? 'weitere Person' : 'weitere'}` : first.name.split(' ')[0];
   return (
-    <GlassCard style={styles.stat}>
-      <AppText variant="h1" color={accent}>
-        {value}
-      </AppText>
-      <AppText variant="caption" color={colors.textSecondary}>
-        {label}
-      </AppText>
+    <GlassCard glow={colors.pink} style={{ marginTop: spacing.xl }}>
+      <View style={styles.nudgeRow}>
+        <Avatar name={first.name} uri={first.avatarUrl} size={44} />
+        <View style={{ flex: 1 }}>
+          <AppText variant="bodyStrong">{who} {others > 0 ? 'würden' : 'würde'} gern mit dir sprechen 👋</AppText>
+          <AppText variant="caption" color={colors.textSecondary}>
+            {available ? 'Du bist erreichbar: ruf doch einfach an.' : 'Kein Druck. Wenn es dir passt, schalte dich erreichbar.'}
+          </AppText>
+        </View>
+      </View>
+      {available ? (
+        <Button title={`${first.name.split(' ')[0]} anrufen`} icon="videocam" onPress={() => onCall(first.from)} style={{ marginTop: spacing.md }} />
+      ) : (
+        <Button title="30 Min. erreichbar" icon="flash" variant="secondary" onPress={onStartSession} style={{ marginTop: spacing.md }} />
+      )}
     </GlassCard>
   );
 }
 
-/** Home screen: own availability, who else is available, and this week's talk time. */
+function LinkCard({ icon, accent, title, text, onPress, right }: { icon: keyof typeof Ionicons.glyphMap; accent: string; title: string; text: string; onPress: () => void; right?: React.ReactNode }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
+      <GlassCard>
+        <View style={styles.linkRow}>
+          <View style={[styles.linkIcon, { backgroundColor: `${accent}22` }]}>
+            <Ionicons name={icon} size={22} color={accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <AppText variant="bodyStrong">{title}</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              {text}
+            </AppText>
+          </View>
+          {right}
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </View>
+      </GlassCard>
+    </Pressable>
+  );
+}
+
+/** Home screen: own availability, who else has time, and gentle nudges towards real talks. */
 export function StatusView({
   name,
   avatarUrl,
   available,
   onToggleAvailable,
   toggling,
-  momentProgress,
-  momentRemaining,
+  sessionProgress,
+  sessionCaption,
+  sessionOptions,
+  onStartSession,
   availableContacts,
   onCallContact,
-  stats,
+  nudges,
+  week,
+  onOpenStats,
+  scheduleLabel,
+  onOpenSchedule,
   onOpenProfile,
 }: Props) {
   const firstName = name.split(' ')[0] || 'du';
+  const match = available && availableContacts.length > 0;
 
   return (
     <Screen scroll contentStyle={{ paddingBottom: TAB_BAR_SPACE }}>
@@ -77,17 +127,47 @@ export function StatusView({
           available={available}
           onToggle={onToggleAvailable}
           disabled={toggling}
-          progress={momentProgress}
-          caption={momentRemaining ? `${momentRemaining} übrig` : null}
+          progress={sessionProgress}
+          caption={sessionCaption}
         />
         <AppText variant="body" color={colors.textSecondary} center style={styles.hint}>
           {available
             ? 'Deine Kontakte sehen, dass du gerade Zeit für einen Anruf hast.'
             : 'Tippe, wenn du Zeit für ein echtes Gespräch hast.'}
         </AppText>
+        {!available && (
+          <View style={styles.sessions}>
+            <AppText variant="caption" color={colors.textMuted}>
+              Oder nur für eine Weile:
+            </AppText>
+            <View style={styles.sessionRow}>
+              {sessionOptions.map((option) => (
+                <Pressable
+                  key={option.minutes}
+                  onPress={() => onStartSession(option.minutes)}
+                  disabled={toggling}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${option.label} erreichbar`}
+                  style={({ pressed }) => [styles.session, pressed && styles.sessionPressed]}
+                >
+                  <AppText variant="bodyStrong">{option.label}</AppText>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        )}
       </View>
 
-      <SectionHeader title="Jetzt erreichbar" />
+      {nudges.length > 0 && (
+        <NudgeCard
+          nudges={nudges}
+          available={available}
+          onCall={onCallContact}
+          onStartSession={() => onStartSession(30)}
+        />
+      )}
+
+      <SectionHeader title={match ? 'Ihr habt gerade beide Zeit ✨' : 'Jetzt erreichbar'} />
       {availableContacts.length > 0 ? (
         <ScrollView
           horizontal
@@ -120,10 +200,32 @@ export function StatusView({
         </GlassCard>
       )}
 
-      <SectionHeader title="Diese Woche" />
-      <View style={styles.stats}>
-        <Stat value={String(stats.conversations)} label={stats.conversations === 1 ? 'Gespräch' : 'Gespräche'} accent={colors.cyan} />
-        <Stat value={String(stats.minutes)} label="Minuten gesprochen" accent={colors.pink} />
+      <SectionHeader title="Für dich" />
+      <View style={styles.links}>
+        <LinkCard
+          icon="pulse"
+          accent={colors.pink}
+          title={week ? `${week.label} diese Woche` : 'Deine Gesprächszeit'}
+          text="Zeit mit deinen Menschen, Serie und Abzeichen"
+          onPress={onOpenStats}
+          right={
+            week && week.streak > 0 ? (
+              <View style={styles.streak} accessibilityLabel={`${week.streak} Wochen in Folge`}>
+                <Ionicons name="flame" size={14} color={colors.pink} />
+                <AppText variant="caption" color={colors.pink}>
+                  {week.streak}
+                </AppText>
+              </View>
+            ) : null
+          }
+        />
+        <LinkCard
+          icon="calendar"
+          accent={colors.cyan}
+          title="Zeitplan"
+          text={scheduleLabel ? `Automatisch erreichbar: ${scheduleLabel}` : 'Leg fest, wann du automatisch erreichbar bist'}
+          onPress={onOpenSchedule}
+        />
       </View>
     </Screen>
   );
@@ -133,10 +235,32 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg },
   orb: { alignItems: 'center', marginTop: spacing.xxl },
   hint: { marginTop: spacing.lg, maxWidth: 300 },
+  sessions: { alignItems: 'center', gap: spacing.sm, marginTop: spacing.lg, alignSelf: 'stretch' },
+  sessionRow: { flexDirection: 'row', gap: spacing.sm },
+  session: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderStrong,
+  },
+  sessionPressed: { backgroundColor: 'rgba(0,229,255,0.18)', borderColor: colors.cyan },
+  nudgeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   peopleScroll: { overflow: 'visible', marginHorizontal: -spacing.xl },
   people: { gap: spacing.lg, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm },
   person: { alignItems: 'center', width: 72 },
   personName: { marginTop: spacing.sm, maxWidth: 72 },
-  stats: { flexDirection: 'row', gap: spacing.md },
-  stat: { flex: 1 },
+  links: { gap: spacing.md },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  linkIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  streak: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,46,147,0.14)',
+  },
 });

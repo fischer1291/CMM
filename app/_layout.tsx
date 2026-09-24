@@ -56,6 +56,9 @@ function InnerLayout() {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <Stack.Protected guard={signedIn && !needsProfileSetup}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="stats" />
+        <Stack.Screen name="schedule" />
+        <Stack.Screen name="friend" />
         <Stack.Screen
           name="videocall"
           options={{

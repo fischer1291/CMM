@@ -28,6 +28,10 @@ type Props = {
   onRequestPermission: () => void;
   onCall: (phone: string) => void;
   onInvite: (contact: Contact) => void;
+  onOpen: (contact: Contact) => void;
+  onNudge: (contact: Contact) => void;
+  /** Already nudged today */
+  nudged: (phone: string) => boolean;
 };
 
 function subtitleOf(contact: Contact): { text: string; color: string } {
@@ -37,33 +41,64 @@ function subtitleOf(contact: Contact): { text: string; color: string } {
   return { text: seen ? `Zuletzt erreichbar ${seen}` : 'Gerade offline', color: colors.textSecondary };
 }
 
-function ContactRow({ contact, onCall, onInvite }: { contact: Contact; onCall: Props['onCall']; onInvite: Props['onInvite'] }) {
+type RowProps = Pick<Props, 'onCall' | 'onInvite' | 'onOpen' | 'onNudge'> & { contact: Contact; nudged: boolean };
+
+function ContactRow({ contact, onCall, onInvite, onOpen, onNudge, nudged }: RowProps) {
   const subtitle = subtitleOf(contact);
+  let action: React.ReactNode = null;
+  if (contact.registered && contact.isAvailable) {
+    action = (
+      <IconButton icon="videocam" size={44} color={colors.violet} accessibilityLabel={`${contact.name} anrufen`} onPress={() => onCall(contact.phone)} />
+    );
+  } else if (contact.registered) {
+    action = (
+      <Pressable
+        onPress={() => onNudge(contact)}
+        disabled={nudged}
+        accessibilityRole="button"
+        accessibilityLabel={nudged ? `${contact.name} angestupst` : `${contact.name} anstupsen`}
+        style={[styles.pill, nudged && styles.pillDone]}
+      >
+        <AppText variant="caption" color={nudged ? colors.textMuted : colors.text}>
+          {nudged ? 'Angestupst ✓' : '👋 Anstupsen'}
+        </AppText>
+      </Pressable>
+    );
+  } else {
+    action = (
+      <Pressable onPress={() => onInvite(contact)} accessibilityRole="button" style={styles.pill}>
+        <AppText variant="caption" color={colors.text}>
+          Einladen
+        </AppText>
+      </Pressable>
+    );
+  }
+
   return (
     <View style={styles.row}>
-      <Avatar
-        name={contact.name}
-        uri={contact.avatarUrl}
-        size={52}
-        available={contact.registered ? contact.isAvailable : undefined}
-      />
-      <View style={styles.rowText}>
-        <AppText variant="bodyStrong" numberOfLines={1}>
-          {contact.name}
-        </AppText>
-        <AppText variant="caption" color={subtitle.color} numberOfLines={1}>
-          {subtitle.text}
-        </AppText>
-      </View>
-      {contact.registered && contact.isAvailable ? (
-        <IconButton icon="videocam" size={44} color={colors.violet} accessibilityLabel={`${contact.name} anrufen`} onPress={() => onCall(contact.phone)} />
-      ) : !contact.registered ? (
-        <Pressable onPress={() => onInvite(contact)} accessibilityRole="button" style={styles.invite}>
-          <AppText variant="caption" color={colors.text}>
-            Einladen
+      <Pressable
+        onPress={() => contact.registered && onOpen(contact)}
+        disabled={!contact.registered}
+        accessibilityRole={contact.registered ? 'button' : undefined}
+        accessibilityHint={contact.registered ? 'Details anzeigen' : undefined}
+        style={styles.rowMain}
+      >
+        <Avatar
+          name={contact.name}
+          uri={contact.avatarUrl}
+          size={52}
+          available={contact.registered ? contact.isAvailable : undefined}
+        />
+        <View style={styles.rowText}>
+          <AppText variant="bodyStrong" numberOfLines={1}>
+            {contact.name}
           </AppText>
-        </Pressable>
-      ) : null}
+          <AppText variant="caption" color={subtitle.color} numberOfLines={1}>
+            {subtitle.text}
+          </AppText>
+        </View>
+      </Pressable>
+      {action}
     </View>
   );
 }
@@ -80,6 +115,9 @@ export function ContactsView({
   onRequestPermission,
   onCall,
   onInvite,
+  onOpen,
+  onNudge,
+  nudged,
 }: Props) {
   const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -154,7 +192,16 @@ export function ContactsView({
               {section.title}
             </AppText>
           )}
-          renderItem={({ item }) => <ContactRow contact={item} onCall={onCall} onInvite={onInvite} />}
+          renderItem={({ item }) => (
+            <ContactRow
+              contact={item}
+              onCall={onCall}
+              onInvite={onInvite}
+              onOpen={onOpen}
+              onNudge={onNudge}
+              nudged={nudged(item.phone)}
+            />
+          )}
           stickySectionHeadersEnabled={false}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.cyan} />}
@@ -184,8 +231,10 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, color: colors.text, fontFamily: fonts.regular, fontSize: 16 },
   sectionTitle: { marginTop: spacing.xl, marginBottom: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
+  rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   rowText: { flex: 1, gap: 2 },
-  invite: {
+  pillDone: { opacity: 0.6 },
+  pill: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,

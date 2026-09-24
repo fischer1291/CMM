@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Linking, Share } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,6 +9,7 @@ import { pickAvatarImage, uploadAvatar } from '../../services/avatar';
 const INVITE_TEXT = 'Hey! Ich nutze Call Me Maybe – da siehst du, wann ich Zeit für einen Anruf habe. Lad sie dir runter, dann können wir quatschen!';
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { userPhone, userProfile, updateUserProfile, signOut } = useAuth();
   const [uploading, setUploading] = useState(false);
 
@@ -50,6 +52,8 @@ export default function ProfileScreen() {
       onChangeAvatar={changeAvatar}
       onSaveName={saveName}
       onOpenSystemSettings={() => Linking.openSettings()}
+      onOpenStats={() => router.push('/stats')}
+      onOpenSchedule={() => router.push('/schedule')}
       onInvite={() => Share.share({ message: INVITE_TEXT })}
       onSignOut={confirmSignOut}
       version={Constants.expoConfig?.version ?? '1.0.0'}
