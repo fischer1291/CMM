@@ -12,18 +12,22 @@ import {
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ContactsProvider } from '../contexts/ContactsContext';
 import { NewCallProvider } from '../contexts/NewCallContext';
 import { InAppBanner } from '../components/InAppBanner';
+import { LaunchScreen } from '../components/LaunchScreen';
 import { NotificationRouter } from '../components/NotificationRouter';
 import { fetchPreviewState } from '../dev/previewControl';
 import { setupNotifications } from '../services/notifications';
 import { colors } from '../ui/theme';
 
 setupNotifications();
+// The native splash stays until the animated launch screen takes over
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function InnerLayout() {
   const { userPhone, isLoading, needsProfileSetup } = useAuth();
@@ -44,11 +48,19 @@ function InnerLayout() {
   }, []);
   const ready = !isLoading && fontsLoaded;
 
+  // Animated launch screen on top until the app is ready (then it zooms away).
+  // The key keeps it the same instance while the content around it changes.
+  const [launchDone, setLaunchDone] = useState(false);
+  const launch = launchDone ? null : (
+    <LaunchScreen key="launch" ready={ready} fontsLoaded={fontsLoaded} onDone={() => setLaunchDone(true)} />
+  );
+
   if (!ready) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg }}>
-        <ActivityIndicator size="large" color={colors.cyan} />
-      </View>
+      <>
+        <View style={{ flex: 1, backgroundColor: colors.bg }} />
+        {launch}
+      </>
     );
   }
 
@@ -56,21 +68,23 @@ function InnerLayout() {
     // Loaded lazily so release bundles don't evaluate the dev gallery
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { DevPreview } = require('../dev/DevPreview');
-    return <DevPreview />;
+    return (
+      <>
+        <DevPreview />
+        {launch}
+      </>
+    );
   }
 
   return (
     <>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-        {/* Public: also reachable before signing in and on the web */}
-        <Stack.Screen name="datenschutz" />
-        <Stack.Screen name="impressum" />
         <Stack.Protected guard={signedIn && !needsProfileSetup}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="stats" />
           <Stack.Screen name="schedule" />
           <Stack.Screen name="friend" />
-        <Stack.Screen name="notifications" />
+          <Stack.Screen name="notifications" />
           <Stack.Screen
             name="videocall"
             options={{
@@ -87,9 +101,15 @@ function InnerLayout() {
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
+        {/* Public: also reachable before signing in and on the web. Listed
+            last: when the start route is guarded, the router falls back to
+            the first allowed screen, which must be onboarding, not these. */}
+        <Stack.Screen name="datenschutz" />
+        <Stack.Screen name="impressum" />
       </Stack>
       {signedIn && <NotificationRouter />}
       {signedIn && !needsProfileSetup && <InAppBanner />}
+      {launch}
     </>
   );
 }
