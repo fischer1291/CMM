@@ -4,7 +4,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { SharedStats } from '../../services/gamificationApi';
 import { talkTime } from '../../services/gamificationApi';
-import { AppText, Avatar, Button, colors, glow, GlassCard, gradients, PageHeader, Screen, SectionHeader, spacing } from '../../ui';
+import { AppText, Avatar, Button, colors, glow, GlassCard, gradients, IconButton, PageHeader, Screen, SectionHeader, spacing } from '../../ui';
 
 type Props = {
   name: string;
@@ -18,16 +18,21 @@ type Props = {
   /** e.g. "morgen ab 9:00" when nudged */
   nextNudgeLabel?: string | null;
   onBack: () => void;
-  onCall: () => void;
+  onCall: (options: { video: boolean }) => void;
   onNudge: () => void;
+  onMore: () => void;
 };
 
 /** A contact: call or nudge them, your time together, and their stats if they share them. */
-export function FriendView({ name, avatarUrl, available, statusText, together, shared, nudged, nextNudgeLabel, onBack, onCall, onNudge }: Props) {
+export function FriendView({ name, avatarUrl, available, statusText, together, shared, nudged, nextNudgeLabel, onBack, onCall, onNudge, onMore }: Props) {
   const firstName = name.split(' ')[0];
   return (
     <Screen scroll>
-      <PageHeader title="" onBack={onBack} />
+      <PageHeader
+        title=""
+        onBack={onBack}
+        right={<IconButton icon="ellipsis-horizontal" size={40} onPress={onMore} accessibilityLabel="Melden oder blockieren" />}
+      />
       <View style={styles.hero}>
         <Avatar name={name} uri={avatarUrl} size={112} available={available} />
         <AppText variant="h1" center style={{ marginTop: spacing.lg }}>
@@ -39,7 +44,10 @@ export function FriendView({ name, avatarUrl, available, statusText, together, s
       </View>
 
       {available ? (
-        <Button title={`${firstName} anrufen`} icon="videocam" onPress={onCall} />
+        <View style={styles.callButtons}>
+          <Button title="Videoanruf" icon="videocam" onPress={() => onCall({ video: true })} style={{ flex: 1 }} />
+          <Button title="Nur Audio" icon="call" variant="secondary" onPress={() => onCall({ video: false })} style={{ flex: 1 }} />
+        </View>
       ) : (
         <Button
           title={nudged ? `Angestupst ✓ · wieder ${nextNudgeLabel ?? 'später'}` : `${firstName} anstupsen 👋`}
@@ -112,6 +120,7 @@ export function FriendView({ name, avatarUrl, available, statusText, together, s
 
 const styles = StyleSheet.create({
   hero: { alignItems: 'center', marginBottom: spacing.xl },
+  callButtons: { flexDirection: 'row', gap: spacing.sm },
   together: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   sharedRow: { flexDirection: 'row', gap: spacing.md },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg },

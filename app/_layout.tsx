@@ -85,6 +85,8 @@ function InnerLayout() {
           <Stack.Screen name="schedule" />
           <Stack.Screen name="friend" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="circles" />
+          <Stack.Screen name="blocked" />
           <Stack.Screen
             name="videocall"
             options={{
@@ -106,6 +108,7 @@ function InnerLayout() {
             the first allowed screen, which must be onboarding, not these. */}
         <Stack.Screen name="datenschutz" />
         <Stack.Screen name="impressum" />
+        <Stack.Screen name="einladung" />
       </Stack>
       {signedIn && <NotificationRouter />}
       {signedIn && !needsProfileSetup && <InAppBanner />}

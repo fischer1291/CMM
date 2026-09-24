@@ -17,7 +17,7 @@ export type PushType =
   | 'call_ended';
 
 /** Types the open app shows itself, live via socket (components/InAppBanner) */
-const LIVE_IN_APP = new Set<string>(['contact_available', 'nudge']);
+const LIVE_IN_APP = new Set<string>(['contact_available', 'nudge', 'contact_joined']);
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {

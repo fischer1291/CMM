@@ -21,6 +21,7 @@ import { FriendView } from '../features/contacts/FriendView';
 import { NotificationsView } from '../features/notifications/NotificationsView';
 import { BannerCard } from '../components/InAppBanner';
 import { LegalView } from '../features/legal/LegalView';
+import { CirclesView } from '../features/circles/CirclesView';
 import { PRIVACY_SECTIONS } from '../content/legal';
 import type { Stats } from '../services/gamificationApi';
 import { fetchPreviewState, PreviewState } from './previewControl';
@@ -266,6 +267,8 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onExportData={() => {}}
       onOpenPrivacy={() => {}}
       onOpenImprint={() => {}}
+      onOpenCircles={() => {}}
+      onOpenBlocked={() => {}}
       onSignOut={() => {}}
       onDeleteAccount={() => {}}
       version="1.0.0"
@@ -343,6 +346,35 @@ const SCREENS: Record<string, () => React.ReactElement> = {
         { from: '+491', name: 'Anna Berg', avatarUrl: PHOTO },
         { from: '+492', name: 'Ben Koch', avatarUrl: null },
       ]}
+    />
+  ),
+  circles: () => (
+    <CirclesView
+      circles={[
+        { id: 'fam1', name: 'Familie', emoji: '🏡', members: ['+491', '+492', '+493'] },
+        { id: 'fr1', name: 'Enge Freunde', emoji: '💛', members: ['+491'] },
+      ]}
+      audience={{ mode: 'circles', circles: ['fam1'] }}
+      saving={false}
+      person={(phone) => ({ phone, name: phone === '+491' ? 'Anna Berg' : phone === '+492' ? 'Ben Koch' : 'Mama', avatarUrl: phone === '+491' ? PHOTO : null })}
+      onBack={() => {}}
+      onChangeAudience={() => {}}
+      onEdit={() => {}}
+    />
+  ),
+  'friend-available': () => (
+    <FriendView
+      name="Anna Berg"
+      avatarUrl={PHOTO}
+      available
+      statusText="Jetzt erreichbar"
+      together={{ seconds: 3 * 3600 + 20 * 60, talks: 7 }}
+      shared={null}
+      nudged={false}
+      onBack={() => {}}
+      onCall={() => {}}
+      onNudge={() => {}}
+      onMore={() => {}}
     />
   ),
   datenschutz: () => <LegalView title="Datenschutz" sections={PRIVACY_SECTIONS} onBack={() => {}} />,
@@ -431,6 +463,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onBack={() => {}}
       onCall={() => {}}
       onNudge={() => {}}
+      onMore={() => {}}
     />
   ),
 };
@@ -441,6 +474,7 @@ const SECTIONS: Record<string, () => React.ReactElement> = {
     <View style={{ marginTop: spacing.xl, gap: spacing.lg }}>
       <BannerCard name="Anna Berg" avatarUrl={PHOTO} kind="available" onPress={() => {}} onAction={() => {}} />
       <BannerCard name="Ben Koch" avatarUrl={null} kind="nudge" onPress={() => {}} onAction={() => {}} />
+      <BannerCard name="Clara Diaz" avatarUrl={null} kind="joined" onPress={() => {}} onAction={() => {}} />
     </View>
   ),
   badges: () => (

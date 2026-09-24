@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useContacts } from '../../contexts/ContactsContext';
 import { Moment, toggleReaction } from '../../features/moments/model';
 import { MomentsView } from '../../features/moments/MomentsView';
+import { useSafetyMenu } from '../../hooks/useSafetyMenu';
 import { apiFetch, apiPostJson } from '../../utils/api';
 
 export default function MomentsScreen() {
@@ -15,6 +16,7 @@ export default function MomentsScreen() {
   const [moments, setMoments] = useState<Moment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const safety = useSafetyMenu();
 
   const load = useCallback(async () => {
     try {
@@ -73,6 +75,15 @@ export default function MomentsScreen() {
 
   return (
     <MomentsView
+      myPhone={userPhone}
+      onMore={(moment) => {
+        const author = person(moment.userPhone, moment.userName);
+        const phone = moment.userPhone.startsWith('+') ? moment.userPhone : `+${moment.userPhone}`;
+        safety.open({ phone, name: author.name, momentId: moment.id }, () =>
+          // Blocked: their moments leave the feed
+          setMoments((prev) => prev.filter((m) => m.userPhone.replace(/^\+?/, '+') !== phone))
+        );
+      }}
       moments={moments}
       loading={loading}
       refreshing={refreshing}

@@ -21,6 +21,9 @@ type Props = {
   videoLayer?: React.ReactNode;
   micMuted: boolean;
   onToggleMute: () => void;
+  /** Own camera on (off in audio calls until turned on) */
+  cameraOn?: boolean;
+  onToggleCamera?: () => void;
   onSwitchCamera: () => void;
   onCapture: () => void;
   onHangup: () => void;
@@ -53,6 +56,8 @@ export function CallView({
   videoLayer,
   micMuted,
   onToggleMute,
+  cameraOn = true,
+  onToggleCamera,
   onSwitchCamera,
   onCapture,
   onHangup,
@@ -81,7 +86,7 @@ export function CallView({
             {name}
           </AppText>
           <AppText variant="body" color={colors.textSecondary} center>
-            {statusText ?? DEFAULT_STATUS[phase]}
+            {statusText ?? (connected ? `Verbunden · ${duration}` : DEFAULT_STATUS[phase])}
           </AppText>
         </View>
       )}
@@ -130,11 +135,21 @@ export function CallView({
             accessibilityLabel={micMuted ? "Mikrofon an" : "Stummschalten"}
             onPress={onToggleMute}
           />
-          <IconButton
-            icon="camera-reverse"
-            accessibilityLabel="Kamera wechseln"
-            onPress={onSwitchCamera}
-          />
+          {onToggleCamera && (
+            <IconButton
+              icon={cameraOn ? "videocam" : "videocam-off"}
+              active={!cameraOn}
+              accessibilityLabel={cameraOn ? "Kamera aus" : "Kamera an"}
+              onPress={onToggleCamera}
+            />
+          )}
+          {cameraOn && (
+            <IconButton
+              icon="camera-reverse"
+              accessibilityLabel="Kamera wechseln"
+              onPress={onSwitchCamera}
+            />
+          )}
           {showTopBar && (
             <IconButton
               icon="sparkles"

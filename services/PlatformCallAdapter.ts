@@ -397,7 +397,7 @@ class PlatformCallAdapter {
           callerPhone,
           sanitizedCallerName,
           'generic',
-          true // hasVideo
+          callData.hasVideo !== false // audio-only calls show as audio
         );
         console.log('✅ CallKit incoming call displayed:', callId);
       } catch (nativeError: any) {
@@ -471,7 +471,7 @@ class PlatformCallAdapter {
           callerPhone,
           sanitizedCallerName,
           'generic',
-          true // hasVideo
+          callData.hasVideo !== false // audio-only calls show as audio
         );
 
         console.log('✅ Android incoming call displayed:', callId);

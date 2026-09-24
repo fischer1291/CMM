@@ -3,8 +3,11 @@
  * screens. Loads once after login (without a permission prompt) and keeps
  * availability live through the backend's "statusUpdate" socket events.
  */
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { contactJoinedEvents } from '../services/appEvents';
 import { ContactsPermissionError, matchContacts } from '../services/contactsService';
+import { fetchBlocked } from '../services/socialApi';
 import { socket } from '../services/socket';
 import { useAuth } from './AuthContext';
 
@@ -27,6 +30,8 @@ type ContactsContextType = {
   refresh: (options?: { askPermission?: boolean }) => Promise<void>;
   /** Contact for a phone number (E.164), if known */
   find: (phone: string | null | undefined) => Contact | undefined;
+  /** Hide someone right away (just blocked them) */
+  hide: (phone: string) => void;
 };
 
 const ContactsContext = createContext<ContactsContextType>({
@@ -36,7 +41,11 @@ const ContactsContext = createContext<ContactsContextType>({
   error: false,
   refresh: async () => {},
   find: () => undefined,
+  hide: () => {},
 });
+
+/** Registered contacts seen last time, to notice who is new */
+const knownKey = (userPhone: string) => `knownRegisteredContacts:${userPhone}`;
 
 /** Available first, then other registered users, then everyone else; by name. */
 function sortContacts(list: Contact[]): Contact[] {
@@ -51,6 +60,8 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [error, setError] = useState(false);
   const loadingRef = useRef(false);
+  // Blocked either way: never shown, even though they're in the address book
+  const blockedRef = useRef(new Set<string>());
 
   const refresh = useCallback(
     async ({ askPermission = false }: { askPermission?: boolean } = {}) => {
@@ -58,9 +69,14 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
       loadingRef.current = true;
       setLoading(true);
       try {
-        const { deviceNames, matched } = await matchContacts(userPhone, { askPermission });
+        const [{ deviceNames, matched }, blocked] = await Promise.all([
+          matchContacts(userPhone, { askPermission }),
+          fetchBlocked().catch(() => null),
+        ]);
+        if (blocked) blockedRef.current = new Set(blocked.map((b) => b.phone));
         const registered = new Map(matched.map((m) => [m.phone, m]));
-        const list: Contact[] = [...deviceNames.entries()].map(([phone, deviceName]) => {
+        const entries = [...deviceNames.entries()].filter(([phone]) => !blockedRef.current.has(phone));
+        const list: Contact[] = entries.map(([phone, deviceName]) => {
           const user = registered.get(phone);
           return {
             phone,
@@ -75,6 +91,7 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
         setContacts(sortContacts(list));
         setPermissionDenied(false);
         setError(false);
+        announceNewcomers(userPhone, list);
       } catch (e) {
         if (e instanceof ContactsPermissionError) {
           setPermissionDenied(true);
@@ -119,14 +136,73 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Live: someone we invited joined; someone blocked us or we blocked them
+  useEffect(() => {
+    const onJoined = async ({ phone, name }: { phone?: string; name?: string }) => {
+      if (typeof phone !== 'string' || !userPhone) return;
+      contactJoinedEvents.emit({ phone, name: name || '' });
+      // Announced here already: the sync below must not announce them again
+      await rememberKnown(userPhone, phone);
+      refresh();
+    };
+    const onRemoved = ({ phone }: { phone?: string }) => {
+      if (typeof phone !== 'string') return;
+      blockedRef.current.add(phone);
+      setContacts((prev) => prev.filter((c) => c.phone !== phone));
+    };
+    socket.on('contactJoined', onJoined);
+    socket.on('contactRemoved', onRemoved);
+    return () => {
+      socket.off('contactJoined', onJoined);
+      socket.off('contactRemoved', onRemoved);
+    };
+  }, [refresh, userPhone]);
+
+  const hide = useCallback((phone: string) => {
+    blockedRef.current.add(phone);
+    setContacts((prev) => prev.filter((c) => c.phone !== phone));
+  }, []);
+
   const byPhone = useMemo(() => new Map(contacts.map((c) => [c.phone, c])), [contacts]);
   const find = useCallback((phone: string | null | undefined) => (phone ? byPhone.get(phone) : undefined), [byPhone]);
 
   return (
-    <ContactsContext.Provider value={{ contacts, loading, permissionDenied, error, refresh, find }}>
+    <ContactsContext.Provider value={{ contacts, loading, permissionDenied, error, refresh, find, hide }}>
       {children}
     </ContactsContext.Provider>
   );
 }
 
 export const useContacts = () => useContext(ContactsContext);
+
+async function rememberKnown(userPhone: string, phone: string) {
+  try {
+    const stored = await AsyncStorage.getItem(knownKey(userPhone));
+    // No baseline yet: the next sync records one without announcing anyone
+    if (!stored) return;
+    const known = new Set<string>(JSON.parse(stored));
+    known.add(phone);
+    await AsyncStorage.setItem(knownKey(userPhone), JSON.stringify([...known]));
+  } catch {
+    // Only a nicety
+  }
+}
+
+/**
+ * Registered contacts that weren't registered at the last sync: they just
+ * joined (without our invite). The first sync only records the baseline.
+ */
+async function announceNewcomers(userPhone: string, list: Contact[]) {
+  try {
+    const registered = list.filter((c) => c.registered);
+    const stored = await AsyncStorage.getItem(knownKey(userPhone));
+    await AsyncStorage.setItem(knownKey(userPhone), JSON.stringify(registered.map((c) => c.phone)));
+    if (!stored) return;
+    const known = new Set<string>(JSON.parse(stored));
+    for (const c of registered.filter((c) => !known.has(c.phone)).slice(0, 3)) {
+      contactJoinedEvents.emit({ phone: c.phone, name: c.name });
+    }
+  } catch {
+    // Only a nicety
+  }
+}

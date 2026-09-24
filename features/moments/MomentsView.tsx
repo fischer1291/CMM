@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
@@ -19,6 +20,10 @@ type Props = {
   /** Display name/avatar for a phone number */
   person: (phone: string, fallbackName: string) => MomentPerson;
   onGoToContacts: () => void;
+  /** "…" on someone else's moment: report / block */
+  onMore?: (moment: Moment) => void;
+  /** Own phone, to hide "…" on own moments */
+  myPhone?: string | null;
 };
 
 function MomentPage({
@@ -26,11 +31,15 @@ function MomentPage({
   height,
   onReact,
   person,
+  onMore,
+  mine,
 }: {
   moment: Moment;
   height: number;
   onReact: Props['onReact'];
   person: Props['person'];
+  onMore?: Props['onMore'];
+  mine: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const [picking, setPicking] = useState(false);
@@ -61,6 +70,17 @@ function MomentPage({
             vor {momentAge(moment.timestamp)} · {moment.callDuration} gesprochen
           </AppText>
         </View>
+        {onMore && !mine ? (
+          <Pressable
+            onPress={() => onMore(moment)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Melden oder blockieren"
+            style={styles.more}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
+          </Pressable>
+        ) : null}
       </View>
 
       <View style={styles.side}>
@@ -121,7 +141,7 @@ function MomentPage({
 }
 
 /** Full-screen, vertically paged feed of shared CallMoments. */
-export function MomentsView({ moments, loading, refreshing, onRefresh, onReact, person, onGoToContacts }: Props) {
+export function MomentsView({ moments, loading, refreshing, onRefresh, onReact, person, onGoToContacts, onMore, myPhone }: Props) {
   const { height } = useWindowDimensions();
 
   if (loading && moments.length === 0) {
@@ -150,7 +170,16 @@ export function MomentsView({ moments, loading, refreshing, onRefresh, onReact, 
       <FlatList
         data={moments}
         keyExtractor={(m) => m.id}
-        renderItem={({ item }) => <MomentPage moment={item} height={height} onReact={onReact} person={person} />}
+        renderItem={({ item }) => (
+          <MomentPage
+            moment={item}
+            height={height}
+            onReact={onReact}
+            person={person}
+            onMore={onMore}
+            mine={!!myPhone && item.userPhone.replace(/^\+?/, '+') === myPhone}
+          />
+        )}
         pagingEnabled
         showsVerticalScrollIndicator={false}
         decelerationRate="fast"
@@ -184,6 +213,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+  },
+  more: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: DARK_GLASS,
   },
   side: { position: 'absolute', right: spacing.lg, bottom: 280, alignItems: 'center', gap: spacing.md },
   reactButton: {
