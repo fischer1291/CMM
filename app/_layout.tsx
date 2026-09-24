@@ -17,6 +17,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ContactsProvider } from '../contexts/ContactsContext';
 import { NewCallProvider } from '../contexts/NewCallContext';
+import { InAppBanner } from '../components/InAppBanner';
 import { NotificationRouter } from '../components/NotificationRouter';
 import { fetchPreviewState } from '../dev/previewControl';
 import { setupNotifications } from '../services/notifications';
@@ -83,6 +84,7 @@ function InnerLayout() {
         </Stack.Protected>
       </Stack>
       {signedIn && <NotificationRouter />}
+      {signedIn && !needsProfileSetup && <InAppBanner />}
     </>
   );
 }

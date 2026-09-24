@@ -6,6 +6,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform, Vibration, AppState } from 'react-native';
 import CallStateManager, { CallData } from './CallStateManager';
 import PlatformCallAdapter from './PlatformCallAdapter';
+import { sendCallEnded } from './callSignaling';
 
 interface IncomingCallNotification {
   type: 'incoming_call';
@@ -155,6 +156,11 @@ class CallNotificationService {
         callerName: notification.callerName,
         hasVideo: notification.hasVideo ?? true,
       });
+      if (!callData) {
+        // Busy with another call: the caller must not keep ringing
+        sendCallEnded(notification.channel, notification.callerPhone, notification.calleePhone);
+        return;
+      }
 
       // Try platform-specific call UI first (iOS CallKit, Android InCallService)
       const platformHandled = await PlatformCallAdapter.displayIncomingCall(callData);
@@ -180,19 +186,7 @@ class CallNotificationService {
    * VoIP push. Only the app state is created; CallKit is already ringing.
    */
   registerPushKitCall(callId: string, payload: any, calleePhone: string): void {
-    const existing = CallStateManager.getActiveCall();
-    if (existing?.callId === callId) {
-      return;
-    }
-    if (existing) {
-      // Same call announced under a different id (backend without callId), or
-      // busy with another call: end the extra CallKit call the push created
-      console.log('📞 CallNotificationService: Busy, ending VoIP call:', callId);
-      PlatformCallAdapter.onCallEnded({ ...existing, callId });
-      return;
-    }
-
-    CallStateManager.createIncomingCall({
+    const call = CallStateManager.createIncomingCall({
       callId,
       channel: payload.channel,
       callerPhone: payload.callerPhone,
@@ -200,6 +194,24 @@ class CallNotificationService {
       callerName: payload.callerName,
       hasVideo: payload.hasVideo ?? true,
     });
+
+    if (!call) {
+      // Busy with another call: end the CallKit call the push created and
+      // tell the caller, who would otherwise keep ringing
+      console.log('📞 CallNotificationService: Busy, ending VoIP call:', callId);
+      PlatformCallAdapter.onCallEnded({
+        callId,
+        channel: payload.channel,
+        callerPhone: payload.callerPhone,
+        calleePhone,
+        callState: 'ended',
+        hasVideo: true,
+      } as CallData);
+      sendCallEnded(payload.channel, payload.callerPhone, calleePhone);
+    } else if (call.callId !== callId) {
+      // Same call already known under another id: drop the extra CallKit call
+      PlatformCallAdapter.onCallEnded({ ...call, callId });
+    }
   }
 
   /**

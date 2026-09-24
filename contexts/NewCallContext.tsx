@@ -12,6 +12,7 @@ import PlatformCallAdapter from '../services/PlatformCallAdapter';
 import VoipPushService from '../services/VoipPushService';
 import { session } from '../services/session';
 import { socket } from '../services/socket';
+import { sendCallEnded } from '../services/callSignaling';
 import { uuidv4 } from '../utils/uuid';
 
 
@@ -39,7 +40,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   const outgoingCallRef = useRef<{ channel: string; to: string } | null>(null);
 
   /**
-   * Tell the other party (via backend socket) that the current call ended.
+   * Tell the other party (via backend) that the current call ended.
    * Must run before CallStateManager.endCall(), which clears the call.
    */
   const notifyRemoteCallEnded = () => {
@@ -49,7 +50,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       ? (call.callerPhone === userPhone ? call.calleePhone : call.callerPhone)
       : outgoingCallRef.current?.to;
     if (channel && to) {
-      socket.emit('callEnded', { from: userPhone, to, channel });
+      sendCallEnded(channel, to, userPhone);
     }
     outgoingCallRef.current = null;
   };
@@ -131,7 +132,15 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     PlatformCallAdapter.setOnEndCallCallback((callId) => {
       try {
         console.log('📱 CallKit end callback triggered:', callId);
-        // Covers declining and hanging up in the CallKit UI
+        // Covers declining and hanging up in the CallKit UI. Also fires when
+        // the app itself ended a CallKit call (remote end, stale call): then
+        // the id no longer matches the active call and there is nothing to do.
+        // (Outgoing calls don't use CallKit on iOS.)
+        const active = CallStateManager.getActiveCall();
+        if (!active || active.callId !== callId) {
+          console.log('📱 CallKit end for a call that is not active, ignored:', callId);
+          return;
+        }
         notifyRemoteCallEnded();
         CallStateManager.endCall();
       } catch (error) {
@@ -149,7 +158,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // When user rejects call via CallKit
+    // When user rejects call via CallKit (declineCall tells the caller)
     PlatformCallAdapter.setOnRejectCallCallback((callId) => {
       try {
         console.log('📱 CallKit reject callback triggered:', callId);
@@ -323,7 +332,11 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Declined in the app or a notification action: the caller must stop ringing
   const handleCallDeclined = (callData: CallData) => {
+    if (callData?.channel && callData.callerPhone) {
+      sendCallEnded(callData.channel, callData.callerPhone, userPhone);
+    }
     setActiveCall(null);
     setHasActiveCall(false);
   };

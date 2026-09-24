@@ -15,8 +15,8 @@ export type PushType =
   | 'incoming_call'
   | 'call_ended';
 
-/** Types whose content the open app already shows live */
-const SILENT_IN_FOREGROUND = new Set<string>(['contact_available', 'call_ended']);
+/** Types the open app shows itself, live via socket (components/InAppBanner) */
+const SILENT_IN_FOREGROUND = new Set<string>(['contact_available', 'nudge', 'call_ended']);
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {

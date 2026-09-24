@@ -177,11 +177,13 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   const answeredRef = useRef(!isOutgoing);
   const [endMessage, setEndMessage] = useState<string | null>(null);
   const ringbackPlayingRef = useRef(false);
+  // Set once the call is over, so a late channel join can't start the ringback
+  const endedRef = useRef(false);
 
   const startRingback = async () => {
     const path = await ringbackPath();
     const engine = engineRef.current;
-    if (!path || !engine || answeredRef.current) return;
+    if (!path || !engine || answeredRef.current || endedRef.current) return;
     if (engine.startAudioMixing(path, true, -1) === 0) {
       ringbackPlayingRef.current = true;
     }
@@ -406,6 +408,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     // Outgoing call ended by the other side: show why, then close
     const onRemoteEnded = ({ channel: ended, reason }: { channel?: string; reason?: string }) => {
       if (ended !== channel) return;
+      endedRef.current = true;
       stopRingback();
       const message = endMessageFor(reason, getContactName(targetPhone));
       if (message) {
@@ -530,6 +533,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     // Ending the call emits call:ended, which calls cleanupCall again
     if (cleanedUpRef.current) return;
     cleanedUpRef.current = true;
+    endedRef.current = true;
     console.log('🧹 Starting call cleanup, notifyRemote:', notifyRemote);
     stopRingback();
 

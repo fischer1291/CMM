@@ -19,6 +19,7 @@ import { BadgeGrid, StatsView } from '../features/stats/StatsView';
 import { ScheduleView } from '../features/schedule/ScheduleView';
 import { FriendView } from '../features/contacts/FriendView';
 import { NotificationsView } from '../features/notifications/NotificationsView';
+import { BannerCard } from '../components/InAppBanner';
 import type { Stats } from '../services/gamificationApi';
 import { fetchPreviewState, PreviewState } from './previewControl';
 import {
@@ -419,6 +420,12 @@ const SCREENS: Record<string, () => React.ReactElement> = {
 
 const SECTIONS: Record<string, () => React.ReactElement> = {
   components: Components,
+  banners: () => (
+    <View style={{ marginTop: spacing.xl, gap: spacing.lg }}>
+      <BannerCard name="Anna Berg" avatarUrl={PHOTO} kind="available" onPress={() => {}} onAction={() => {}} />
+      <BannerCard name="Ben Koch" avatarUrl={null} kind="nudge" onPress={() => {}} onAction={() => {}} />
+    </View>
+  ),
   badges: () => (
     <View style={{ marginTop: spacing.xl }}>
       <BadgeGrid badges={STATS.badges} />
