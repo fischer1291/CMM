@@ -9,6 +9,7 @@ import { useNewCall } from '../../contexts/NewCallContext';
 import { StatusView } from '../../features/status/StatusView';
 import { useCountdown } from '../../hooks/useCountdown';
 import { useNudges } from '../../hooks/useNudges';
+import { useDailyMoment } from '../../hooks/useDailyMoment';
 import {
   clock,
   fetchSchedule,
@@ -40,6 +41,7 @@ export default function StatusScreen() {
   const { contacts } = useContacts();
   const { startVideoCall } = useNewCall();
   const { received, dismiss: dismissNudges, reload: reloadNudges } = useNudges();
+  const { daily, join: joinDaily } = useDailyMoment();
 
   const [status, setStatus] = useState<OwnStatus>({ available: false, until: null, source: null });
   const [toggling, setToggling] = useState(false);
@@ -191,6 +193,26 @@ export default function StatusScreen() {
         onOpenSchedule={() => router.push('/schedule')}
         onOpenProfile={() => router.push('/(tabs)/settings')}
         onDismissNudges={() => dismissNudges()}
+        daily={
+          daily.active
+            ? {
+                endsAt: daily.endsAt,
+                joined: daily.joined,
+                participants: daily.participants.map((phone) => {
+                  const c = contacts.find((x) => x.phone === phone);
+                  return { phone, name: c?.name || 'Jemand', avatarUrl: c?.avatarUrl ?? null };
+                }),
+                onJoin: async () => {
+                  if (await joinDaily()) fetchStatus();
+                },
+                onCall: (phone) => userPhone && startVideoCall(phone, userPhone),
+                onSurprise: () => {
+                  const pick = daily.participants[Math.floor(Math.random() * daily.participants.length)];
+                  if (pick && userPhone) startVideoCall(pick, userPhone);
+                },
+              }
+            : null
+        }
         showNotificationPrompt={showNotificationPrompt}
         onAllowNotifications={allowNotifications}
         onDismissNotifications={dismissNotifications}

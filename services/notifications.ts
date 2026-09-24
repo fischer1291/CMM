@@ -17,7 +17,7 @@ export type PushType =
   | 'call_ended';
 
 /** Types the open app shows itself, live via socket (components/InAppBanner) */
-const LIVE_IN_APP = new Set<string>(['contact_available', 'nudge', 'contact_joined']);
+const LIVE_IN_APP = new Set<string>(['contact_available', 'nudge', 'contact_joined', 'daily_moment', 'moment_consent']);
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
@@ -60,6 +60,9 @@ async function setupCategories() {
     ]),
     Notifications.setNotificationCategoryAsync('missed_call', [
       { identifier: 'call', buttonTitle: 'Zurückrufen', options: { opensAppToForeground: true } },
+    ]),
+    Notifications.setNotificationCategoryAsync('daily_moment', [
+      { identifier: 'join_daily', buttonTitle: 'Dabei sein', options: { opensAppToForeground: true } },
     ]),
     Notifications.setNotificationCategoryAsync('nudge', [
       { identifier: 'go_available', buttonTitle: '30 Min. erreichbar', options: { opensAppToForeground: true } },

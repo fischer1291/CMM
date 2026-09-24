@@ -22,6 +22,10 @@ const TYPE_TEXT: Record<string, (name: string) => string> = {
   nudge: (name) => `${name} hat dich angestupst`,
   moment_shared: (name) => `${name} hat einen Moment geteilt`,
   missed_call: (name) => `Verpasster Anruf von ${name}`,
+  contact_joined: (name) => `${name} ist jetzt dabei`,
+  daily_moment: () => 'Call Me Moment',
+  moment_consent: (name) => `${name} möchte einen Moment teilen`,
+  moment_approved: (name) => `${name} hat euren Moment freigegeben`,
 };
 
 const RESULT_TEXT: Record<string, { text: string; color: string }> = {
@@ -115,6 +119,12 @@ export function NotificationsView({ permission, prefs, onBack, onAllow, onOpenSe
                 description="Wenn jemand gern mit dir sprechen würde"
                 value={prefs.nudges}
                 onChange={(nudges) => onChange({ nudges })}
+              />
+              <Toggle
+                label="Call Me Moment"
+                description="Einmal am Tag, zu einer überraschenden Zeit: 10 Minuten für deine Leute"
+                value={prefs.dailyMoment}
+                onChange={(dailyMoment) => onChange({ dailyMoment })}
               />
               <Toggle
                 label="Moments"

@@ -699,7 +699,10 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing, startWit
       );
       const result = await response.json().catch(() => ({}));
       if (response.ok && result.success) {
-        Alert.alert('Moment geteilt 🎉', 'Deine Kontakte sehen ihn jetzt in ihren Moments.');
+        Alert.alert(
+          'Moment gesendet ✨',
+          `${getContactName(targetPhone).split(' ')[0]} muss noch zustimmen. Dann sehen ihn eure Kontakte 24 Stunden lang.`
+        );
         setShowCallMomentModal(false);
         setCapturedScreenshot(null);
       } else {

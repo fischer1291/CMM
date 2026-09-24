@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Avatar, Button, colors, EmptyState, radius, Screen, spacing, TAB_BAR_SPACE } from '../../ui';
 import { Moment, momentAge, REACTIONS } from './model';
@@ -24,7 +24,55 @@ type Props = {
   onMore?: (moment: Moment) => void;
   /** Own phone, to hide "…" on own moments */
   myPhone?: string | null;
+  /** Moments waiting for my consent */
+  requestCount: number;
+  /** My moments waiting for the other person */
+  waitingCount: number;
+  /** Friends' moments I'll see after my first conversation today */
+  locked: boolean;
+  lockedCount: number;
+  onOpenRequests: () => void;
+  onOpenMemories: () => void;
 };
+
+/** Pills above the feed: memories, requests, waiting, locked */
+function TopBar({ requestCount, waitingCount, locked, lockedCount, onOpenRequests, onOpenMemories }: Pick<Props, 'requestCount' | 'waitingCount' | 'locked' | 'lockedCount' | 'onOpenRequests' | 'onOpenMemories'>) {
+  const insets = useSafeAreaInsets();
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={[styles.topBar, { top: insets.top + spacing.sm }]}
+      contentContainerStyle={styles.topBarContent}
+    >
+      <Pressable onPress={onOpenMemories} accessibilityRole="button" style={styles.pill}>
+        <Ionicons name="images-outline" size={14} color={colors.text} />
+        <AppText variant="caption">Erinnerungen</AppText>
+      </Pressable>
+      {requestCount > 0 && (
+        <Pressable onPress={onOpenRequests} accessibilityRole="button" style={[styles.pill, styles.pillHot]}>
+          <AppText variant="caption" color={colors.text}>
+            ✨ {requestCount === 1 ? '1 Anfrage' : `${requestCount} Anfragen`}
+          </AppText>
+        </Pressable>
+      )}
+      {waitingCount > 0 && (
+        <View style={styles.pill} accessibilityLabel={`${waitingCount} wartet auf Freigabe`}>
+          <AppText variant="caption" color={colors.textSecondary}>
+            ⏳ {waitingCount} wartet
+          </AppText>
+        </View>
+      )}
+      {locked && lockedCount > 0 && (
+        <View style={styles.pill} accessibilityLabel={`${lockedCount} weitere nach deinem ersten Gespräch`}>
+          <AppText variant="caption" color={colors.textSecondary}>
+            🔒 +{lockedCount}
+          </AppText>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
 
 function MomentPage({
   moment,
@@ -33,6 +81,7 @@ function MomentPage({
   person,
   onMore,
   mine,
+  topOffset,
 }: {
   moment: Moment;
   height: number;
@@ -40,6 +89,8 @@ function MomentPage({
   person: Props['person'];
   onMore?: Props['onMore'];
   mine: boolean;
+  /** Room for the pills above */
+  topOffset: number;
 }) {
   const insets = useSafeAreaInsets();
   const [picking, setPicking] = useState(false);
@@ -60,7 +111,7 @@ function MomentPage({
       <LinearGradient colors={['rgba(11,11,18,0.92)', 'rgba(11,11,18,0.5)', 'transparent']} style={[styles.shade, { top: 0, height: 220 }]} />
       <LinearGradient colors={['transparent', 'rgba(11,11,18,0.92)']} style={[styles.shade, { bottom: 0, height: 260 }]} />
 
-      <View style={[styles.header, { top: insets.top + spacing.sm }]}>
+      <View style={[styles.header, { top: insets.top + spacing.sm + topOffset }]}>
         <Avatar name={author.name} uri={author.avatarUrl} size={40} />
         <View style={{ flex: 1 }}>
           <AppText variant="bodyStrong" numberOfLines={1}>
@@ -141,8 +192,10 @@ function MomentPage({
 }
 
 /** Full-screen, vertically paged feed of shared CallMoments. */
-export function MomentsView({ moments, loading, refreshing, onRefresh, onReact, person, onGoToContacts, onMore, myPhone }: Props) {
+export function MomentsView(props: Props) {
+  const { moments, loading, refreshing, onRefresh, onReact, person, onGoToContacts, onMore, myPhone, locked, lockedCount } = props;
   const { height } = useWindowDimensions();
+  const topBar = <TopBar {...props} />;
 
   if (loading && moments.length === 0) {
     return (
@@ -153,15 +206,32 @@ export function MomentsView({ moments, loading, refreshing, onRefresh, onReact, 
   }
 
   if (moments.length === 0) {
+    const waitingForYou = locked && lockedCount > 0;
     return (
-      <Screen contentStyle={styles.center}>
-        <EmptyState
-          icon="sparkles-outline"
-          title="Noch keine Moments"
-          text="Halte während eines Anrufs mit ✨ einen Moment fest und teile ihn mit deinen Kontakten."
-        />
-        <Button title="Jemanden anrufen" icon="videocam" onPress={onGoToContacts} style={{ alignSelf: 'stretch' }} />
-      </Screen>
+      <View style={styles.root}>
+        <Screen contentStyle={styles.center}>
+          {waitingForYou ? (
+            <EmptyState
+              icon="lock-closed-outline"
+              title={lockedCount === 1 ? '1 Moment wartet auf dich' : `${lockedCount} Moments warten auf dich`}
+              text="Deine Leute haben heute Momente geteilt. Führ zuerst selbst ein echtes Gespräch, dann siehst du sie."
+            />
+          ) : (
+            <EmptyState
+              icon="sparkles-outline"
+              title="Noch keine Moments"
+              text="Halte während eines Anrufs mit ✨ einen Moment fest. Wenn dein Gegenüber zustimmt, sehen ihn eure Kontakte 24 Stunden lang."
+            />
+          )}
+          <Button
+            title={waitingForYou ? 'Wer hat gerade Zeit?' : 'Jemanden anrufen'}
+            icon="videocam"
+            onPress={onGoToContacts}
+            style={{ alignSelf: 'stretch' }}
+          />
+        </Screen>
+        {topBar}
+      </View>
     );
   }
 
@@ -178,6 +248,7 @@ export function MomentsView({ moments, loading, refreshing, onRefresh, onReact, 
             person={person}
             onMore={onMore}
             mine={!!myPhone && item.userPhone.replace(/^\+?/, '+') === myPhone}
+            topOffset={44}
           />
         )}
         pagingEnabled
@@ -186,6 +257,7 @@ export function MomentsView({ moments, loading, refreshing, onRefresh, onReact, 
         getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.cyan} />}
       />
+      {topBar}
     </View>
   );
 }
@@ -214,6 +286,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
+  // One line; scrolls sideways if the pills don't fit
+  topBar: { position: 'absolute', left: 0, right: 0, flexGrow: 0 },
+  topBarContent: { gap: spacing.sm, paddingHorizontal: spacing.lg },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: radius.pill,
+    backgroundColor: DARK_GLASS,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderStrong,
+  },
+  pillHot: { backgroundColor: 'rgba(255,46,147,0.55)', borderColor: colors.pink },
   more: {
     width: 36,
     height: 36,

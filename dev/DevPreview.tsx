@@ -275,10 +275,38 @@ const SCREENS: Record<string, () => React.ReactElement> = {
     />
   ),
   moments: () => (
-    <MomentsView moments={MOMENTS} loading={false} refreshing={false} onRefresh={() => {}} onReact={() => {}} person={person} onGoToContacts={() => {}} />
+    <MomentsView
+      moments={MOMENTS}
+      loading={false}
+      refreshing={false}
+      onRefresh={() => {}}
+      onReact={() => {}}
+      person={person}
+      onGoToContacts={() => {}}
+      requestCount={1}
+      waitingCount={1}
+      locked
+      lockedCount={3}
+      onOpenRequests={() => {}}
+      onOpenMemories={() => {}}
+    />
   ),
   'moments-empty': () => (
-    <MomentsView moments={[]} loading={false} refreshing={false} onRefresh={() => {}} onReact={() => {}} person={person} onGoToContacts={() => {}} />
+    <MomentsView
+      moments={[]}
+      loading={false}
+      refreshing={false}
+      onRefresh={() => {}}
+      onReact={() => {}}
+      person={person}
+      onGoToContacts={() => {}}
+      requestCount={0}
+      waitingCount={0}
+      locked
+      lockedCount={3}
+      onOpenRequests={() => {}}
+      onOpenMemories={() => {}}
+    />
   ),
   onboarding: () => <OnboardingView onStart={() => {}} />,
   'verify-phone': () => <VerifyView {...verifyProps} step="phone" reverify />,
@@ -378,13 +406,45 @@ const SCREENS: Record<string, () => React.ReactElement> = {
     />
   ),
   datenschutz: () => <LegalView title="Datenschutz" sections={PRIVACY_SECTIONS} onBack={() => {}} />,
+  'status-daily': () => (
+    <StatusView
+      {...statusProps}
+      available
+      availableContacts={PEOPLE.slice(0, 2)}
+      nudges={[]}
+      daily={{
+        endsAt: new Date(Date.now() + 7 * 60 * 1000 + 32 * 1000).toISOString(),
+        joined: true,
+        participants: PEOPLE.slice(0, 3),
+        onJoin: () => {},
+        onCall: () => {},
+        onSurprise: () => {},
+      }}
+    />
+  ),
+  'status-daily-open': () => (
+    <StatusView
+      {...statusProps}
+      available={false}
+      availableContacts={[]}
+      nudges={[]}
+      daily={{
+        endsAt: new Date(Date.now() + 9 * 60 * 1000).toISOString(),
+        joined: false,
+        participants: [],
+        onJoin: () => {},
+        onCall: () => {},
+        onSurprise: () => {},
+      }}
+    />
+  ),
   'status-prompt': () => (
     <StatusView {...statusProps} available={false} availableContacts={PEOPLE.slice(0, 2)} nudges={[]} showNotificationPrompt />
   ),
   notifications: () => (
     <NotificationsView
       permission="granted"
-      prefs={{ available: true, nudges: true, moments: false, quietHours: { enabled: false, start: 22 * 60, end: 8 * 60 } }}
+      prefs={{ available: true, nudges: true, moments: false, dailyMoment: true, quietHours: { enabled: false, start: 22 * 60, end: 8 * 60 } }}
       onBack={() => {}}
       onAllow={() => {}}
       onOpenSettings={() => {}}
@@ -401,7 +461,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
   'notifications-denied': () => (
     <NotificationsView
       permission="denied"
-      prefs={{ available: false, nudges: true, moments: true, quietHours: { enabled: false, start: 22 * 60, end: 8 * 60 } }}
+      prefs={{ available: false, nudges: true, moments: true, dailyMoment: false, quietHours: { enabled: false, start: 22 * 60, end: 8 * 60 } }}
       onBack={() => {}}
       onAllow={() => {}}
       onOpenSettings={() => {}}

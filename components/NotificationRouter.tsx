@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNewCall } from '../contexts/NewCallContext';
 import { startSession } from '../services/gamificationApi';
+import { joinDaily } from '../services/dailyApi';
 import { safeRoute } from '../services/notifications';
 
 /**
@@ -31,6 +32,12 @@ export function NotificationRouter() {
 
     if (actionIdentifier === 'call' && data.phone) {
       startVideoCall(data.phone, userPhone);
+      return;
+    }
+    if (actionIdentifier === 'join_daily') {
+      joinDaily()
+        .catch(() => {})
+        .finally(() => router.navigate('/'));
       return;
     }
     if (actionIdentifier === 'go_available') {

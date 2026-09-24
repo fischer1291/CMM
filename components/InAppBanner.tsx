@@ -11,6 +11,8 @@ import CallStateManager from '../services/CallStateManager';
 import { contactJoinedEvents } from '../services/appEvents';
 import { markBannerShown } from '../services/bannerLog';
 import { startSession } from '../services/gamificationApi';
+import { joinDaily } from '../services/dailyApi';
+import { LogoMark } from '../ui/components/LogoMark';
 import { socket } from '../services/socket';
 import { AppText, Avatar, colors, glow, radius, spacing } from '../ui';
 
@@ -19,14 +21,24 @@ type Banner = {
   phone: string;
   name: string;
   avatarUrl: string | null;
-  kind: 'available' | 'nudge' | 'joined';
+  kind: 'available' | 'nudge' | 'joined' | 'daily' | 'consent';
 };
 
 const TEXT = {
   available: { title: (n: string) => `${n} ist jetzt erreichbar`, sub: 'Zeit für einen Anruf?', action: 'Anrufen' },
   nudge: { title: (n: string) => `${n} möchte sprechen 👋`, sub: 'Nur wenn es dir passt', action: '30 Min.' },
   joined: { title: (n: string) => `${n} ist jetzt dabei 🎉`, sub: 'Sag doch mal Hallo!', action: 'Hallo' },
+  daily: { title: () => '⚡ Call Me Moment!', sub: 'Deine Leute haben jetzt 10 Minuten', action: 'Dabei' },
+  consent: { title: (n: string) => `${n} möchte einen Moment teilen`, sub: 'Schau ihn dir an', action: 'Ansehen' },
 };
+
+const PUSH_TYPE = {
+  available: 'contact_available',
+  nudge: 'nudge',
+  joined: 'contact_joined',
+  daily: 'daily_moment',
+  consent: 'moment_consent',
+} as const;
 
 const SHOW_MS = 6000;
 
@@ -57,7 +69,7 @@ export function InAppBanner() {
       // Never on top of a call
       if (CallStateManager.hasActiveCall() || pathnameRef.current === '/videocall') return;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      markBannerShown({ available: 'contact_available', nudge: 'nudge', joined: 'contact_joined' }[next.kind], next.phone);
+      markBannerShown(PUSH_TYPE[next.kind], next.phone);
       setBanner({ ...next, id: ++counter });
     };
 
@@ -80,11 +92,26 @@ export function InAppBanner() {
       show({ phone, name: contact?.name || name || 'Jemand', avatarUrl: contact?.avatarUrl ?? null, kind: 'joined' });
     });
 
+    const onDaily = () => {
+      // The status screen shows the moment itself
+      if (pathnameRef.current === '/') return;
+      show({ phone: '', name: 'Call Me Moment', avatarUrl: null, kind: 'daily' });
+    };
+    const onConsent = ({ from }: { from?: string }) => {
+      if (typeof from !== 'string' || pathnameRef.current === '/callmoments') return;
+      const contact = contactsRef.current.find((c) => c.phone === from);
+      show({ phone: from, name: contact?.name || 'Jemand', avatarUrl: contact?.avatarUrl ?? null, kind: 'consent' });
+    };
+
     socket.on('statusUpdate', onStatusUpdate);
     socket.on('nudge', onNudge);
+    socket.on('dailyMoment', onDaily);
+    socket.on('momentConsent', onConsent);
     return () => {
       socket.off('statusUpdate', onStatusUpdate);
       socket.off('nudge', onNudge);
+      socket.off('dailyMoment', onDaily);
+      socket.off('momentConsent', onConsent);
       offJoined();
     };
   }, []);
@@ -99,7 +126,13 @@ export function InAppBanner() {
 
   const act = () => {
     setBanner(null);
-    if (banner.kind !== 'nudge') {
+    if (banner.kind === 'daily') {
+      joinDaily()
+        .catch(() => {})
+        .finally(() => router.navigate('/'));
+    } else if (banner.kind === 'consent') {
+      router.navigate('/callmoments');
+    } else if (banner.kind !== 'nudge') {
       if (userPhone) startVideoCall(banner.phone, userPhone);
     } else {
       startSession(30).catch(() => {});
@@ -119,7 +152,9 @@ export function InAppBanner() {
         {...banner}
         onPress={() => {
           setBanner(null);
-          router.push({ pathname: '/friend', params: { phone: banner.phone } });
+          if (banner.kind === 'daily') router.navigate('/');
+          else if (banner.kind === 'consent') router.navigate('/callmoments');
+          else router.push({ pathname: '/friend', params: { phone: banner.phone } });
         }}
         onAction={act}
       />
@@ -137,7 +172,7 @@ export function BannerCard({
 }: Pick<Banner, 'name' | 'avatarUrl' | 'kind'> & { onPress: () => void; onAction: () => void }) {
   const firstName = name.split(' ')[0];
   const text = TEXT[kind];
-  const accent = kind === 'available' ? colors.cyan : kind === 'nudge' ? colors.pink : colors.violet;
+  const accent = kind === 'available' ? colors.cyan : kind === 'nudge' || kind === 'daily' ? colors.pink : colors.violet;
   return (
     <Pressable
       onPress={onPress}
@@ -145,7 +180,11 @@ export function BannerCard({
       accessibilityLabel={text.title(name)}
       style={[styles.banner, glow(accent, 0.45)]}
     >
-      <Avatar name={name} uri={avatarUrl} size={40} available={kind === 'available' ? true : undefined} />
+      {kind === 'daily' ? (
+        <LogoMark size={44} />
+      ) : (
+        <Avatar name={name} uri={avatarUrl} size={40} available={kind === 'available' ? true : undefined} />
+      )}
       <View style={styles.text}>
         <AppText variant="bodyStrong" numberOfLines={1}>
           {text.title(firstName)}
@@ -158,10 +197,10 @@ export function BannerCard({
         onPress={onAction}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel={kind === 'nudge' ? '30 Minuten erreichbar' : `${name} anrufen`}
+        accessibilityLabel={text.action}
         style={[styles.action, { backgroundColor: accent }]}
       >
-        <AppText variant="caption" color={kind === 'joined' ? colors.text : colors.bg} style={styles.actionText}>
+        <AppText variant="caption" color={kind === 'joined' || kind === 'consent' ? colors.text : colors.bg} style={styles.actionText}>
           {text.action}
         </AppText>
       </Pressable>

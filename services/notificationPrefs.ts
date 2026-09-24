@@ -4,6 +4,7 @@ export type NotificationPrefs = {
   available: boolean;
   nudges: boolean;
   moments: boolean;
+  dailyMoment: boolean;
   quietHours: { enabled: boolean; start: number; end: number };
 };
 
