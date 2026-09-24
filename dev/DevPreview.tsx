@@ -210,6 +210,7 @@ const statusProps = {
   onOpenStats: () => {},
   scheduleLabel: 'Heute 18:00',
   onOpenSchedule: () => {},
+  onDismissNudges: () => {},
 };
 
 const BADGE = (id: string, title: string, earned: boolean, progress = 1) => ({ id, title, description: '', earned, progress });

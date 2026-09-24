@@ -2,17 +2,28 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { fetchNudges, Nudges, sendNudge } from '../services/gamificationApi';
+import { dismissNudges, fetchNudges, nextNudgeLabel, Nudges, sendNudge } from '../services/gamificationApi';
 import { socket } from '../services/socket';
 
 const EMPTY: Nudges = { received: [], sent: [] };
 
-const NUDGE_ERRORS: Record<string, string> = {
-  already_nudged: 'Du hast heute schon angestupst. Morgen geht es wieder.',
-  already_available: 'Gerade erreichbar: ruf einfach an!',
-  too_many: 'Für heute hast du genug angestupst.',
-  not_allowed: 'Anstupsen geht nur bei Leuten, die dich auch in ihren Kontakten haben.',
-};
+function errorText(code: string | undefined, name: string, nextAllowedAt?: string): string {
+  const when = nextAllowedAt ? nextNudgeLabel(nextAllowedAt) : null;
+  switch (code) {
+    case 'already_nudged':
+      return when ? `Du kannst ${name} ${when} wieder anstupsen.` : `Du hast ${name} gerade erst angestupst.`;
+    case 'resting':
+      return `${name} hat gerade wohl viel um die Ohren. Du kannst es ${when ?? 'in ein paar Tagen'} wieder versuchen.`;
+    case 'already_available':
+      return 'Gerade erreichbar: ruf einfach an!';
+    case 'too_many':
+      return 'Für heute hast du genug angestupst.';
+    case 'not_allowed':
+      return 'Anstupsen geht nur bei Leuten, die dich auch in ihren Kontakten haben.';
+    default:
+      return 'Das hat leider nicht geklappt. Bitte versuche es später erneut.';
+  }
+}
 
 /** Received and sent nudges; reloaded on focus and when a nudge arrives. */
 export function useNudges() {
@@ -33,22 +44,50 @@ export function useNudges() {
     };
   }, [reload]);
 
+  const remember = (to: string, nextAllowedAt: string | null | undefined) => {
+    if (!nextAllowedAt) return;
+    setNudges((current) => ({
+      ...current,
+      sent: [...current.sent.filter((n) => n.to !== to), { to, nextAllowedAt }],
+    }));
+  };
+
   const nudge = useCallback(async (phone: string, name: string) => {
+    const firstName = name.split(' ')[0];
     try {
-      await sendNudge(phone);
+      const result = await sendNudge(phone);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      setNudges((current) => ({ ...current, sent: [...current.sent, { to: phone, at: new Date().toISOString() }] }));
+      remember(phone, result.nextAllowedAt);
       return true;
     } catch (error: any) {
-      if (error?.code === 'already_nudged') {
-        setNudges((current) => ({ ...current, sent: [...current.sent, { to: phone, at: new Date().toISOString() }] }));
-      }
-      Alert.alert(`${name} anstupsen`, NUDGE_ERRORS[error?.code] ?? 'Das hat leider nicht geklappt. Bitte versuche es später erneut.');
+      remember(phone, error?.data?.nextAllowedAt);
+      Alert.alert(`${firstName} anstupsen`, errorText(error?.code, firstName, error?.data?.nextAllowedAt));
       return false;
     }
   }, []);
 
-  const nudged = useCallback((phone: string) => nudges.sent.some((n) => n.to === phone), [nudges.sent]);
+  /** "Nicht jetzt": hides the card right away, tells the server */
+  const dismiss = useCallback(
+    (from?: string) => {
+      setNudges((current) => ({
+        ...current,
+        received: from ? current.received.filter((n) => n.from !== from) : [],
+      }));
+      dismissNudges(from).catch(reload);
+    },
+    [reload]
+  );
 
-  return { received: nudges.received, nudged, nudge, reload };
+  /** When `phone` can be nudged again, or null if now */
+  const nextNudge = useCallback(
+    (phone: string) => {
+      const entry = nudges.sent.find((n) => n.to === phone);
+      return entry && new Date(entry.nextAllowedAt) > new Date() ? entry.nextAllowedAt : null;
+    },
+    [nudges.sent]
+  );
+
+  const nudged = useCallback((phone: string) => nextNudge(phone) !== null, [nextNudge]);
+
+  return { received: nudges.received, nudged, nextNudge, nudge, dismiss, reload };
 }

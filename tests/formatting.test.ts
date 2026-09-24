@@ -1,4 +1,4 @@
-import { clock, nextSlotLabel, talkTime } from '../services/gamificationApi';
+import { clock, nextNudgeLabel, nextSlotLabel, talkTime } from '../services/gamificationApi';
 import { bannerRecentlyShown, markBannerShown } from '../services/bannerLog';
 import { formatLastSeen } from '../utils/time';
 
@@ -42,4 +42,13 @@ test('formatLastSeen: nothing for unknown, relative text otherwise', () => {
   expect(formatLastSeen(null)).toBeNull();
   const now = new Date('2026-09-24T12:00:00Z');
   expect(typeof formatLastSeen('2026-09-24T11:00:00Z', now)).toBe('string');
+});
+
+test('nextNudgeLabel: minutes, today, tomorrow, weekday', () => {
+  const now = new Date(2026, 8, 24, 10, 0); // Thursday 10:00
+  const at = (days: number, h: number, m = 0) => new Date(2026, 8, 24 + days, h, m).toISOString();
+  expect(nextNudgeLabel(new Date(now.getTime() + 20 * 60000).toISOString(), now)).toBe('in 20 Min.');
+  expect(nextNudgeLabel(at(0, 14, 30), now)).toBe('ab 14:30');
+  expect(nextNudgeLabel(at(1, 9, 5), now)).toBe('morgen ab 9:05');
+  expect(nextNudgeLabel(at(4, 10), now)).toBe('ab Montag');
 });

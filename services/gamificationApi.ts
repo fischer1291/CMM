@@ -41,7 +41,8 @@ export type SharedStats = {
 
 export type Nudges = {
   received: { from: string; name: string; at: string }[];
-  sent: { to: string; at: string }[];
+  /** People I can't nudge again yet, and from when I can */
+  sent: { to: string; nextAllowedAt: string }[];
 };
 
 /** The device's IANA zone, e.g. "Europe/Berlin". */
@@ -53,9 +54,10 @@ export type SessionMinutes = (typeof SESSION_MINUTES)[number];
 async function json<T>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data.success === false) {
-    const error = new Error(data.error || `HTTP ${res.status}`) as Error & { code?: string; status?: number };
+    const error = new Error(data.error || `HTTP ${res.status}`) as Error & { code?: string; status?: number; data?: any };
     error.code = data.error;
     error.status = res.status;
+    error.data = data;
     throw error;
   }
   return data;
@@ -105,8 +107,14 @@ export async function fetchSharedStats(phone: string): Promise<{ name: string; s
   return json(res);
 }
 
-export async function sendNudge(phone: string): Promise<void> {
-  await json(await apiPostJson('/nudge', { phone }, 10000));
+/** Returns when the next nudge to this person is possible. */
+export async function sendNudge(phone: string): Promise<{ nextAllowedAt: string | null }> {
+  return json(await apiPostJson('/nudge', { phone }, 10000));
+}
+
+/** "Nicht jetzt": hide nudges (from one person, or all). The sender isn't told. */
+export async function dismissNudges(from?: string): Promise<void> {
+  await json(await apiPostJson('/nudges/dismiss', from ? { from } : {}, 10000));
 }
 
 export async function fetchNudges(): Promise<Nudges> {
@@ -114,6 +122,19 @@ export async function fetchNudges(): Promise<Nudges> {
 }
 
 // --- Formatting -----------------------------------------------------------
+
+/** When a nudge is possible again: "in 20 Min.", "ab 14:30", "morgen ab 9:00", "ab Montag" */
+export function nextNudgeLabel(iso: string, now = new Date()): string {
+  const at = new Date(iso);
+  const minutes = Math.ceil((at.getTime() - now.getTime()) / 60000);
+  if (minutes <= 60) return `in ${Math.max(1, minutes)} Min.`;
+  const time = `${at.getHours()}:${String(at.getMinutes()).padStart(2, '0')}`;
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((day(at) - day(now)) / 86400000);
+  if (days === 0) return `ab ${time}`;
+  if (days === 1) return `morgen ab ${time}`;
+  return `ab ${WEEKDAYS_LONG[at.getDay()]}`;
+}
 
 export const WEEKDAYS_SHORT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 export const WEEKDAYS_LONG = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];

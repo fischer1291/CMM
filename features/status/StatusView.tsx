@@ -37,6 +37,8 @@ type Props = {
   scheduleLabel: string | null;
   onOpenSchedule: () => void;
   onOpenProfile?: () => void;
+  /** "Nicht jetzt" on the nudge card */
+  onDismissNudges: () => void;
   /** Explain notifications before the system asks */
   showNotificationPrompt?: boolean;
   onAllowNotifications?: () => void;
@@ -65,16 +67,39 @@ function NotificationPrompt({ onAllow, onDismiss }: { onAllow?: () => void; onDi
   );
 }
 
-function NudgeCard({ nudges, available, onCall, onStartSession }: { nudges: ReceivedNudge[]; available: boolean; onCall: (phone: string) => void; onStartSession: () => void }) {
+function NudgeCard({
+  nudges,
+  available,
+  onCall,
+  onStartSession,
+  onDismiss,
+}: {
+  nudges: ReceivedNudge[];
+  available: boolean;
+  onCall: (phone: string) => void;
+  onStartSession: () => void;
+  onDismiss: () => void;
+}) {
   const first = nudges[0];
   const others = nudges.length - 1;
   const who = others > 0 ? `${first.name.split(' ')[0]} und ${others} ${others === 1 ? 'weitere Person' : 'weitere'}` : first.name.split(' ')[0];
   return (
     <GlassCard glow={colors.pink} style={{ marginTop: spacing.xl }}>
+      <Pressable
+        onPress={onDismiss}
+        hitSlop={12}
+        accessibilityRole="button"
+        accessibilityLabel="Nicht jetzt, ausblenden"
+        style={styles.nudgeClose}
+      >
+        <Ionicons name="close" size={18} color={colors.textSecondary} />
+      </Pressable>
       <View style={styles.nudgeRow}>
         <Avatar name={first.name} uri={first.avatarUrl} size={44} />
         <View style={{ flex: 1 }}>
-          <AppText variant="bodyStrong">{who} {others > 0 ? 'würden' : 'würde'} gern mit dir sprechen 👋</AppText>
+          <AppText variant="bodyStrong" style={styles.nudgeTitle}>
+            {who} {others > 0 ? 'würden' : 'würde'} gern mit dir sprechen 👋
+          </AppText>
           <AppText variant="caption" color={colors.textSecondary}>
             {available ? 'Du bist erreichbar: ruf doch einfach an.' : 'Kein Druck. Wenn es dir passt, schalte dich erreichbar.'}
           </AppText>
@@ -130,6 +155,7 @@ export function StatusView({
   scheduleLabel,
   onOpenSchedule,
   onOpenProfile,
+  onDismissNudges,
   showNotificationPrompt,
   onAllowNotifications,
   onDismissNotifications,
@@ -195,6 +221,7 @@ export function StatusView({
           available={available}
           onCall={onCallContact}
           onStartSession={() => onStartSession(30)}
+          onDismiss={onDismissNudges}
         />
       )}
 
@@ -278,6 +305,20 @@ const styles = StyleSheet.create({
   },
   sessionPressed: { backgroundColor: 'rgba(0,229,255,0.18)', borderColor: colors.cyan },
   nudgeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  // Room for the close button in the top right corner
+  nudgeTitle: { paddingRight: spacing.xl },
+  nudgeClose: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    zIndex: 1,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
   peopleScroll: { overflow: 'visible', marginHorizontal: -spacing.xl },
   people: { gap: spacing.lg, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm },
   person: { alignItems: 'center', width: 72 },

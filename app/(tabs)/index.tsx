@@ -39,7 +39,7 @@ export default function StatusScreen() {
   const { userPhone, userProfile, reloadProfile } = useAuth();
   const { contacts } = useContacts();
   const { startVideoCall } = useNewCall();
-  const { received } = useNudges();
+  const { received, dismiss: dismissNudges, reload: reloadNudges } = useNudges();
 
   const [status, setStatus] = useState<OwnStatus>({ available: false, until: null, source: null });
   const [toggling, setToggling] = useState(false);
@@ -123,6 +123,8 @@ export default function StatusScreen() {
     try {
       const res = await apiPostJson('/status/set', { phone: userPhone, isAvailable: next }, 10000);
       if (!res.ok) throw new Error(String(res.status));
+      // Becoming available answers open nudges on the server
+      if (next) reloadNudges();
     } catch {
       setStatus(previous);
       Alert.alert('Nicht gespeichert', 'Dein Status konnte nicht geändert werden. Bitte versuche es erneut.');
@@ -137,6 +139,7 @@ export default function StatusScreen() {
       await startSession(minutes as SessionMinutes);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       await fetchStatus();
+      reloadNudges();
     } catch {
       Alert.alert('Nicht gespeichert', 'Das hat leider nicht geklappt. Bitte versuche es erneut.');
     } finally {
@@ -187,6 +190,7 @@ export default function StatusScreen() {
         scheduleLabel={scheduleLabel}
         onOpenSchedule={() => router.push('/schedule')}
         onOpenProfile={() => router.push('/(tabs)/settings')}
+        onDismissNudges={() => dismissNudges()}
         showNotificationPrompt={showNotificationPrompt}
         onAllowNotifications={allowNotifications}
         onDismissNotifications={dismissNotifications}
