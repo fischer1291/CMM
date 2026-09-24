@@ -7,6 +7,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { fetchWithTimeout } from '../utils/apiUtils';
+import { API_BASE_URL, EXPO_PROJECT_ID } from '../config/env';
 
 export interface PushToken {
   token: string;
@@ -51,7 +52,7 @@ class PushTokenService {
       }
       
       const pushTokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: 'b5b430e0-3b17-49fe-bf44-ad9c6a49b8e3',
+        projectId: EXPO_PROJECT_ID,
       });
       
       const token = pushTokenData.data;
@@ -80,7 +81,7 @@ class PushTokenService {
       console.log('📤 Registering push token with backend...');
 
       const response = await fetchWithTimeout(
-        'https://cmm-backend-gdqx.onrender.com/user/push-token',
+        `${API_BASE_URL}/user/push-token`,
         {
           method: 'POST',
           headers: {

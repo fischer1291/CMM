@@ -15,9 +15,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { useAuth } from '../../../contexts/AuthContext';
-import { useTheme } from '../../../theme';
-import { resolveContact, generateAvatarUrl, normalizePhone } from '../../../utils/contactResolver';
+import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../theme';
+import { resolveContact, generateAvatarUrl, normalizePhone } from '../../utils/contactResolver';
 
 const moods = ['😊', '😐', '😔', '🤣', '😍', '🥰', '😎', '🤔', '😴', '🥳', '😇', '🤪'];
 

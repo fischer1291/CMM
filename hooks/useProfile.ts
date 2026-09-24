@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchWithTimeout } from '../utils/apiUtils';
-
-const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
+import { API_BASE_URL } from '../config/env';
 
 export const useProfile = (phone: string | null) => {
   const [name, setName] = useState('');
@@ -15,7 +14,7 @@ export const useProfile = (phone: string | null) => {
     if (!phone) return;
 
     setLoading(true);
-    fetchWithTimeout(`${baseUrl}/me?phone=${encodeURIComponent(phone)}`, {}, 10000)
+    fetchWithTimeout(`${API_BASE_URL}/me?phone=${encodeURIComponent(phone)}`, {}, 10000)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.user) {

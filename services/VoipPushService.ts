@@ -9,8 +9,7 @@
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import { fetchWithTimeout } from '../utils/apiUtils';
-
-const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
+import { API_BASE_URL } from '../config/env';
 
 // Lazy-loaded like CallKeep, so a missing native module cannot crash app launch
 let RNVoipPush: any = null;
@@ -80,7 +79,7 @@ class VoipPushService {
 
     try {
       const response = await fetchWithTimeout(
-        `${baseUrl}/user/voip-token`,
+        `${API_BASE_URL}/user/voip-token`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

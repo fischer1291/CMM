@@ -1,50 +1,64 @@
-# Welcome to your Expo app 👋
+# Call Me Maybe
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo / React Native app that shows which of your contacts are available for a
+call right now, with native video calls (Agora + iOS CallKit) and shared
+"CallMoments".
 
-## Get started
+The backend lives in the `CMM-backend-new` submodule (Node/Express, MongoDB,
+Socket.IO, deployed on Render).
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Setup
 
 ```bash
-npm run reset-project
+git clone --recurse-submodules https://github.com/fischer1291/CMM.git
+cd CMM
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+The app uses native modules (CallKeep, Agora, PushKit), so it needs a
+development build — Expo Go does not work.
 
-## Learn more
+```bash
+npm run ios        # build + run on simulator or a connected device
+npm start          # only start Metro for an installed dev build
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### Configuration
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Set via environment variables when starting Metro (see `config/env.ts`):
 
-## Join the community
+| Variable | Default |
+|---|---|
+| `EXPO_PUBLIC_API_URL` | `https://cmm-backend-gdqx.onrender.com` |
+| `EXPO_PUBLIC_AGORA_APP_ID` | production Agora App ID |
 
-Join our community of developers creating universal apps.
+### Local machine notes
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- With Node 25, start Metro with `NODE_OPTIONS='--no-experimental-webstorage'`
+  (Node 22 LTS is unaffected).
+- `pod install` needs a UTF-8 locale: `export LANG=en_US.UTF-8`.
+
+## Checks
+
+```bash
+npm run check      # typecheck + lint, same as CI
+```
+
+## Project layout
+
+| Path | Contents |
+|---|---|
+| `app/` | Screens (expo-router file-based routes only) |
+| `components/` | Shared UI components |
+| `contexts/` | Auth and call React contexts |
+| `services/` | Call state, CallKit/CallKeep, notifications, PushKit token |
+| `config/` | Runtime configuration |
+| `ios/` | Native iOS project (committed; contains the PushKit/CallKit AppDelegate) |
+| `docs/` | Dev setup and historical fix notes |
+
+## Calls on iOS
+
+Incoming calls are delivered by socket (app open) and VoIP push (app in
+background/killed). `ios/CallMeMaybe/AppDelegate.swift` reports every VoIP push
+to CallKit natively; `services/PlatformCallAdapter.ts` bridges CallKit events
+into the app. See `docs/DEV_SETUP.md` for build variants.

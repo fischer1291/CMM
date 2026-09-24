@@ -15,8 +15,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme';
 import { fetchWithTimeout } from '../../utils/apiUtils';
-
-const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
+import { API_BASE_URL } from '../../config/env';
 
 export default function VerifyScreen() {
   const { colors } = useTheme();
@@ -55,7 +54,7 @@ export default function VerifyScreen() {
 
     try {
       const res = await fetchWithTimeout(
-        `${baseUrl}/verify/start`,
+        `${API_BASE_URL}/verify/start`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -89,7 +88,7 @@ export default function VerifyScreen() {
 
     try {
       const res = await fetchWithTimeout(
-        `${baseUrl}/verify/check`,
+        `${API_BASE_URL}/verify/check`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -105,7 +104,7 @@ export default function VerifyScreen() {
 
         // ✅ Registrierung im Backend mit optionalem pushToken
         await fetchWithTimeout(
-          `${baseUrl}/auth/register`,
+          `${API_BASE_URL}/auth/register`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -124,7 +123,7 @@ export default function VerifyScreen() {
         // Check if user needs to set up profile
         try {
           const profileResponse = await fetchWithTimeout(
-            `${baseUrl}/me?phone=${encodeURIComponent(phone)}`,
+            `${API_BASE_URL}/me?phone=${encodeURIComponent(phone)}`,
             {},
             10000
           );

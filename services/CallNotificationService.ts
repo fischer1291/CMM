@@ -10,7 +10,8 @@ import PlatformCallAdapter from './PlatformCallAdapter';
 // Configure notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -29,7 +30,7 @@ interface IncomingCallNotification {
 class CallNotificationService {
   private static instance: CallNotificationService;
   private isInitialized = false;
-  private vibrationInterval: NodeJS.Timeout | null = null;
+  private vibrationInterval: ReturnType<typeof setInterval> | null = null;
   private notificationSubscriptions: (() => void)[] = [];
 
   private constructor() {}
@@ -235,13 +236,13 @@ class CallNotificationService {
       await Notifications.scheduleNotificationAsync({
         content: {
           ...content,
-          channelId: 'incoming-calls',
           vibrate: [0, 1000, 500, 1000],
           color: '#FF0000',
           sticky: true,
           autoDismiss: false,
         },
-        trigger: null,
+        // Immediate delivery on the high-importance call channel
+        trigger: { channelId: 'incoming-calls' },
       });
     } else {
       await Notifications.scheduleNotificationAsync({

@@ -4,6 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import PushTokenService from '../services/PushTokenService';
 import { fetchWithTimeout } from '../utils/apiUtils';
+import { API_BASE_URL } from '../config/env';
 
 export type UserProfile = {
   name: string;
@@ -32,7 +33,6 @@ const AuthContext = createContext<AuthContextType>({
   reloadProfile: () => {},
 });
 
-const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
 
 // Readable while the device is locked (after the first unlock since boot), so a
 // VoIP push that wakes the app on the lock screen still finds the logged-in user.
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsProfileLoading(true);
     try {
       const response = await fetchWithTimeout(
-        `${baseUrl}/me?phone=${encodeURIComponent(phone)}`,
+        `${API_BASE_URL}/me?phone=${encodeURIComponent(phone)}`,
         {},
         10000
       );
@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsProfileLoading(true);
     try {
       const response = await fetchWithTimeout(
-        `${baseUrl}/me/update`,
+        `${API_BASE_URL}/me/update`,
         {
           method: 'POST',
           headers: {

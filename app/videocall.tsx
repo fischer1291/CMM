@@ -20,103 +20,87 @@ import {
   IRtcEngine,
   RtcSurfaceView,
 } from '../lib/agora';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 import ViewShot from 'react-native-view-shot';
 import { useAuth } from '../contexts/AuthContext';
 import { useNewCall } from '../contexts/NewCallContext';
-import CallMomentCaptureModal from './components/callmoments/CallMomentCaptureModal';
+import CallMomentCaptureModal from '../components/callmoments/CallMomentCaptureModal';
 import { resolveContact, normalizePhone } from '../utils/contactResolver';
 import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager from '../services/CallStateManager';
 import { fetchWithTimeout } from '../utils/apiUtils';
+import { AGORA_APP_ID, API_BASE_URL } from '../config/env';
 
-const APP_ID = '28a507f76f1a400ba047aa629af4b81d';
 
-export default function VideoCallScreen() {
+const firstParam = (value: string | string[] | undefined) =>
+  Array.isArray(value) ? value[0] : value;
+
+/**
+ * Route entry: validates the params before the call screen (and its hooks)
+ * mounts, so the screen itself never has to return early.
+ */
+export default function VideoCallRoute() {
+  const router = useRouter();
+  const { userPhone: authUserPhone } = useAuth();
+  const rawParams = useLocalSearchParams();
+
+  const channel = firstParam(rawParams.channel);
+  // Agora user account: the phone number without the leading "+"
+  const userPhone = firstParam(rawParams.userPhone)?.replace(/^\+/, '');
+  const targetPhone = firstParam(rawParams.targetPhone);
+  const isOutgoing = firstParam(rawParams.isOutgoing) === 'true';
+
+  // Only the authenticated user may join as userPhone
+  const authPhone = authUserPhone?.replace(/^\+/, '');
+  const isForeignUser = !!authPhone && !!userPhone && authPhone !== userPhone;
+  const isValid = !!channel && !!userPhone && !!targetPhone && !isForeignUser;
+
+  useEffect(() => {
+    if (!isValid) {
+      console.error('❌ VideoCallScreen: invalid params or foreign user, navigating back', {
+        hasChannel: !!channel,
+        hasTargetPhone: !!targetPhone,
+        isForeignUser,
+      });
+      router.replace('/(tabs)/contacts');
+    }
+  }, [isValid]);
+
+  if (!isValid) {
+    return null;
+  }
+
+  return (
+    <VideoCallScreen
+      channel={channel!}
+      userPhone={userPhone!}
+      targetPhone={targetPhone!}
+      isOutgoing={isOutgoing}
+    />
+  );
+}
+
+type VideoCallScreenProps = {
+  channel: string;
+  userPhone: string;
+  targetPhone: string;
+  isOutgoing: boolean;
+};
+
+function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoCallScreenProps) {
   const router = useRouter();
   const { userPhone: authUserPhone, userProfile } = useAuth();
   const { endCall } = useNewCall();
-  const rawParams = useLocalSearchParams();
-
-  // CRITICAL: Use useMemo to prevent params from changing on every render
-  const channel = React.useMemo(() =>
-    Array.isArray(rawParams.channel) ? rawParams.channel[0] : rawParams.channel,
-    [rawParams.channel]
-  );
-
-  const userPhone = React.useMemo(() => {
-    let phone = Array.isArray(rawParams.userPhone) ? rawParams.userPhone[0] : rawParams.userPhone;
-    if (typeof phone === "string" && phone.startsWith("+")) {
-      phone = phone.substring(1);
-    }
-    return phone;
-  }, [rawParams.userPhone]);
-
   const agoraSafeUserAccount = userPhone;
 
-  const targetPhone = React.useMemo(() =>
-    Array.isArray(rawParams.targetPhone) ? rawParams.targetPhone[0] : rawParams.targetPhone,
-    [rawParams.targetPhone]
-  );
-
-  const isOutgoing = React.useMemo(() =>
-    rawParams.isOutgoing === 'true',
-    [rawParams.isOutgoing]
-  );
-
-  // DIAGNOSTIC: Log when videocall screen mounts - use ref to only log on actual mount
-  const mountCountRef = useRef(0);
   useEffect(() => {
-    mountCountRef.current += 1;
-    console.log('🎥 VideoCallScreen mounted (#' + mountCountRef.current + ') with params:', {
+    console.log('🎥 VideoCallScreen mounted with params:', {
       channel,
       userPhone,
       targetPhone,
       isOutgoing,
-      authUserPhone
     });
   }, []); // Empty deps - only log on actual mount
-
-  // CRITICAL GUARD: Verify userPhone matches authenticated user
-  // Normalize phones for comparison (remove + prefix)
-  const normalizedAuthPhone = authUserPhone?.startsWith('+')
-    ? authUserPhone.substring(1)
-    : authUserPhone;
-  const normalizedParamPhone = userPhone?.startsWith('+')
-    ? userPhone.substring(1)
-    : userPhone;
-
-  if (normalizedAuthPhone && normalizedParamPhone && normalizedAuthPhone !== normalizedParamPhone) {
-    console.error('❌ VideoCallScreen: userPhone param doesn\'t match authenticated user!', {
-      authUserPhone: normalizedAuthPhone,
-      paramUserPhone: normalizedParamPhone
-    });
-    console.error('❌ This device should not be on this call - navigating back');
-    router.replace('/(tabs)/contacts');
-    return null;
-  }
-
-  // CRITICAL GUARD: Prevent unauthorized mounting
-  useEffect(() => {
-    if (!channel || !userPhone || !targetPhone) {
-      console.log('❌ VideoCallScreen: Missing required params, navigating back');
-      router.replace('/(tabs)/contacts');
-      return;
-    }
-
-    // Additional guard: If this is receiver (incoming call), verify they actually answered
-    // This prevents the screen from mounting before CallKit answer
-    if (!isOutgoing) {
-      console.log('📞 Receiver entering call screen - verifying call was answered');
-      // The fact that we reached this screen means CallKit answer callback fired
-      // So this is legitimate
-    }
-  }, [channel, userPhone, targetPhone, isOutgoing]);
-
-  // Early return if invalid - prevents render errors
-  if (!channel || !userPhone || !targetPhone) {
-    return null;
-  }
 
   const [joined, setJoined] = useState(false);
   const [remoteUid, setRemoteUid] = useState<number | null>(null);
@@ -206,7 +190,7 @@ export default function VideoCallScreen() {
     engineRef.current = engine;
 
     try {
-      await engine.initialize({ appId: APP_ID });
+      await engine.initialize({ appId: AGORA_APP_ID });
       engine.setChannelProfile(ChannelProfileType.ChannelProfileCommunication);
       
       // Agora engine initialized
@@ -426,7 +410,7 @@ export default function VideoCallScreen() {
 
         console.log('🔑 Fetching RTC token for channel:', channel);
         const res = await fetchWithTimeout(
-          "https://cmm-backend-gdqx.onrender.com/rtcToken",
+          `${API_BASE_URL}/rtcToken`,
           {
             method: 'POST',
             headers: {
@@ -619,7 +603,7 @@ export default function VideoCallScreen() {
       }
       
       const response = await fetchWithTimeout(
-        'https://cmm-backend-gdqx.onrender.com/moment/callmoment',
+        `${API_BASE_URL}/moment/callmoment`,
         {
           method: 'POST',
           headers: {
@@ -673,7 +657,7 @@ export default function VideoCallScreen() {
     if (targetPhone) {
       try {
         const response = await fetchWithTimeout(
-          `https://cmm-backend-gdqx.onrender.com/me?phone=${encodeURIComponent(targetPhone)}`,
+          `${API_BASE_URL}/me?phone=${encodeURIComponent(targetPhone)}`,
           {},
           10000
         );

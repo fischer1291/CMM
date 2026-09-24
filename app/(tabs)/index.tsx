@@ -15,10 +15,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useCountdown } from '../../hooks/useCountdown';
 import { useProfile } from '../../hooks/useProfile';
 import { useTheme } from '../../theme';
-import CallMeMomentPrompt from '../components/CallMeMomentPrompt';
+import CallMeMomentPrompt from '../../components/CallMeMomentPrompt';
 import { fetchWithTimeout } from '../../utils/apiUtils';
-
-const baseUrl = 'https://cmm-backend-gdqx.onrender.com';
+import { API_BASE_URL } from '../../config/env';
 
 export default function IndexScreen() {
   const [userPhone, setUserPhone] = useState<string | null>(null);
@@ -90,7 +89,7 @@ export default function IndexScreen() {
   const fetchStatus = async (phone: string) => {
     try {
       const res = await fetchWithTimeout(
-        `${baseUrl}/status/get?phone=${encodeURIComponent(phone)}`,
+        `${API_BASE_URL}/status/get?phone=${encodeURIComponent(phone)}`,
         {},
         10000
       );
@@ -106,7 +105,7 @@ export default function IndexScreen() {
     setIsAvailable(newStatus);
     try {
       await fetchWithTimeout(
-        `${baseUrl}/status/set`,
+        `${API_BASE_URL}/status/set`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -156,7 +155,7 @@ export default function IndexScreen() {
 
       <View style={{ alignItems: 'center', padding: 20 }}>
         <Image
-          source={{ uri: (userProfile?.avatarUrl || avatarUrl) || defaultAvatar }}
+          source={(userProfile?.avatarUrl || avatarUrl) ? { uri: userProfile?.avatarUrl || avatarUrl } : defaultAvatar}
           style={{ width: 100, height: 100, borderRadius: 50 }}
         />
         <Text style={{ fontSize: 18, color: colors.text, padding: 10, fontWeight: '600' }}>

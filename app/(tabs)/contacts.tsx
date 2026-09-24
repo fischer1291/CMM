@@ -18,6 +18,7 @@ import { useNewCall } from '../../contexts/NewCallContext';
 import { useTheme } from '../../theme';
 import { normalizePhone, resolveContact, generateAvatarUrl } from '../../utils/contactResolver';
 import { fetchWithTimeout } from '../../utils/apiUtils';
+import { API_BASE_URL } from '../../config/env';
 
 export default function ContactsScreen() {
     const { userPhone, isLoading, userProfile } = useAuth();
@@ -60,7 +61,7 @@ export default function ContactsScreen() {
 
         try {
             const res = await fetchWithTimeout(
-                'https://cmm-backend-gdqx.onrender.com/contacts/match',
+                `${API_BASE_URL}/contacts/match`,
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -87,7 +88,7 @@ export default function ContactsScreen() {
                     const profilePromises = matchedPhones.map(async (phone: string) => {
                         try {
                             const response = await fetchWithTimeout(
-                                `https://cmm-backend-gdqx.onrender.com/me?phone=${encodeURIComponent(phone)}`,
+                                `${API_BASE_URL}/me?phone=${encodeURIComponent(phone)}`,
                                 {},
                                 10000
                             );

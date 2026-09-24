@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme';
 import { fetchWithTimeout } from '../../utils/apiUtils';
+import { API_BASE_URL } from '../../config/env';
 
 export default function ProfileSetupScreen() {
   const { colors } = useTheme();
@@ -65,7 +66,7 @@ export default function ProfileSetupScreen() {
       }
 
       const response = await fetchWithTimeout(
-        'https://cmm-backend-gdqx.onrender.com/upload/avatar',
+        `${API_BASE_URL}/upload/avatar`,
         {
           method: 'POST',
           body: formData,
