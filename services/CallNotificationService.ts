@@ -3,7 +3,7 @@
  * Replaces: EnhancedCallService, NotificationService (call parts), HybridCallService, etc.
  */
 import * as Notifications from 'expo-notifications';
-import { Platform, Vibration, AppState } from 'react-native';
+import { Platform, Vibration } from 'react-native';
 import CallStateManager, { CallData } from './CallStateManager';
 import PlatformCallAdapter from './PlatformCallAdapter';
 import { sendCallEnded } from './callSignaling';

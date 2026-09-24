@@ -5,6 +5,7 @@ const expoConfig = require('eslint-config-expo/flat');
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*'],
+    // The backend (submodule) has its own tooling
+    ignores: ['dist/*', 'CMM-backend-new/*', 'ios/*', 'android/*'],
   },
 ]);

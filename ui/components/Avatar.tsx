@@ -42,7 +42,7 @@ export function Avatar({ name, uri, size = 56, available }: Props) {
     } else {
       pulse.value = withTiming(0);
     }
-  }, [available]);
+  }, [available, pulse]);
   const pulseStyle = useAnimatedStyle(() => ({ shadowOpacity: 0.25 + pulse.value * 0.45 }));
 
   const radius = (size - ring) / 2;

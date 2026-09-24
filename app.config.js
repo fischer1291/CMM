@@ -20,11 +20,11 @@ export default {
       },
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-        NSContactsUsageDescription: 'Diese App benötigt Zugriff auf deine Kontakte, um dir anzuzeigen, wer bereits registriert ist.',
-        NSUserTrackingUsageDescription: 'Diese App verwendet Benachrichtigungen, um dich über den Status deiner Kontakte zu informieren.',
-        NSPhotoLibraryUsageDescription: 'Diese App benötigt Zugriff auf deine Bilder, um ein Profilbild auszuwählen.',
-        NSCameraUsageDescription: 'Diese App benötigt Zugriff auf die Kamera für Videoanrufe.',
-        NSMicrophoneUsageDescription: 'Diese App benötigt Zugriff auf das Mikrofon für Anrufe.',
+        NSContactsUsageDescription: 'Damit du siehst, wer aus deinem Adressbuch Call Me Maybe nutzt und gerade Zeit hat. Namen verlassen dein Gerät nicht.',
+        NSPhotoLibraryUsageDescription: 'Damit du ein Foto als Profilbild auswählen kannst.',
+        NSPhotoLibraryAddUsageDescription: 'Damit du Bilder aus deinen Anrufen in deiner Mediathek sichern kannst.',
+        NSCameraUsageDescription: 'Für Videoanrufe und zum Aufnehmen deines Profilbilds.',
+        NSMicrophoneUsageDescription: 'Damit man dich in Anrufen hören kann.',
         UIBackgroundModes: [
           'remote-notification',
           'voip',

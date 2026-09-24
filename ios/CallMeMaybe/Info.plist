@@ -54,21 +54,19 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Diese App benötigt Zugriff auf die Kamera für Videoanrufe.</string>
+	<string>Für Videoanrufe und zum Aufnehmen deines Profilbilds.</string>
 	<key>NSContactsUsageDescription</key>
-	<string>Diese App benötigt Zugriff auf deine Kontakte, um dir anzuzeigen, wer bereits registriert ist.</string>
+	<string>Damit du siehst, wer aus deinem Adressbuch Call Me Maybe nutzt und gerade Zeit hat. Namen verlassen dein Gerät nicht.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Diese App benötigt Zugriff auf das Mikrofon für Anrufe.</string>
+	<string>Damit man dich in Anrufen hören kann.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Allow $(PRODUCT_NAME) to save photos</string>
+	<string>Damit du Bilder aus deinen Anrufen in deiner Mediathek sichern kannst.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Diese App benötigt Zugriff auf deine Bilder, um ein Profilbild auszuwählen.</string>
+	<string>Damit du ein Foto als Profilbild auswählen kannst.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
 	</array>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>Diese App verwendet Benachrichtigungen, um dich über den Status deiner Kontakte zu informieren.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIBackgroundModes</key>

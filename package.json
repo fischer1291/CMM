@@ -9,7 +9,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint"
+    "check": "npm run typecheck && npm run lint && npm test",
+    "test": "jest"
   },
   "dependencies": {
     "@expo-google-fonts/space-grotesk": "^0.4.1",
@@ -62,10 +63,26 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@react-native-community/cli": "^16.0.3",
+    "@types/jest": "29.5.14",
     "@types/react": "~19.1.10",
+    "babel-plugin-transform-remove-console": "^6.9.4",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "jest": "~29.7.0",
+    "jest-expo": "~54.0.18",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "jest": {
+    "preset": "jest-expo",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/CMM-backend-new/",
+      "/ios/",
+      "/android/"
+    ],
+    "setupFiles": [
+      "<rootDir>/tests/setup.ts"
+    ]
+  }
 }

@@ -53,6 +53,8 @@ function InnerLayout() {
   }
 
   if (__DEV__ && showPreview) {
+    // Loaded lazily so release bundles don't evaluate the dev gallery
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { DevPreview } = require('../dev/DevPreview');
     return <DevPreview />;
   }
