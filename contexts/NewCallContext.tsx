@@ -206,6 +206,8 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       console.log('🔌 Socket connected');
       socket.emit('register', userPhone);
       reportPresence();
+      // Right after launch AppState may not be known yet: report again
+      setTimeout(reportPresence, 1500);
     });
 
     // While the app is in the foreground the backend sends no availability
@@ -221,8 +223,11 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     console.log('✅ Socket listeners set up (duplicates removed)');
   };
 
+  // "unknown" (just launched, state not reported yet) counts as foreground:
+  // wrongly assuming "closed" would send pushes the open app hides
   const reportPresence = () => {
-    if (socket.connected) socket.emit('presence', { foreground: AppState.currentState === 'active' });
+    const state = AppState.currentState;
+    if (socket.connected) socket.emit('presence', { foreground: state !== 'background' && state !== 'inactive' });
   };
 
   /**

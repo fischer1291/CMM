@@ -6,6 +6,7 @@
  */
 import * as Notifications from 'expo-notifications';
 import { AppState, Platform } from 'react-native';
+import { bannerRecentlyShown } from './bannerLog';
 
 export type PushType =
   | 'contact_available'
@@ -16,12 +17,15 @@ export type PushType =
   | 'call_ended';
 
 /** Types the open app shows itself, live via socket (components/InAppBanner) */
-const SILENT_IN_FOREGROUND = new Set<string>(['contact_available', 'nudge', 'call_ended']);
+const LIVE_IN_APP = new Set<string>(['contact_available', 'nudge']);
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
-    const type = String(notification.request.content.data?.type ?? '');
-    const show = !SILENT_IN_FOREGROUND.has(type);
+    const data = (notification.request.content.data ?? {}) as { type?: string; phone?: string };
+    const type = String(data.type ?? '');
+    // Hidden only if the live banner already showed it; a push must never
+    // disappear unseen (e.g. if the backend thought the app was closed)
+    const show = type !== 'call_ended' && !(LIVE_IN_APP.has(type) && bannerRecentlyShown(type, data.phone));
     return { shouldShowBanner: show, shouldShowList: show, shouldPlaySound: show, shouldSetBadge: false };
   },
 });

@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Contact, useContacts } from '../contexts/ContactsContext';
 import { useNewCall } from '../contexts/NewCallContext';
 import CallStateManager from '../services/CallStateManager';
+import { markBannerShown } from '../services/bannerLog';
 import { startSession } from '../services/gamificationApi';
 import { socket } from '../services/socket';
 import { AppText, Avatar, colors, glow, radius, spacing } from '../ui';
@@ -49,6 +50,7 @@ export function InAppBanner() {
       // Never on top of a call
       if (CallStateManager.hasActiveCall() || pathnameRef.current === '/videocall') return;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      markBannerShown(next.kind === 'available' ? 'contact_available' : 'nudge', next.phone);
       setBanner({ ...next, id: ++counter });
     };
 

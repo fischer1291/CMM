@@ -26,6 +26,7 @@ const TYPE_TEXT: Record<string, (name: string) => string> = {
 
 const RESULT_TEXT: Record<string, { text: string; color: string }> = {
   sent: { text: 'Gesendet', color: colors.success },
+  failed: { text: 'Nicht zugestellt', color: colors.danger },
   in_app: { text: 'In der App angezeigt', color: colors.cyan },
   throttled: { text: 'Kurz davor schon gemeldet', color: colors.textMuted },
   quiet_hours: { text: 'Ruhezeit', color: colors.textMuted },
@@ -33,6 +34,22 @@ const RESULT_TEXT: Record<string, { text: string; color: string }> = {
   daily_cap: { text: 'Tageslimit erreicht', color: colors.warning },
   no_token: { text: 'Mitteilungen nicht erlaubt', color: colors.warning },
 };
+
+const APP_TEXT: Record<string, string> = {
+  foreground: 'App offen',
+  background: 'App im Hintergrund',
+  closed: 'App geschlossen',
+};
+
+function detailOf(item: RecentPush): string | null {
+  const parts = [];
+  if (item.app && (item.result === 'sent' || item.result === 'failed' || item.result === 'throttled')) {
+    parts.push(APP_TEXT[item.app] ?? item.app);
+  }
+  if (item.delivery === 'delivered') parts.push('zugestellt');
+  else if (item.delivery) parts.push(`Fehler: ${item.delivery}`);
+  return parts.length ? parts.join(' · ') : null;
+}
 
 const timeOf = (iso: string) => {
   const d = new Date(iso);
@@ -89,7 +106,7 @@ export function NotificationsView({ permission, prefs, onBack, onAllow, onOpenSe
             <View style={styles.toggles}>
               <Toggle
                 label="Wer gerade erreichbar ist"
-                description="Höchstens alle 3 Stunden pro Person"
+                description="Sobald jemand aus deinen Kontakten Zeit hat"
                 value={prefs.available}
                 onChange={(available) => onChange({ available })}
               />
@@ -150,8 +167,9 @@ export function NotificationsView({ permission, prefs, onBack, onAllow, onOpenSe
                         <AppText variant="body" numberOfLines={1}>
                           {text}
                         </AppText>
-                        <AppText variant="caption" color={result.color}>
+                        <AppText variant="caption" color={result.color} numberOfLines={1}>
                           {result.text}
+                          {detailOf(item) ? <AppText variant="caption" color={colors.textMuted}> · {detailOf(item)}</AppText> : null}
                         </AppText>
                       </View>
                       <AppText variant="caption" color={colors.textMuted}>

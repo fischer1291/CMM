@@ -25,7 +25,16 @@ export async function saveNotificationPrefs(prefs: Partial<NotificationPrefs>): 
   return data.prefs;
 }
 
-export type RecentPush = { type: string; about: string | null; result: string; at: string };
+export type RecentPush = {
+  type: string;
+  about: string | null;
+  result: string;
+  /** foreground | background | closed, when the server decided */
+  app: string | null;
+  /** "delivered" or an error code, from the delivery receipt */
+  delivery: string | null;
+  at: string;
+};
 
 /** The last pushes meant for me: sent, or why they were skipped. */
 export async function fetchRecentNotifications(): Promise<RecentPush[]> {
