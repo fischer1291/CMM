@@ -80,12 +80,3 @@ export async function matchContacts(
     })),
   };
 }
-
-/** Background sync after login, so contacts receive this user's status. */
-export function syncContactsInBackground(userPhone: string): void {
-  matchContacts(userPhone, { askPermission: false }).catch((error) => {
-    if (!(error instanceof ContactsPermissionError)) {
-      console.log('Contact sync failed:', error?.message);
-    }
-  });
-}

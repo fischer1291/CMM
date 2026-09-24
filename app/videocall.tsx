@@ -1,17 +1,12 @@
-import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
 import { Asset } from 'expo-asset';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
+  Dimensions,
   PermissionsAndroid,
   Platform,
-  SafeAreaView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import {
@@ -21,16 +16,21 @@ import {
   IRtcEngine,
   RtcSurfaceView,
 } from '../lib/agora';
-import { Ionicons as Icon } from '@expo/vector-icons';
-import ViewShot from 'react-native-view-shot';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ViewShot, { captureRef } from 'react-native-view-shot';
 import { useAuth } from '../contexts/AuthContext';
 import { useNewCall } from '../contexts/NewCallContext';
-import CallMomentCaptureModal from '../components/callmoments/CallMomentCaptureModal';
+import { useContacts } from '../contexts/ContactsContext';
+import { MomentComposer, MomentDraft } from '../features/moments/MomentComposer';
 import { resolveContact, normalizePhone } from '../utils/contactResolver';
+import { CallPhase, CallView, localPreviewStyle } from '../features/call/CallView';
 import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager from '../services/CallStateManager';
 import { apiFetch, apiPostJson } from '../utils/api';
 import { AGORA_APP_ID } from '../config/env';
+
+// Client-side cap, below the backend's 1 MB data URI limit
+const MAX_MOMENT_IMAGE_LENGTH = 600_000;
 
 
 /**
@@ -144,8 +144,10 @@ type VideoCallScreenProps = {
 
 function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoCallScreenProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { userPhone: authUserPhone, userProfile } = useAuth();
   const { endCall } = useNewCall();
+  const { find: findContact } = useContacts();
   const agoraSafeUserAccount = userPhone;
 
   useEffect(() => {
@@ -163,13 +165,11 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   const viewShotRef = useRef<ViewShot | null>(null);
   const [micMuted, setMicMuted] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(true);
-  const [localUid, setLocalUid] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   const [networkQuality, setNetworkQuality] = useState<'excellent' | 'good' | 'poor' | 'bad' | 'unknown'>('unknown');
   const [callStartTime, setCallStartTime] = useState<number | null>(null);
   const [callDuration, setCallDuration] = useState<string>('00:00');
   const [capturedScreenshot, setCapturedScreenshot] = useState<string | null>(null);
-  const [capturedScreenshotBase64, setCapturedScreenshotBase64] = useState<string | null>(null);
   const [showCallMomentModal, setShowCallMomentModal] = useState(false);
   const [userProfiles, setUserProfiles] = useState<Map<string, any>>(new Map());
   // Outgoing calls ring until the callee answers
@@ -202,36 +202,6 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     answeredRef.current = true;
     setAnswered(true);
     stopRingback();
-  };
-
-  const getQualityIcon = () => {
-    switch (networkQuality) {
-      case 'excellent':
-        return '📶';
-      case 'good':
-        return '📶';
-      case 'poor':
-        return '📵';
-      case 'bad':
-        return '📵';
-      default:
-        return '❓';
-    }
-  };
-
-  const getQualityColor = () => {
-    switch (networkQuality) {
-      case 'excellent':
-        return '#00ff00';
-      case 'good':
-        return '#ffff00';
-      case 'poor':
-        return '#ff8800';
-      case 'bad':
-        return '#ff0000';
-      default:
-        return '#888888';
-    }
   };
 
   const toggleMute = () => {
@@ -524,7 +494,6 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         await engineRef.current.startPreview();
 
         await engineRef.current.joinChannelWithUserAccount(token, channel, userPhone);
-        setLocalUid(agoraSafeUserAccount);
         joinedRef.current = true;
         console.log('✅ Successfully joined channel');
       } catch (err) {
@@ -612,7 +581,6 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     // Reset state
     setJoined(false);
     setRemoteUid(null);
-    setLocalUid(null);
     setCallStartTime(null);
     setCallDuration('00:00');
 
@@ -624,114 +592,66 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
     cleanupCall(true); // Notify remote user
   };
 
-  const convertToBase64 = async (uri: string): Promise<string> => {
-    try {
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: 'base64',
+  /**
+   * Capture the call as a downscaled JPEG data URI. The backend accepts data
+   * URIs up to 1 MB; we stay well below by shrinking until it fits.
+   */
+  const captureMoment = async (): Promise<string | null> => {
+    const ref = viewShotRef.current;
+    if (!ref || typeof ref.capture !== 'function') return null;
+    const { width, height } = Dimensions.get('window');
+    const attempts = [
+      { width: 720, quality: 0.6 },
+      { width: 540, quality: 0.45 },
+    ];
+    for (const attempt of attempts) {
+      const base64 = await captureRef(ref, {
+        format: 'jpg',
+        quality: attempt.quality,
+        result: 'base64',
+        width: attempt.width,
+        height: Math.round((attempt.width * height) / width),
       });
-      return `data:image/jpeg;base64,${base64}`;
-    } catch (error) {
-      throw new Error('Failed to convert image to base64');
+      const dataUri = `data:image/jpeg;base64,${base64}`;
+      if (dataUri.length <= MAX_MOMENT_IMAGE_LENGTH) return dataUri;
     }
+    return null;
   };
 
   const handleTakeScreenshot = async () => {
     try {
-      const ref = viewShotRef.current;
-      if (ref && typeof ref.capture === 'function') {
-        // Capture with settings optimized for call moments feed display
-        const uri = await ref.capture();
-        console.log('📸 Screenshot captured:', uri);
-        
-        // Store the original URI for display in modal
-        setCapturedScreenshot(uri);
-        
-        try {
-          // Convert to base64 for cross-device compatibility
-          const base64Image = await convertToBase64(uri);
-          console.log('📸 Base64 conversion successful, length:', base64Image.length);
-          setCapturedScreenshotBase64(base64Image);
-        } catch (base64Error) {
-          console.error('📸 Base64 conversion failed:', base64Error);
-          // If base64 conversion fails, still proceed with the local URI
-          setCapturedScreenshotBase64(uri);
-        }
-        
-        setShowCallMomentModal(true);
-      } else {
+      const dataUri = await captureMoment();
+      if (!dataUri) {
         Alert.alert('Fehler', 'Screenshot konnte nicht erstellt werden. Bitte versuche es erneut.');
+        return;
       }
+      setCapturedScreenshot(dataUri);
+      setShowCallMomentModal(true);
     } catch (error) {
       console.error('📸 Screenshot error:', error);
-      Alert.alert('Fehler', 'Screenshot fehlgeschlagen. Überprüfe die Berechtigung für den Fotospeicher in den Einstellungen.');
+      Alert.alert('Fehler', 'Screenshot konnte nicht erstellt werden. Bitte versuche es erneut.');
     }
   };
 
-  const handlePostCallMoment = async (callMomentData: any) => {
+  const handlePostCallMoment = async (draft: MomentDraft) => {
+    if (!capturedScreenshot) return;
     try {
-      // Use base64 version for posting if available, otherwise use original
-      const screenshotToSend = capturedScreenshotBase64 || callMomentData.screenshot;
-      
-      const postData = {
-        ...callMomentData,
-        screenshot: screenshotToSend,
-        timestamp: new Date().toISOString(),
-      };
-      
-      console.log('🚀 Posting CallMoment with data keys:', Object.keys(postData));
-      console.log('🚀 Screenshot length:', screenshotToSend?.length || 0);
-      
-      console.log('📸 Image size:', Math.round(screenshotToSend?.length/1000), 'KB');
-      
-      // Check if payload is too large (with 10MB server limit, 500KB should be safe)
-      if (screenshotToSend && screenshotToSend.length > 500000) {
-        Alert.alert(
-          'Bild zu groß',
-          `Das Screenshot ist zu groß für den Upload (${Math.round(screenshotToSend.length/1000)}KB). Bitte versuche es erneut.`,
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-      
-      const response = await apiFetch(
-        `/moment/callmoment`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(postData),
-        },
-        10000
+      const response = await apiPostJson(
+        '/moment/callmoment',
+        { ...draft, screenshot: capturedScreenshot, timestamp: new Date().toISOString() },
+        20000
       );
-
-      console.log('🚀 Response status:', response.status);
-      console.log('🚀 Response ok:', response.ok);
-      
-      const result = await response.json();
-      console.log('🚀 Response result:', result);
-      if (result.success) {
-        Alert.alert(
-          'CallMoment geteilt! 🎉',
-          'Dein CallMoment wurde erfolgreich geteilt.',
-          [{ text: 'OK' }]
-        );
+      const result = await response.json().catch(() => ({}));
+      if (response.ok && result.success) {
+        Alert.alert('Moment geteilt 🎉', 'Deine Kontakte sehen ihn jetzt in ihren Moments.');
         setShowCallMomentModal(false);
         setCapturedScreenshot(null);
-        setCapturedScreenshotBase64(null);
       } else {
-        Alert.alert(
-          'Fehler',
-          'CallMoment konnte nicht geteilt werden. Bitte versuche es erneut.',
-          [{ text: 'OK' }]
-        );
+        console.warn('📸 Moment rejected:', response.status, result?.error ?? result?.message);
+        Alert.alert('Fehler', 'Der Moment konnte nicht geteilt werden. Bitte versuche es erneut.');
       }
-    } catch (error) {
-      Alert.alert(
-        'Verbindungsfehler',
-        'CallMoment konnte nicht geteilt werden. Bitte überprüfe deine Internetverbindung.',
-        [{ text: 'OK' }]
-      );
+    } catch {
+      Alert.alert('Verbindungsfehler', 'Der Moment konnte nicht geteilt werden. Bitte prüfe deine Internetverbindung.');
     }
   };
 
@@ -772,104 +692,60 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   };
 
   // Create user profiles map for contact resolution
-  const createUserProfilesMap = () => {
-    return userProfiles;
-  };
-
   // Helper function to resolve contact information
-  const getContactInfo = (phone: string) => {
-    const userProfilesMap = createUserProfilesMap();
-    
-    return resolveContact(normalizePhone(phone), {
-      userProfiles: userProfilesMap,
-      fallbackToFormatted: true,
-    });
+  // Address book name first (what the user calls them), then the profile
+  const getContactInfo = (phone: string): { name: string; avatarUrl?: string } => {
+    const e164 = phone.startsWith('+') ? phone : `+${phone}`;
+    if (e164 === authUserPhone) {
+      return { name: userProfile?.name || 'Du', avatarUrl: userProfile?.avatarUrl || undefined };
+    }
+    const contact = findContact(e164);
+    if (contact) return { name: contact.name, avatarUrl: contact.avatarUrl ?? undefined };
+    return resolveContact(normalizePhone(phone), { userProfiles, fallbackToFormatted: true });
   };
 
   const getContactName = (phone: string) => {
     return getContactInfo(phone).name;
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Videoanruf</Text>
-        <View style={styles.headerRight}>
-          {joined && (
-            <Text style={styles.timer}>{callDuration}</Text>
-          )}
-          {!isConnecting && (
-            <View style={styles.qualityIndicator}>
-              <Text style={[styles.qualityIcon, { color: getQualityColor() }]}>
-                {getQualityIcon()}
-              </Text>
-            </View>
-          )}
+  const phase: CallPhase = endMessage ? 'ended' : isConnecting ? 'connecting' : !answered ? 'ringing' : 'connected';
+  const targetContact = getContactInfo(targetPhone);
+
+  // Remote video full screen, own camera as a tile; both inside ViewShot so a
+  // captured moment shows the call as seen
+  const videoLayer = isConnecting ? null : (
+    <ViewShot ref={viewShotRef} style={StyleSheet.absoluteFill}>
+      {remoteUid !== null && <RtcSurfaceView canvas={{ uid: remoteUid }} style={StyleSheet.absoluteFill} />}
+      {joined && (
+        <View style={localPreviewStyle(insets.top)}>
+          <RtcSurfaceView canvas={{ uid: 0 }} style={StyleSheet.absoluteFill} />
         </View>
-      </View>
-      {isConnecting ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.status}>Verbindung wird hergestellt...</Text>
-        </View>
-      ) : (
-        <>
-          <View style={styles.videoContainer}>
-            <ViewShot 
-              ref={viewShotRef} 
-              options={{ 
-                format: 'jpg', 
-                quality: 0.9
-              }} 
-              style={styles.liveVideoContainer}
-            >
-              <View style={styles.remoteVideoContainer}>
-                {remoteUid !== null && (
-                  <RtcSurfaceView
-                    canvas={{ uid: remoteUid }}
-                    style={styles.remoteVideo}
-                  />
-                )}
-              </View>
-              {joined && (
-                <View style={styles.localVideoOverlay}>
-                  <RtcSurfaceView
-                    canvas={{ uid: 0 }}
-                    style={styles.localVideo}
-                  />
-                </View>
-              )}
-            </ViewShot>
-          </View>
-          {(endMessage || !answered) && (
-            <View style={styles.statusOverlay} pointerEvents="none">
-              <Text style={styles.statusName}>{getContactName(targetPhone)}</Text>
-              <Text style={styles.statusText}>{endMessage ?? 'Klingelt …'}</Text>
-            </View>
-          )}
-          <View style={styles.controlsContainer}>
-            <TouchableOpacity onPress={toggleMute} style={styles.iconButton}>
-              <Icon name={micMuted ? 'mic-off' : 'mic'} size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={disconnectCall} style={[styles.iconButton, styles.hangupButton]}>
-              <Icon name="call" size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={switchCamera} style={styles.iconButton}>
-              <Icon name="camera-reverse" size={24} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleTakeScreenshot} style={styles.iconButton}>
-              <Icon name="camera" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </>
       )}
-      
-      <CallMomentCaptureModal
+    </ViewShot>
+  );
+
+  return (
+    <>
+      <CallView
+        name={targetContact.name}
+        avatarUrl={targetContact.avatarUrl ?? null}
+        phase={phase}
+        statusText={endMessage}
+        hasRemoteVideo={remoteUid !== null}
+        duration={callDuration}
+        quality={networkQuality}
+        videoLayer={videoLayer}
+        micMuted={micMuted}
+        onToggleMute={toggleMute}
+        onSwitchCamera={switchCamera}
+        onCapture={handleTakeScreenshot}
+        onHangup={disconnectCall}
+      />
+      <MomentComposer
         visible={showCallMomentModal}
         onClose={() => {
           setShowCallMomentModal(false);
           setCapturedScreenshot(null);
-          setCapturedScreenshotBase64(null);
         }}
         onPost={handlePostCallMoment}
         screenshotUri={capturedScreenshot}
@@ -878,136 +754,8 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
         targetPhone={targetPhone || ''}
         targetName={getContactName(targetPhone || '')}
         callDuration={callDuration}
-        userProfiles={createUserProfilesMap()}
       />
-    </SafeAreaView>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0e0e0e',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
-  },
-  title: {
-    color: '#fff',
-    fontSize: 22,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-  },
-  timer: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  qualityIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  qualityIcon: {
-    fontSize: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 20,
-  },
-  status: {
-    color: '#aaa',
-    fontSize: 16,
-  },
-  videoContainer: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  liveVideoContainer: {
-    width: '100%',
-    flex: 1, // Use full available height
-    backgroundColor: '#000',
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  remoteVideoContainer: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  remoteVideo: {
-    flex: 1,
-    aspectRatio: 16/9, // Maintain video's natural aspect ratio
-    maxWidth: '100%',
-    maxHeight: '100%',
-  },
-  localVideoOverlay: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    width: '25%', // Responsive width based on container
-    aspectRatio: 3/4, // Portrait aspect ratio for local video
-    borderRadius: 10,
-    overflow: 'hidden',
-    zIndex: 10,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    maxWidth: 120, // Maximum size on larger screens
-    minWidth: 80,  // Minimum size on smaller screens
-  },
-  localVideo: {
-    flex: 1,
-    aspectRatio: 3/4, // Maintain natural aspect ratio
-    maxWidth: '100%',
-    maxHeight: '100%',
-  },
-  statusOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    gap: 8,
-  },
-  statusName: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  statusText: {
-    color: '#ddd',
-    fontSize: 18,
-  },
-  controlsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'absolute',
-    bottom: 50,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 20,
-  },
-  iconButton: {
-    backgroundColor: '#555',
-    marginHorizontal: 10,
-    padding: 15,
-    borderRadius: 50,
-  },
-  hangupButton: {
-    backgroundColor: '#e53935',
-  },
-});

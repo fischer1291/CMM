@@ -8,7 +8,7 @@ export default {
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     scheme: IS_DEV ? 'kontaktlisteapp-dev' : 'kontaktlisteapp',
-    userInterfaceStyle: 'automatic',
+    userInterfaceStyle: 'dark',
     newArchEnabled: true,
     ios: {
       supportsTablet: true,
@@ -70,7 +70,7 @@ export default {
           image: './assets/images/splash-icon.png',
           imageWidth: 200,
           resizeMode: 'contain',
-          backgroundColor: '#ffffff'
+          backgroundColor: '#0B0B12'
         }
       ]
     ],
