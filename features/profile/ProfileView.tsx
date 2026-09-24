@@ -18,6 +18,7 @@ type Props = {
   onChangeAvatar: () => void;
   onSaveName: (name: string) => Promise<void>;
   onOpenSystemSettings: () => void;
+  onOpenNotifications: () => void;
   onOpenStats: () => void;
   onOpenSchedule: () => void;
   onInvite: () => void;
@@ -97,7 +98,7 @@ export function ProfileView(props: Props) {
       <SectionHeader title="Einstellungen" />
       <RowGroup
         rows={[
-          { icon: 'notifications-outline', label: 'Mitteilungen', onPress: props.onOpenSystemSettings },
+          { icon: 'notifications-outline', label: 'Mitteilungen', onPress: props.onOpenNotifications },
           { icon: 'people-outline', label: 'Kontaktzugriff', onPress: props.onOpenSystemSettings },
         ]}
       />

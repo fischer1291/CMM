@@ -37,7 +37,33 @@ type Props = {
   scheduleLabel: string | null;
   onOpenSchedule: () => void;
   onOpenProfile?: () => void;
+  /** Explain notifications before the system asks */
+  showNotificationPrompt?: boolean;
+  onAllowNotifications?: () => void;
+  onDismissNotifications?: () => void;
 };
+
+function NotificationPrompt({ onAllow, onDismiss }: { onAllow?: () => void; onDismiss?: () => void }) {
+  return (
+    <GlassCard glow={colors.cyan} style={{ marginTop: spacing.xl }}>
+      <View style={styles.nudgeRow}>
+        <View style={[styles.linkIcon, { backgroundColor: `${colors.cyan}22` }]}>
+          <Ionicons name="notifications" size={22} color={colors.cyan} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <AppText variant="bodyStrong">Erfahre, wann deine Leute Zeit haben</AppText>
+          <AppText variant="caption" color={colors.textSecondary}>
+            Und verpasse keine Anrufe. Nachts ist Ruhe, und du bestimmst, was dich erreicht.
+          </AppText>
+        </View>
+      </View>
+      <View style={styles.promptActions}>
+        <Button title="Später" variant="ghost" onPress={() => onDismiss?.()} style={{ flex: 1 }} />
+        <Button title="Erlauben" onPress={() => onAllow?.()} style={{ flex: 1 }} />
+      </View>
+    </GlassCard>
+  );
+}
 
 function NudgeCard({ nudges, available, onCall, onStartSession }: { nudges: ReceivedNudge[]; available: boolean; onCall: (phone: string) => void; onStartSession: () => void }) {
   const first = nudges[0];
@@ -104,6 +130,9 @@ export function StatusView({
   scheduleLabel,
   onOpenSchedule,
   onOpenProfile,
+  showNotificationPrompt,
+  onAllowNotifications,
+  onDismissNotifications,
 }: Props) {
   const firstName = name.split(' ')[0] || 'du';
   const match = available && availableContacts.length > 0;
@@ -157,6 +186,8 @@ export function StatusView({
           </View>
         )}
       </View>
+
+      {showNotificationPrompt && <NotificationPrompt onAllow={onAllowNotifications} onDismiss={onDismissNotifications} />}
 
       {nudges.length > 0 && (
         <NudgeCard
@@ -252,6 +283,7 @@ const styles = StyleSheet.create({
   person: { alignItems: 'center', width: 72 },
   personName: { marginTop: spacing.sm, maxWidth: 72 },
   links: { gap: spacing.md },
+  promptActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   linkIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   streak: {

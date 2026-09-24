@@ -14,11 +14,11 @@ import { MomentsView } from '../features/moments/MomentsView';
 import { ProfileSetupView } from '../features/profile/ProfileSetupView';
 import { ProfileView } from '../features/profile/ProfileView';
 import { MomentComposer } from '../features/moments/MomentComposer';
-import CallMeMomentPrompt from '../components/CallMeMomentPrompt';
 import { StatusView } from '../features/status/StatusView';
 import { BadgeGrid, StatsView } from '../features/stats/StatsView';
 import { ScheduleView } from '../features/schedule/ScheduleView';
 import { FriendView } from '../features/contacts/FriendView';
+import { NotificationsView } from '../features/notifications/NotificationsView';
 import type { Stats } from '../services/gamificationApi';
 import { fetchPreviewState, PreviewState } from './previewControl';
 import {
@@ -255,17 +255,13 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onChangeAvatar={() => {}}
       onSaveName={async () => {}}
       onOpenSystemSettings={() => {}}
+      onOpenNotifications={() => {}}
       onOpenStats={() => {}}
       onOpenSchedule={() => {}}
       onInvite={() => {}}
       onSignOut={() => {}}
       version="1.0.0"
     />
-  ),
-  'moment-prompt': () => (
-    <Screen>
-      <CallMeMomentPrompt onClose={() => {}} />
-    </Screen>
   ),
   moments: () => (
     <MomentsView moments={MOMENTS} loading={false} refreshing={false} onRefresh={() => {}} onReact={() => {}} person={person} onGoToContacts={() => {}} />
@@ -339,6 +335,29 @@ const SCREENS: Record<string, () => React.ReactElement> = {
         { from: '+491', name: 'Anna Berg', avatarUrl: PHOTO },
         { from: '+492', name: 'Ben Koch', avatarUrl: null },
       ]}
+    />
+  ),
+  'status-prompt': () => (
+    <StatusView {...statusProps} available={false} availableContacts={PEOPLE.slice(0, 2)} nudges={[]} showNotificationPrompt />
+  ),
+  notifications: () => (
+    <NotificationsView
+      permission="undetermined"
+      prefs={{ available: true, nudges: true, moments: false, quietHours: { enabled: true, start: 22 * 60, end: 8 * 60 } }}
+      onBack={() => {}}
+      onAllow={() => {}}
+      onOpenSettings={() => {}}
+      onChange={() => {}}
+    />
+  ),
+  'notifications-denied': () => (
+    <NotificationsView
+      permission="denied"
+      prefs={{ available: false, nudges: true, moments: true, quietHours: { enabled: false, start: 22 * 60, end: 8 * 60 } }}
+      onBack={() => {}}
+      onAllow={() => {}}
+      onOpenSettings={() => {}}
+      onChange={() => {}}
     />
   ),
   stats: () => (

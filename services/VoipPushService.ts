@@ -102,6 +102,11 @@ class VoipPushService {
     }
   }
 
+  /** This device's VoIP token, if PushKit delivered one. */
+  getToken(): string | null {
+    return this.voipToken;
+  }
+
   cleanup(): void {
     this.userPhone = null;
     this.registeredFor = null;

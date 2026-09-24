@@ -7,16 +7,6 @@ import { Platform, Vibration, AppState } from 'react-native';
 import CallStateManager, { CallData } from './CallStateManager';
 import PlatformCallAdapter from './PlatformCallAdapter';
 
-// Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
-
 interface IncomingCallNotification {
   type: 'incoming_call';
   callId?: string;
