@@ -9,3 +9,4 @@ export { Chip, EmptyState, SectionHeader } from './components/misc';
 export { Screen } from './components/Screen';
 export { StatusOrb } from './components/StatusOrb';
 export { TextField } from './components/TextField';
+export { PageHeader, Segmented, Toggle } from './components/controls';

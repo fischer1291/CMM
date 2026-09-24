@@ -16,6 +16,10 @@ import { ProfileView } from '../features/profile/ProfileView';
 import { MomentComposer } from '../features/moments/MomentComposer';
 import CallMeMomentPrompt from '../components/CallMeMomentPrompt';
 import { StatusView } from '../features/status/StatusView';
+import { BadgeGrid, StatsView } from '../features/stats/StatsView';
+import { ScheduleView } from '../features/schedule/ScheduleView';
+import { FriendView } from '../features/contacts/FriendView';
+import type { Stats } from '../services/gamificationApi';
 import { fetchPreviewState, PreviewState } from './previewControl';
 import {
   AppText,
@@ -188,6 +192,46 @@ const MOMENTS = [
 ];
 const person = (phone: string, name: string) => ({ name, avatarUrl: phone === '+491' ? PHOTO : null });
 
+const statusProps = {
+  name: 'Leroy Fischer',
+  avatarUrl: null,
+  onToggleAvailable: () => {},
+  sessionOptions: [
+    { minutes: 15, label: '15 Min.' },
+    { minutes: 30, label: '30 Min.' },
+    { minutes: 60, label: '1 Std.' },
+  ],
+  onStartSession: () => {},
+  onCallContact: () => {},
+  week: { label: '57 Min.', streak: 3 },
+  onOpenStats: () => {},
+  scheduleLabel: 'Heute 18:00',
+  onOpenSchedule: () => {},
+};
+
+const BADGE = (id: string, title: string, earned: boolean, progress = 1) => ({ id, title, description: '', earned, progress });
+const STATS: Stats = {
+  totals: { weekSeconds: 57 * 60, lastWeekSeconds: 80 * 60, monthSeconds: 4 * 3600 + 10 * 60, allTimeSeconds: 12 * 3600, talks: 23, longestSeconds: 48 * 60 },
+  weeks: [20, 0, 45, 80, 30, 95, 80, 57].map((m, i) => ({ week: new Date(Date.UTC(2026, 7, 3 + i * 7)).toISOString().slice(0, 10), seconds: m * 60 })),
+  streak: { current: 3, best: 4 },
+  badges: [
+    BADGE('first_talk', 'Erstes Gespräch', true),
+    BADGE('deep_talk', 'Tiefgang', true),
+    BADGE('hour', 'Eine Stunde', true),
+    BADGE('ten_talks', 'Zehn Gespräche', true),
+    BADGE('streak_4', 'Dranbleiber', false, 0.75),
+    BADGE('circle', 'Dein Kreis', false, 0.6),
+    BADGE('ten_hours', 'Zehn Stunden', false, 0.4),
+    BADGE('planner', 'Planer', true),
+    BADGE('storyteller', 'Erzähler', false, 0),
+  ],
+  people: [
+    { phone: '+491', seconds: 5 * 3600 + 12 * 60, talks: 9 },
+    { phone: '+492', seconds: 3 * 3600, talks: 6 },
+    { phone: '+493', seconds: 95 * 60, talks: 4 },
+  ],
+};
+
 const SCREENS: Record<string, () => React.ReactElement> = {
   composer: () => (
     <MomentComposer
@@ -211,6 +255,8 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onChangeAvatar={() => {}}
       onSaveName={async () => {}}
       onOpenSystemSettings={() => {}}
+      onOpenStats={() => {}}
+      onOpenSchedule={() => {}}
       onInvite={() => {}}
       onSignOut={() => {}}
       version="1.0.0"
@@ -218,7 +264,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
   ),
   'moment-prompt': () => (
     <Screen>
-      <CallMeMomentPrompt phone="+49" onClose={() => {}} />
+      <CallMeMomentPrompt onClose={() => {}} />
     </Screen>
   ),
   moments: () => (
@@ -249,6 +295,9 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onRequestPermission={() => {}}
       onCall={() => {}}
       onInvite={() => {}}
+      onOpen={() => {}}
+      onNudge={() => {}}
+      nudged={(phone) => phone === CONTACTS[2]?.phone}
     />
   ),
   'contacts-denied': () => (
@@ -263,36 +312,99 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onRequestPermission={() => {}}
       onCall={() => {}}
       onInvite={() => {}}
+      onOpen={() => {}}
+      onNudge={() => {}}
+      nudged={(phone) => phone === CONTACTS[2]?.phone}
     />
   ),
   'status-on': () => (
     <StatusView
-      name="Leroy Fischer"
-      avatarUrl={null}
+      {...statusProps}
       available
-      onToggleAvailable={() => {}}
-      momentProgress={0.62}
-      momentRemaining="09:18"
+      sessionProgress={0.62}
+      sessionCaption="18:37 übrig"
       availableContacts={PEOPLE}
-      onCallContact={() => {}}
-      stats={{ conversations: 4, minutes: 57 }}
+      nudges={[{ from: '+491', name: 'Anna Berg', avatarUrl: PHOTO }]}
     />
   ),
   'status-off': () => (
+    <StatusView {...statusProps} available={false} availableContacts={[]} nudges={[]} week={null} scheduleLabel={null} />
+  ),
+  'status-nudged': () => (
     <StatusView
-      name="Leroy Fischer"
-      avatarUrl={null}
+      {...statusProps}
       available={false}
-      onToggleAvailable={() => {}}
-      availableContacts={[]}
-      onCallContact={() => {}}
-      stats={{ conversations: 0, minutes: 0 }}
+      availableContacts={PEOPLE.slice(0, 1)}
+      nudges={[
+        { from: '+491', name: 'Anna Berg', avatarUrl: PHOTO },
+        { from: '+492', name: 'Ben Koch', avatarUrl: null },
+      ]}
+    />
+  ),
+  stats: () => (
+    <StatsView
+      stats={STATS}
+      sharing={{ visibility: 'selected', sharedWith: ['+491', '+492'] }}
+      loading={false}
+      error={false}
+      onRetry={() => {}}
+      onBack={() => {}}
+      person={(phone) => ({ name: phone === '+491' ? 'Anna Berg' : phone === '+492' ? 'Ben Koch' : 'Mama', avatarUrl: phone === '+491' ? PHOTO : null })}
+      onChangeVisibility={() => {}}
+      onPickPeople={() => {}}
+    />
+  ),
+  schedule: () => (
+    <ScheduleView
+      enabled
+      slots={[
+        { day: 1, start: 18 * 60, end: 20 * 60 },
+        { day: 3, start: 12 * 60, end: 13 * 60 },
+        { day: 3, start: 18 * 60, end: 20 * 60 },
+        { day: 6, start: 10 * 60, end: 12 * 60 },
+      ]}
+      loading={false}
+      saving={false}
+      dirty
+      nextLabel="Heute 18:00"
+      onBack={() => {}}
+      onToggle={() => {}}
+      onAdd={() => {}}
+      onRemove={() => {}}
+      onSave={() => {}}
+    />
+  ),
+  friend: () => (
+    <FriendView
+      name="Anna Berg"
+      avatarUrl={PHOTO}
+      available={false}
+      statusText="Zuletzt erreichbar vor 2 Std."
+      together={{ seconds: 3 * 3600 + 20 * 60, talks: 7 }}
+      shared={{
+        totals: { weekSeconds: 42 * 60, monthSeconds: 5 * 3600, allTimeSeconds: 20 * 3600 },
+        streak: { current: 5, best: 7 },
+        badges: [
+          { id: 'first_talk', title: 'Erstes Gespräch', description: '' },
+          { id: 'deep_talk', title: 'Tiefgang', description: '' },
+          { id: 'streak_4', title: 'Dranbleiber', description: '' },
+        ],
+      }}
+      nudged={false}
+      onBack={() => {}}
+      onCall={() => {}}
+      onNudge={() => {}}
     />
   ),
 };
 
 const SECTIONS: Record<string, () => React.ReactElement> = {
   components: Components,
+  badges: () => (
+    <View style={{ marginTop: spacing.xl }}>
+      <BadgeGrid badges={STATS.badges} />
+    </View>
+  ),
 };
 
 export function DevPreview() {
