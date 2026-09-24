@@ -22,7 +22,11 @@ type Props = {
   onOpenStats: () => void;
   onOpenSchedule: () => void;
   onInvite: () => void;
+  onExportData: () => void;
+  onOpenPrivacy: () => void;
+  onOpenImprint: () => void;
   onSignOut: () => void;
+  onDeleteAccount: () => void;
   version: string;
 };
 
@@ -106,8 +110,22 @@ export function ProfileView(props: Props) {
       <SectionHeader title="Community" />
       <RowGroup rows={[{ icon: 'gift-outline', label: 'Freunde einladen', onPress: props.onInvite }]} />
 
+      <SectionHeader title="Deine Daten" />
+      <RowGroup
+        rows={[
+          { icon: 'download-outline', label: 'Meine Daten exportieren', onPress: props.onExportData },
+          { icon: 'shield-checkmark-outline', label: 'Datenschutz', onPress: props.onOpenPrivacy },
+          { icon: 'document-text-outline', label: 'Impressum', onPress: props.onOpenImprint },
+        ]}
+      />
+
       <View style={{ marginTop: spacing.xl }}>
-        <RowGroup rows={[{ icon: 'log-out-outline', label: 'Abmelden', onPress: props.onSignOut, danger: true }]} />
+        <RowGroup
+          rows={[
+            { icon: 'log-out-outline', label: 'Abmelden', onPress: props.onSignOut, danger: true },
+            { icon: 'trash-outline', label: 'Konto löschen', onPress: props.onDeleteAccount, danger: true },
+          ]}
+        />
       </View>
 
       <AppText variant="caption" color={colors.textMuted} center style={{ marginTop: spacing.xl }}>

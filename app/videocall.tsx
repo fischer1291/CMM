@@ -28,6 +28,7 @@ import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager from '../services/CallStateManager';
 import { apiFetch, apiPostJson } from '../utils/api';
 import { AGORA_APP_ID } from '../config/env';
+import { uploadMomentImage } from '../services/moments';
 
 // Client-side cap, below the backend's 1 MB data URI limit
 const MAX_MOMENT_IMAGE_LENGTH = 600_000;
@@ -170,6 +171,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   const [callStartTime, setCallStartTime] = useState<number | null>(null);
   const [callDuration, setCallDuration] = useState<string>('00:00');
   const [capturedScreenshot, setCapturedScreenshot] = useState<string | null>(null);
+  const momentFallbackRef = useRef<string | null>(null);
   const [showCallMomentModal, setShowCallMomentModal] = useState(false);
   const [userProfiles, setUserProfiles] = useState<Map<string, any>>(new Map());
   // Outgoing calls ring until the callee answers
@@ -597,8 +599,9 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   };
 
   /**
-   * Capture the call as a downscaled JPEG data URI. The backend accepts data
-   * URIs up to 1 MB; we stay well below by shrinking until it fits.
+   * Capture the call as a downscaled JPEG data URI: the fallback if the
+   * upload fails. The backend accepts data URIs up to 1 MB; we stay well
+   * below by shrinking until it fits.
    */
   const captureMoment = async (): Promise<string | null> => {
     const ref = viewShotRef.current;
@@ -624,12 +627,20 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
 
   const handleTakeScreenshot = async () => {
     try {
-      const dataUri = await captureMoment();
-      if (!dataUri) {
-        Alert.alert('Fehler', 'Screenshot konnte nicht erstellt werden. Bitte versuche es erneut.');
-        return;
-      }
-      setCapturedScreenshot(dataUri);
+      const ref = viewShotRef.current;
+      if (!ref) throw new Error('No view to capture');
+      const { width, height } = Dimensions.get('window');
+      // Full quality file for the upload (and the preview), plus a small
+      // inline copy of the same frame in case the upload fails
+      const file = await captureRef(ref, {
+        format: 'jpg',
+        quality: 0.85,
+        result: 'tmpfile',
+        width: 1080,
+        height: Math.round((1080 * height) / width),
+      });
+      momentFallbackRef.current = await captureMoment();
+      setCapturedScreenshot(file);
       setShowCallMomentModal(true);
     } catch (error) {
       console.error('📸 Screenshot error:', error);
@@ -640,9 +651,11 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing }: VideoC
   const handlePostCallMoment = async (draft: MomentDraft) => {
     if (!capturedScreenshot) return;
     try {
+      const screenshot = (await uploadMomentImage(capturedScreenshot)) ?? momentFallbackRef.current;
+      if (!screenshot) throw new Error('No picture to post');
       const response = await apiPostJson(
         '/moment/callmoment',
-        { ...draft, screenshot: capturedScreenshot, timestamp: new Date().toISOString() },
+        { ...draft, screenshot, timestamp: new Date().toISOString() },
         20000
       );
       const result = await response.json().catch(() => ({}));

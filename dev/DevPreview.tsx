@@ -20,6 +20,8 @@ import { ScheduleView } from '../features/schedule/ScheduleView';
 import { FriendView } from '../features/contacts/FriendView';
 import { NotificationsView } from '../features/notifications/NotificationsView';
 import { BannerCard } from '../components/InAppBanner';
+import { LegalView } from '../features/legal/LegalView';
+import { PRIVACY_SECTIONS } from '../content/legal';
 import type { Stats } from '../services/gamificationApi';
 import { fetchPreviewState, PreviewState } from './previewControl';
 import {
@@ -260,7 +262,11 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpenStats={() => {}}
       onOpenSchedule={() => {}}
       onInvite={() => {}}
+      onExportData={() => {}}
+      onOpenPrivacy={() => {}}
+      onOpenImprint={() => {}}
       onSignOut={() => {}}
+      onDeleteAccount={() => {}}
       version="1.0.0"
     />
   ),
@@ -338,6 +344,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       ]}
     />
   ),
+  datenschutz: () => <LegalView title="Datenschutz" sections={PRIVACY_SECTIONS} onBack={() => {}} />,
   'status-prompt': () => (
     <StatusView {...statusProps} available={false} availableContacts={PEOPLE.slice(0, 2)} nudges={[]} showNotificationPrompt />
   ),

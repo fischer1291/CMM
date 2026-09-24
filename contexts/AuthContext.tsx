@@ -27,7 +27,8 @@ type AuthContextType = {
   needsProfileSetup: boolean;
   signIn: (phone: string, token: string | null, options?: { needsProfileSetup?: boolean }) => Promise<void>;
   completeProfileSetup: () => void;
-  signOut: () => Promise<void>;
+  /** `local`: only this device (e.g. the account was just deleted) */
+  signOut: (options?: { local?: boolean }) => Promise<void>;
   updateUserProfile: (profile: Partial<UserProfile>) => Promise<void>;
   reloadProfile: () => void;
 };
@@ -132,10 +133,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (userPhone) loadProfile();
   }, [userPhone, loadProfile]);
 
-  const signOut = useCallback(async (options?: { tokenRejected?: boolean }) => {
+  const signOut = useCallback(async (options?: { local?: boolean }) => {
     // While the auth token still works: this device stops getting pushes/calls.
-    // Skipped when the server just rejected the token (it would fail again).
-    if (session.getToken() && !options?.tokenRejected) await PushTokenService.unregister();
+    // Skipped when the server just rejected the token (it would fail again)
+    // or the account no longer exists.
+    if (session.getToken() && !options?.local) await PushTokenService.unregister();
     session.setToken(null);
     await storeSecure('authToken', null);
     await storeSecure('userPhone', null);
@@ -164,7 +166,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // A rejected token (expired/revoked) signs the user out
   useEffect(() => {
     session.onUnauthorized(() => {
-      signOut({ tokenRejected: true });
+      signOut({ local: true });
     });
     return () => session.onUnauthorized(null);
   }, [signOut]);

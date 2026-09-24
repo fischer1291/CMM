@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Alert, Linking, Share } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProfileView } from '../../features/profile/ProfileView';
+import { deleteAccount, exportAccountData } from '../../services/account';
 import { pickAvatarImage, uploadAvatar } from '../../services/avatar';
 
 const INVITE_TEXT = 'Hey! Ich nutze Call Me Maybe – da siehst du, wann ich Zeit für einen Anruf habe. Lad sie dir runter, dann können wir quatschen!';
@@ -37,6 +38,41 @@ export default function ProfileScreen() {
     }
   };
 
+  const exportData = () =>
+    exportAccountData().catch(() =>
+      Alert.alert('Export fehlgeschlagen', 'Deine Daten konnten nicht exportiert werden. Bitte versuche es erneut.')
+    );
+
+  const confirmDelete = () =>
+    Alert.alert(
+      'Konto löschen?',
+      'Dein Profil, deine Moments, deine Gesprächszeit und alle Einstellungen werden endgültig gelöscht. Deine Kontakte sehen dich danach nicht mehr.',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Weiter',
+          style: 'destructive',
+          onPress: () =>
+            Alert.alert('Wirklich endgültig löschen?', 'Das lässt sich nicht rückgängig machen.', [
+              { text: 'Abbrechen', style: 'cancel' },
+              {
+                text: 'Endgültig löschen',
+                style: 'destructive',
+                onPress: async () => {
+                  try {
+                    await deleteAccount();
+                    await signOut({ local: true });
+                    Alert.alert('Konto gelöscht', 'Deine Daten wurden gelöscht. Schön, dass du da warst.');
+                  } catch {
+                    Alert.alert('Nicht gelöscht', 'Dein Konto konnte nicht gelöscht werden. Bitte versuche es erneut.');
+                  }
+                },
+              },
+            ]),
+        },
+      ]
+    );
+
   const confirmSignOut = () =>
     Alert.alert('Abmelden?', 'Du kannst dich jederzeit wieder mit deiner Nummer anmelden.', [
       { text: 'Abbrechen', style: 'cancel' },
@@ -56,7 +92,11 @@ export default function ProfileScreen() {
       onOpenStats={() => router.push('/stats')}
       onOpenSchedule={() => router.push('/schedule')}
       onInvite={() => Share.share({ message: INVITE_TEXT })}
+      onExportData={exportData}
+      onOpenPrivacy={() => router.push('/datenschutz')}
+      onOpenImprint={() => router.push('/impressum')}
       onSignOut={confirmSignOut}
+      onDeleteAccount={confirmDelete}
       version={Constants.expoConfig?.version ?? '1.0.0'}
     />
   );
