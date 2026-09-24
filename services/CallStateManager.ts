@@ -66,10 +66,18 @@ export type CallStateEvent =
   | 'call:remote-ended' // outgoing call ended by the other side: { channel, reason }
   | 'call:accepted'; // outgoing call answered: { channel }
 
+/**
+ * An incoming call that is still "ringing" after this long is over, even if
+ * the end signal never arrived (app suspended, socket down). A bit longer
+ * than the backend's 45 s ring timeout.
+ */
+export const INCOMING_RING_TIMEOUT_MS = 60 * 1000;
+
 class CallStateManager extends SimpleEventEmitter {
   private static instance: CallStateManager;
   private activeCall: CallData | null = null;
   private callHistory: CallData[] = [];
+  private ringTimer: ReturnType<typeof setTimeout> | null = null;
 
   private constructor() {
     super();
@@ -84,7 +92,10 @@ class CallStateManager extends SimpleEventEmitter {
   }
 
   /**
-   * Create a new incoming call
+   * Create a new incoming call. Returns the existing call for the same
+   * channel, or null if the user is busy with another call (the caller
+   * should then be told). A leftover call that stopped ringing long ago is
+   * dropped instead of blocking the new one.
    */
   createIncomingCall(data: {
     callId?: string;
@@ -93,17 +104,19 @@ class CallStateManager extends SimpleEventEmitter {
     calleePhone: string;
     callerName?: string;
     hasVideo: boolean;
-  }): CallData {
-    // Check if we already have an active call for this channel
+  }): CallData | null {
     if (this.activeCall && this.activeCall.channel === data.channel) {
       console.log('📞 CallStateManager: Call already exists for channel:', data.channel);
       return this.activeCall;
     }
 
-    // Check if we have any active incoming call (prevent multiple incoming calls)
-    if (this.activeCall && this.activeCall.callState === 'incoming') {
-      console.log('📞 CallStateManager: Already have an active incoming call:', this.activeCall.callId);
-      return this.activeCall;
+    if (this.activeCall) {
+      if (!this.isStale(this.activeCall)) {
+        console.log('📞 CallStateManager: Busy with', this.activeCall.channel, '- rejecting', data.channel);
+        return null;
+      }
+      console.log('📞 CallStateManager: Dropping stale call:', this.activeCall.channel);
+      this.endCall();
     }
 
     const { callId, ...rest } = data;
@@ -117,10 +130,35 @@ class CallStateManager extends SimpleEventEmitter {
     };
 
     this.activeCall = callData;
+    this.startRingTimer(callData.callId);
     this.emit('call:incoming', callData);
-    
+
     console.log('📞 CallStateManager: Incoming call created:', callData.callId);
     return callData;
+  }
+
+  /** An incoming call nobody answered in time, or an old ended one. */
+  private isStale(call: CallData): boolean {
+    if (call.callState === 'ended') return true;
+    if (call.callState !== 'incoming') return false;
+    return !call.startTime || Date.now() - call.startTime.getTime() > INCOMING_RING_TIMEOUT_MS;
+  }
+
+  /** Stop ringing on this device if the end signal gets lost. */
+  private startRingTimer(callId: string): void {
+    this.clearRingTimer();
+    this.ringTimer = setTimeout(() => {
+      this.ringTimer = null;
+      if (this.activeCall?.callId === callId && this.activeCall.callState === 'incoming') {
+        console.log('⏱️ CallStateManager: Incoming call timed out:', callId);
+        this.endCall();
+      }
+    }, INCOMING_RING_TIMEOUT_MS);
+  }
+
+  private clearRingTimer(): void {
+    if (this.ringTimer) clearTimeout(this.ringTimer);
+    this.ringTimer = null;
   }
 
   /**
@@ -132,6 +170,7 @@ class CallStateManager extends SimpleEventEmitter {
       return false;
     }
 
+    this.clearRingTimer();
     this.activeCall.callState = 'active';
     this.emit('call:answered', this.activeCall);
     
@@ -150,6 +189,7 @@ class CallStateManager extends SimpleEventEmitter {
 
     // Clear the active call before notifying listeners: a listener may end
     // the call again (e.g. via CallKit), which must find nothing to end
+    this.clearRingTimer();
     const endedCall = this.activeCall;
     this.activeCall = null;
     endedCall.callState = 'ended';
@@ -172,6 +212,7 @@ class CallStateManager extends SimpleEventEmitter {
 
     // Clear the active call before notifying listeners: the call screen's
     // cleanup ends the call again, which must find nothing to end
+    this.clearRingTimer();
     const endedCall = this.activeCall;
     this.activeCall = null;
     endedCall.callState = 'ended';
@@ -209,6 +250,7 @@ class CallStateManager extends SimpleEventEmitter {
    */
   reset(): void {
     const wasActive = this.activeCall !== null;
+    this.clearRingTimer();
     this.activeCall = null;
     
     if (wasActive) {

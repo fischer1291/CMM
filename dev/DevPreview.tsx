@@ -14,11 +14,12 @@ import { MomentsView } from '../features/moments/MomentsView';
 import { ProfileSetupView } from '../features/profile/ProfileSetupView';
 import { ProfileView } from '../features/profile/ProfileView';
 import { MomentComposer } from '../features/moments/MomentComposer';
-import CallMeMomentPrompt from '../components/CallMeMomentPrompt';
 import { StatusView } from '../features/status/StatusView';
 import { BadgeGrid, StatsView } from '../features/stats/StatsView';
 import { ScheduleView } from '../features/schedule/ScheduleView';
 import { FriendView } from '../features/contacts/FriendView';
+import { NotificationsView } from '../features/notifications/NotificationsView';
+import { BannerCard } from '../components/InAppBanner';
 import type { Stats } from '../services/gamificationApi';
 import { fetchPreviewState, PreviewState } from './previewControl';
 import {
@@ -255,17 +256,13 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onChangeAvatar={() => {}}
       onSaveName={async () => {}}
       onOpenSystemSettings={() => {}}
+      onOpenNotifications={() => {}}
       onOpenStats={() => {}}
       onOpenSchedule={() => {}}
       onInvite={() => {}}
       onSignOut={() => {}}
       version="1.0.0"
     />
-  ),
-  'moment-prompt': () => (
-    <Screen>
-      <CallMeMomentPrompt onClose={() => {}} />
-    </Screen>
   ),
   moments: () => (
     <MomentsView moments={MOMENTS} loading={false} refreshing={false} onRefresh={() => {}} onReact={() => {}} person={person} onGoToContacts={() => {}} />
@@ -341,6 +338,38 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       ]}
     />
   ),
+  'status-prompt': () => (
+    <StatusView {...statusProps} available={false} availableContacts={PEOPLE.slice(0, 2)} nudges={[]} showNotificationPrompt />
+  ),
+  notifications: () => (
+    <NotificationsView
+      permission="granted"
+      prefs={{ available: true, nudges: true, moments: false, quietHours: { enabled: false, start: 22 * 60, end: 8 * 60 } }}
+      onBack={() => {}}
+      onAllow={() => {}}
+      onOpenSettings={() => {}}
+      onChange={() => {}}
+      recent={[
+        { type: 'contact_available', about: '+491', result: 'sent', app: 'background', delivery: 'delivered', at: new Date().toISOString() },
+        { type: 'contact_available', about: '+491', result: 'throttled', app: 'closed', delivery: null, at: new Date(Date.now() - 60000).toISOString() },
+        { type: 'nudge', about: '+492', result: 'in_app', app: 'foreground', delivery: null, at: new Date(Date.now() - 60 * 60000).toISOString() },
+        { type: 'moment_shared', about: '+492', result: 'quiet_hours', app: 'closed', delivery: null, at: new Date(Date.now() - 26 * 3600000).toISOString() },
+      ]}
+      nameOf={(phone) => (phone === '+491' ? 'Anna' : 'Ben')}
+    />
+  ),
+  'notifications-denied': () => (
+    <NotificationsView
+      permission="denied"
+      prefs={{ available: false, nudges: true, moments: true, quietHours: { enabled: false, start: 22 * 60, end: 8 * 60 } }}
+      onBack={() => {}}
+      onAllow={() => {}}
+      onOpenSettings={() => {}}
+      onChange={() => {}}
+      recent={[]}
+      nameOf={() => 'Jemand'}
+    />
+  ),
   stats: () => (
     <StatsView
       stats={STATS}
@@ -400,6 +429,12 @@ const SCREENS: Record<string, () => React.ReactElement> = {
 
 const SECTIONS: Record<string, () => React.ReactElement> = {
   components: Components,
+  banners: () => (
+    <View style={{ marginTop: spacing.xl, gap: spacing.lg }}>
+      <BannerCard name="Anna Berg" avatarUrl={PHOTO} kind="available" onPress={() => {}} onAction={() => {}} />
+      <BannerCard name="Ben Koch" avatarUrl={null} kind="nudge" onPress={() => {}} onAction={() => {}} />
+    </View>
+  ),
   badges: () => (
     <View style={{ marginTop: spacing.xl }}>
       <BadgeGrid badges={STATS.badges} />

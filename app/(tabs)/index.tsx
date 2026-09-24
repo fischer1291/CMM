@@ -1,10 +1,8 @@
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
-import CallMeMomentPrompt from '../../components/CallMeMomentPrompt';
 import { useAuth } from '../../contexts/AuthContext';
 import { useContacts } from '../../contexts/ContactsContext';
 import { useNewCall } from '../../contexts/NewCallContext';
@@ -20,7 +18,13 @@ import {
   startSession,
   talkTime,
 } from '../../services/gamificationApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import PushTokenService from '../../services/PushTokenService';
 import { apiFetch, apiPostJson } from '../../utils/api';
+
+// "Später" hides the notification explanation for a week
+const PROMPT_DISMISSED_KEY = 'notificationPromptDismissedAt';
+const PROMPT_PAUSE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const SESSION_OPTIONS = [
   { minutes: 15, label: '15 Min.' },
@@ -39,9 +43,9 @@ export default function StatusScreen() {
 
   const [status, setStatus] = useState<OwnStatus>({ available: false, until: null, source: null });
   const [toggling, setToggling] = useState(false);
-  const [showPrompt, setShowPrompt] = useState(false);
   const [week, setWeek] = useState<{ label: string; streak: number } | null>(null);
   const [scheduleLabel, setScheduleLabel] = useState<string | null>(null);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
 
   const { formatted: countdown, remaining } = useCountdown(status.available ? status.until : null);
   // Length of the running session as first seen, for the countdown ring
@@ -63,6 +67,25 @@ export default function StatusScreen() {
     }
   }, []);
 
+  const checkNotificationPrompt = useCallback(async () => {
+    const [permission, dismissedAt] = await Promise.all([
+      PushTokenService.permission(),
+      AsyncStorage.getItem(PROMPT_DISMISSED_KEY),
+    ]);
+    const paused = dismissedAt && Date.now() - Number(dismissedAt) < PROMPT_PAUSE_MS;
+    setShowNotificationPrompt(permission === 'undetermined' && !paused);
+  }, []);
+
+  const allowNotifications = async () => {
+    setShowNotificationPrompt(false);
+    if (userPhone) await PushTokenService.requestAndRegister(userPhone);
+  };
+
+  const dismissNotifications = () => {
+    setShowNotificationPrompt(false);
+    AsyncStorage.setItem(PROMPT_DISMISSED_KEY, String(Date.now())).catch(() => {});
+  };
+
   const loadExtras = useCallback(() => {
     fetchStats()
       .then(({ stats }) => setWeek({ label: talkTime(stats.totals.weekSeconds), streak: stats.streak.current }))
@@ -78,9 +101,10 @@ export default function StatusScreen() {
       fetchStatus();
       reloadProfile();
       loadExtras();
+      checkNotificationPrompt().catch(() => {});
       const timer = setInterval(fetchStatus, 60 * 1000);
       return () => clearInterval(timer);
-    }, [fetchStatus, reloadProfile, loadExtras])
+    }, [fetchStatus, reloadProfile, loadExtras, checkNotificationPrompt])
   );
 
   // A session ran out: the server switched us off
@@ -90,21 +114,6 @@ export default function StatusScreen() {
       return () => clearTimeout(t);
     }
   }, [status.available, status.until, remaining, fetchStatus]);
-
-  // A Call Me Moment push (tap or while open) opens the mood prompt
-  useEffect(() => {
-    const isMoment = (n: Notifications.Notification) => n.request.content.data?.type === 'callMeMoment';
-    const responseSub = Notifications.addNotificationResponseReceivedListener((r) => {
-      if (isMoment(r.notification)) setShowPrompt(true);
-    });
-    const receiveSub = Notifications.addNotificationReceivedListener((n) => {
-      if (isMoment(n)) setShowPrompt(true);
-    });
-    return () => {
-      responseSub.remove();
-      receiveSub.remove();
-    };
-  }, []);
 
   const toggleAvailable = async () => {
     const previous = status;
@@ -160,14 +169,6 @@ export default function StatusScreen() {
 
   return (
     <>
-      {showPrompt && userPhone && (
-        <CallMeMomentPrompt
-          onClose={() => {
-            setShowPrompt(false);
-            fetchStatus();
-          }}
-        />
-      )}
       <StatusView
         name={userProfile?.name || ''}
         avatarUrl={userProfile?.avatarUrl || null}
@@ -186,6 +187,9 @@ export default function StatusScreen() {
         scheduleLabel={scheduleLabel}
         onOpenSchedule={() => router.push('/schedule')}
         onOpenProfile={() => router.push('/(tabs)/settings')}
+        showNotificationPrompt={showNotificationPrompt}
+        onAllowNotifications={allowNotifications}
+        onDismissNotifications={dismissNotifications}
       />
     </>
   );

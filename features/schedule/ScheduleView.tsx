@@ -5,7 +5,7 @@ import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Slot } from '../../services/gamificationApi';
 import { clock, WEEK_ORDER, WEEKDAYS_LONG, WEEKDAYS_SHORT } from '../../services/gamificationApi';
-import { AppText, Button, colors, GlassCard, PageHeader, radius, Screen, SectionHeader, spacing, Toggle } from '../../ui';
+import { AppText, Button, colors, GlassCard, PageHeader, radius, Screen, SectionHeader, spacing, TimeStepper, Toggle } from '../../ui';
 
 const STEP = 15;
 const PRESETS: { label: string; days: number[]; start: number; end: number }[] = [
@@ -27,34 +27,6 @@ type Props = {
   onRemove: (slot: Slot) => void;
   onSave: () => void;
 };
-
-function TimeStepper({ label, value, onChange, min, max }: { label: string; value: number; onChange: (v: number) => void; min: number; max: number }) {
-  const step = (delta: number) => {
-    const next = Math.min(max, Math.max(min, value + delta));
-    if (next !== value) {
-      Haptics.selectionAsync().catch(() => {});
-      onChange(next);
-    }
-  };
-  return (
-    <View style={styles.stepper}>
-      <AppText variant="label" color={colors.textMuted}>
-        {label}
-      </AppText>
-      <View style={styles.stepperRow}>
-        <Pressable onPress={() => step(-STEP)} onLongPress={() => step(-60)} hitSlop={6} accessibilityRole="button" accessibilityLabel={`${label} früher`} style={styles.stepButton}>
-          <Ionicons name="remove" size={20} color={colors.text} />
-        </Pressable>
-        <AppText variant="h2" style={styles.stepValue} accessibilityLabel={`${label} ${clock(value)}`}>
-          {clock(value)}
-        </AppText>
-        <Pressable onPress={() => step(STEP)} onLongPress={() => step(60)} hitSlop={6} accessibilityRole="button" accessibilityLabel={`${label} später`} style={styles.stepButton}>
-          <Ionicons name="add" size={20} color={colors.text} />
-        </Pressable>
-      </View>
-    </View>
-  );
-}
 
 /** Mounted while open, so every opening starts fresh. */
 function AddSlotSheet({ onClose, onAdd, initialDay }: { onClose: () => void; onAdd: Props['onAdd']; initialDay: number | null }) {
@@ -118,6 +90,7 @@ function AddSlotSheet({ onClose, onAdd, initialDay }: { onClose: () => void; onA
         <View style={styles.times}>
           <TimeStepper
             label="Von"
+            step={STEP}
             value={start}
             min={0}
             max={24 * 60 - 2 * STEP}
@@ -126,7 +99,7 @@ function AddSlotSheet({ onClose, onAdd, initialDay }: { onClose: () => void; onA
               if (end - v < STEP) setEnd(v + STEP);
             }}
           />
-          <TimeStepper label="Bis" value={end} min={start + STEP} max={24 * 60 - STEP} onChange={setEnd} />
+          <TimeStepper label="Bis" step={STEP} value={end} min={start + STEP} max={24 * 60 - STEP} onChange={setEnd} />
         </View>
 
         <Button
@@ -291,8 +264,4 @@ const styles = StyleSheet.create({
   day: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   dayActive: { backgroundColor: colors.cyan },
   times: { flexDirection: 'row', gap: spacing.md },
-  stepper: { flex: 1, gap: spacing.sm, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surface },
-  stepperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  stepButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceStrong },
-  stepValue: { fontVariant: ['tabular-nums'] },
 });

@@ -132,18 +132,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (userPhone) loadProfile();
   }, [userPhone, loadProfile]);
 
-  const registerPushToken = useCallback(async (phone: string) => {
-    try {
-      const pushToken = await PushTokenService.registerForPushNotifications();
-      if (pushToken) {
-        await PushTokenService.registerPushToken(phone, pushToken);
-      }
-    } catch (error) {
-      console.log('Failed to register push notifications:', error);
-    }
-  }, []);
-
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (options?: { tokenRejected?: boolean }) => {
+    // While the auth token still works: this device stops getting pushes/calls.
+    // Skipped when the server just rejected the token (it would fail again).
+    if (session.getToken() && !options?.tokenRejected) await PushTokenService.unregister();
     session.setToken(null);
     await storeSecure('authToken', null);
     await storeSecure('userPhone', null);
@@ -163,15 +155,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setPendingPhone(null);
       setNeedsProfileSetup(!!options?.needsProfileSetup);
       setUserPhoneState(phone);
-      registerPushToken(phone);
+      // Only if already allowed; the app asks later, with an explanation
+      PushTokenService.register(phone);
     },
-    [registerPushToken]
+    []
   );
 
   // A rejected token (expired/revoked) signs the user out
   useEffect(() => {
     session.onUnauthorized(() => {
-      signOut();
+      signOut({ tokenRejected: true });
     });
     return () => session.onUnauthorized(null);
   }, [signOut]);
@@ -200,9 +193,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         session.setToken(storedToken);
         setUserPhoneState(storedPhone);
-        if (!PushTokenService.getPushToken()) {
-          PushTokenService.refreshPushToken(storedPhone).catch(() => {});
-        }
+        PushTokenService.register(storedPhone);
       } finally {
         setIsLoading(false);
       }

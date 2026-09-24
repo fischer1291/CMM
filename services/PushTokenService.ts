@@ -1,167 +1,82 @@
 /**
- * PushTokenService - Simplified push token management
- * Replaces the notification parts of NotificationService
- * Only handles push token registration, no call notifications
+ * Expo push token of this device: registered with the backend once the user
+ * allowed notifications, removed from the account on logout.
+ *
+ * The permission is not asked at login. The app first explains what it's
+ * for (see features/notifications/PermissionPrompt), then asks.
  */
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { apiFetch } from '../utils/api';
 import { EXPO_PROJECT_ID } from '../config/env';
+import { apiPostJson } from '../utils/api';
+import { deviceTimezone } from './gamificationApi';
+import VoipPushService from './VoipPushService';
 
-export interface PushToken {
-  token: string;
-  deviceId: string;
-  platform: string;
-}
+export type PermissionState = 'granted' | 'denied' | 'undetermined';
 
 class PushTokenService {
-  private static instance: PushTokenService;
   private pushToken: string | null = null;
+  private registeredFor: string | null = null;
 
-  private constructor() {}
-
-  static getInstance(): PushTokenService {
-    if (!PushTokenService.instance) {
-      PushTokenService.instance = new PushTokenService();
-    }
-    return PushTokenService.instance;
+  async permission(): Promise<PermissionState> {
+    const { status } = await Notifications.getPermissionsAsync();
+    return status as PermissionState;
   }
 
-  /**
-   * Register for push notifications and get token
-   */
-  async registerForPushNotifications(): Promise<string | null> {
-    if (!Device.isDevice) {
-      console.log('Must use physical device for Push Notifications');
-      return null;
-    }
+  /** Ask for permission (shows the system dialog once), then register. */
+  async requestAndRegister(userPhone: string): Promise<PermissionState> {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status === 'granted') await this.register(userPhone);
+    return status as PermissionState;
+  }
 
+  /** Register the token if notifications are allowed; never asks. */
+  async register(userPhone: string): Promise<boolean> {
+    if (!Device.isDevice) return false;
     try {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      
-      if (finalStatus !== 'granted') {
-        console.log('Failed to get push token for push notification!');
-        return null;
-      }
-      
-      const pushTokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: EXPO_PROJECT_ID,
-      });
-      
-      const token = pushTokenData.data;
+      if ((await this.permission()) !== 'granted') return false;
+      const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId: EXPO_PROJECT_ID });
       this.pushToken = token;
-      
-      console.log('✅ Push token obtained:', token.substring(0, 20) + '...');
-      return token;
-    } catch (error) {
-      console.error('❌ Error getting push token:', error);
-      return null;
-    }
-  }
+      if (this.registeredFor === `${userPhone}:${token}`) return true;
 
-  /**
-   * Register push token with backend
-   */
-  async registerPushToken(userPhone: string, token: string): Promise<boolean> {
-    try {
-      const deviceId = await this.getDeviceId();
-      const pushTokenData: PushToken = {
-        token,
-        deviceId,
-        platform: Platform.OS,
-      };
-
-      console.log('📤 Registering push token with backend...');
-
-      const response = await apiFetch(
-        `/user/push-token`,
+      const response = await apiPostJson(
+        '/user/push-token',
         {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userPhone,
-            ...pushTokenData,
-          }),
+          userPhone,
+          token,
+          deviceId: `${Platform.OS}-${Device.deviceName}-${Device.osVersion}`.replace(/[^a-zA-Z0-9-]/g, ''),
+          platform: Platform.OS,
+          timezone: deviceTimezone(),
         },
         10000
       );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ Backend error response:', errorText);
-        return false;
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log('✅ Push token registered successfully');
-        return true;
-      } else {
-        console.error('❌ Failed to register push token:', result.message);
-        return false;
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      this.registeredFor = `${userPhone}:${token}`;
+      return true;
     } catch (error) {
-      console.error('❌ Error registering push token:', error);
+      console.warn('Push token registration failed:', error);
       return false;
     }
   }
 
   /**
-   * Get unique device identifier
+   * Remove this device's tokens from the account, so it stops receiving
+   * pushes and calls after logout. Needs the auth token, so call it first.
    */
-  private async getDeviceId(): Promise<string> {
+  async unregister(): Promise<void> {
     try {
-      const deviceName = await Device.deviceName;
-      const osVersion = Device.osVersion;
-      const platform = Platform.OS;
-      return `${platform}-${deviceName}-${osVersion}`.replace(/[^a-zA-Z0-9-]/g, '');
+      await apiPostJson(
+        '/auth/logout',
+        { pushToken: this.pushToken ?? undefined, voipToken: VoipPushService.getToken() ?? undefined },
+        8000
+      );
     } catch (error) {
-      return Math.random().toString(36).substring(2, 15);
-    }
-  }
-
-  /**
-   * Get current push token
-   */
-  getPushToken(): string | null {
-    return this.pushToken;
-  }
-
-  /**
-   * Refresh push token
-   */
-  async refreshPushToken(userPhone: string): Promise<boolean> {
-    try {
-      console.log('🔄 Refreshing push token...');
-      
-      this.pushToken = null;
-      const token = await this.registerForPushNotifications();
-      
-      if (token) {
-        const success = await this.registerPushToken(userPhone, token);
-        if (success) {
-          console.log('✅ Push token refreshed successfully');
-          return true;
-        }
-      }
-      
-      console.error('❌ Failed to refresh push token');
-      return false;
-    } catch (error) {
-      console.error('❌ Error refreshing push token:', error);
-      return false;
+      console.warn('Logout on the server failed:', error);
+    } finally {
+      this.registeredFor = null;
     }
   }
 }
 
-export default PushTokenService.getInstance();
+export default new PushTokenService();

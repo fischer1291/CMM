@@ -52,6 +52,7 @@ export default function ProfileScreen() {
       onChangeAvatar={changeAvatar}
       onSaveName={saveName}
       onOpenSystemSettings={() => Linking.openSettings()}
+      onOpenNotifications={() => router.push('/notifications')}
       onOpenStats={() => router.push('/stats')}
       onOpenSchedule={() => router.push('/schedule')}
       onInvite={() => Share.share({ message: INVITE_TEXT })}

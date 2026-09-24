@@ -17,8 +17,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ContactsProvider } from '../contexts/ContactsContext';
 import { NewCallProvider } from '../contexts/NewCallContext';
+import { InAppBanner } from '../components/InAppBanner';
+import { NotificationRouter } from '../components/NotificationRouter';
 import { fetchPreviewState } from '../dev/previewControl';
+import { setupNotifications } from '../services/notifications';
 import { colors } from '../ui/theme';
+
+setupNotifications();
 
 function InnerLayout() {
   const { userPhone, isLoading, needsProfileSetup } = useAuth();
@@ -53,29 +58,34 @@ function InnerLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-      <Stack.Protected guard={signedIn && !needsProfileSetup}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="stats" />
-        <Stack.Screen name="schedule" />
-        <Stack.Screen name="friend" />
-        <Stack.Screen
-          name="videocall"
-          options={{
-            presentation: 'fullScreenModal',
-            animation: 'none',
-            // Prevent unmounting when parent re-renders
-            freezeOnBlur: true,
-          }}
-        />
-      </Stack.Protected>
-      <Stack.Protected guard={signedIn && needsProfileSetup}>
-        <Stack.Screen name="profile-setup" />
-      </Stack.Protected>
-      <Stack.Protected guard={!signedIn}>
-        <Stack.Screen name="(auth)" />
-      </Stack.Protected>
-    </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+        <Stack.Protected guard={signedIn && !needsProfileSetup}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="stats" />
+          <Stack.Screen name="schedule" />
+          <Stack.Screen name="friend" />
+        <Stack.Screen name="notifications" />
+          <Stack.Screen
+            name="videocall"
+            options={{
+              presentation: 'fullScreenModal',
+              animation: 'none',
+              // Prevent unmounting when parent re-renders
+              freezeOnBlur: true,
+            }}
+          />
+        </Stack.Protected>
+        <Stack.Protected guard={signedIn && needsProfileSetup}>
+          <Stack.Screen name="profile-setup" />
+        </Stack.Protected>
+        <Stack.Protected guard={!signedIn}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+      </Stack>
+      {signedIn && <NotificationRouter />}
+      {signedIn && !needsProfileSetup && <InAppBanner />}
+    </>
   );
 }
 

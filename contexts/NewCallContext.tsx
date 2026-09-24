@@ -4,7 +4,7 @@
  */
 import { useRouter } from 'expo-router';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { AppState, NativeEventSubscription } from 'react-native';
 import { useAuth } from './AuthContext';
 import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager, { CallData } from '../services/CallStateManager';
@@ -12,6 +12,7 @@ import PlatformCallAdapter from '../services/PlatformCallAdapter';
 import VoipPushService from '../services/VoipPushService';
 import { session } from '../services/session';
 import { socket } from '../services/socket';
+import { sendCallEnded } from '../services/callSignaling';
 import { uuidv4 } from '../utils/uuid';
 
 
@@ -35,11 +36,12 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
   const [activeCall, setActiveCall] = useState<CallData | null>(null);
   const [hasActiveCall, setHasActiveCall] = useState(false);
   const servicesInitialized = useRef(false);
+  const appStateSub = useRef<NativeEventSubscription | null>(null);
   // Outgoing calls have no CallStateManager entry; remember who we are calling
   const outgoingCallRef = useRef<{ channel: string; to: string } | null>(null);
 
   /**
-   * Tell the other party (via backend socket) that the current call ended.
+   * Tell the other party (via backend) that the current call ended.
    * Must run before CallStateManager.endCall(), which clears the call.
    */
   const notifyRemoteCallEnded = () => {
@@ -49,7 +51,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       ? (call.callerPhone === userPhone ? call.calleePhone : call.callerPhone)
       : outgoingCallRef.current?.to;
     if (channel && to) {
-      socket.emit('callEnded', { from: userPhone, to, channel });
+      sendCallEnded(channel, to, userPhone);
     }
     outgoingCallRef.current = null;
   };
@@ -131,7 +133,15 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     PlatformCallAdapter.setOnEndCallCallback((callId) => {
       try {
         console.log('📱 CallKit end callback triggered:', callId);
-        // Covers declining and hanging up in the CallKit UI
+        // Covers declining and hanging up in the CallKit UI. Also fires when
+        // the app itself ended a CallKit call (remote end, stale call): then
+        // the id no longer matches the active call and there is nothing to do.
+        // (Outgoing calls don't use CallKit on iOS.)
+        const active = CallStateManager.getActiveCall();
+        if (!active || active.callId !== callId) {
+          console.log('📱 CallKit end for a call that is not active, ignored:', callId);
+          return;
+        }
         notifyRemoteCallEnded();
         CallStateManager.endCall();
       } catch (error) {
@@ -149,7 +159,7 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // When user rejects call via CallKit
+    // When user rejects call via CallKit (declineCall tells the caller)
     PlatformCallAdapter.setOnRejectCallCallback((callId) => {
       try {
         console.log('📱 CallKit reject callback triggered:', callId);
@@ -195,7 +205,15 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     socket.on('connect', () => {
       console.log('🔌 Socket connected');
       socket.emit('register', userPhone);
+      reportPresence();
+      // Right after launch AppState may not be known yet: report again
+      setTimeout(reportPresence, 1500);
     });
+
+    // While the app is in the foreground the backend sends no availability
+    // pushes: the app shows a live banner instead (components/InAppBanner)
+    appStateSub.current?.remove();
+    appStateSub.current = AppState.addEventListener('change', reportPresence);
 
     socket.on('incomingCall', handleSocketIncomingCall);
     socket.on('callEnded', handleSocketCallEnded);
@@ -203,6 +221,13 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     socket.on('callAccepted', handleSocketCallAccepted);
 
     console.log('✅ Socket listeners set up (duplicates removed)');
+  };
+
+  // "unknown" (just launched, state not reported yet) counts as foreground:
+  // wrongly assuming "closed" would send pushes the open app hides
+  const reportPresence = () => {
+    const state = AppState.currentState;
+    if (socket.connected) socket.emit('presence', { foreground: state !== 'background' && state !== 'inactive' });
   };
 
   /**
@@ -323,7 +348,11 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Declined in the app or a notification action: the caller must stop ringing
   const handleCallDeclined = (callData: CallData) => {
+    if (callData?.channel && callData.callerPhone) {
+      sendCallEnded(callData.channel, callData.callerPhone, userPhone);
+    }
     setActiveCall(null);
     setHasActiveCall(false);
   };
@@ -405,6 +434,8 @@ export function NewCallProvider({ children }: { children: React.ReactNode }) {
     socket.off('callFailed');
     socket.off('callAccepted');
     socket.disconnect();
+    appStateSub.current?.remove();
+    appStateSub.current = null;
 
     // Remove CallStateManager listeners
     CallStateManager.removeAllListeners();
