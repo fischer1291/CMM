@@ -15,13 +15,24 @@ import { ProfileSetupView } from '../features/profile/ProfileSetupView';
 import { ProfileView } from '../features/profile/ProfileView';
 import { MomentComposer } from '../features/moments/MomentComposer';
 import { StatusView } from '../features/status/StatusView';
-import { BadgeGrid, StatsView } from '../features/stats/StatsView';
+import { StatsView } from '../features/stats/StatsView';
+import { AlbumView, BadgeSheet } from '../features/album/AlbumView';
+import { BadgeCelebration } from '../components/BadgeCelebration';
+import { ForceUpdate } from '../components/ForceUpdate';
+import { NoticeBanner } from '../components/NoticeBanner';
+import { SupportView, TicketView } from '../features/support/SupportView';
+import type { SupportTicket } from '../services/supportApi';
+import type { Album, AlbumBadge } from '../services/badgesApi';
 import { ScheduleView } from '../features/schedule/ScheduleView';
 import { FriendView } from '../features/contacts/FriendView';
 import { NotificationsView } from '../features/notifications/NotificationsView';
 import { BannerCard } from '../components/InAppBanner';
 import { LegalView } from '../features/legal/LegalView';
 import { CirclesView } from '../features/circles/CirclesView';
+import { CircleView } from '../features/circles/CircleView';
+import { RoomView } from '../features/circles/RoomView';
+import { CirclesStrip } from '../features/circles/CirclesStrip';
+import type { CircleDetail, CircleSummary } from '../services/circlesApi';
 import { PRIVACY_SECTIONS } from '../content/legal';
 import type { Stats } from '../services/gamificationApi';
 import { fetchPreviewState, PreviewState } from './previewControl';
@@ -214,16 +225,113 @@ const statusProps = {
   onDismissNudges: () => {},
 };
 
-const BADGE = (id: string, title: string, earned: boolean, progress = 1) => ({ id, title, description: '', earned, progress });
+const BADGE = (id: string, title: string, earned: boolean, progress = 1, icon = 'star', tierName: string | null = null) => ({ id, title, description: '', earned, progress, icon, tierName });
+const TIERS = ['Bronze', 'Silber', 'Gold'];
+const AB = (id: string, category: string, icon: string, title: string, description: string, tier: number, tiers: number, progress: number, secret = false): AlbumBadge => ({
+  id,
+  category,
+  icon: secret && !tier ? 'help' : icon,
+  title: secret && !tier ? 'Geheim' : title,
+  description,
+  secret,
+  tier,
+  tiers,
+  tierName: tiers > 1 && tier ? TIERS[tier - 1] : null,
+  earned: tier > 0,
+  progress,
+  current: Math.round(progress * 10),
+  next: tier === tiers ? null : 10,
+});
+const ALBUM_BADGES: AlbumBadge[] = [
+  AB('first_talk', 'connection', 'chatbubbles', 'Erstes Gespräch', 'Dein erstes echtes Gespräch', 1, 1, 1),
+  AB('talks', 'connection', 'call', 'Gesprächig', '50 Gespräche geführt', 1, 3, 0.46),
+  AB('people', 'connection', 'people', 'Menschenfreund', 'Mit 15 Menschen gesprochen', 1, 3, 0.6),
+  AB('reunion', 'connection', 'refresh', 'Wiedersehen', 'Nach 30 Tagen wieder gesprochen', 0, 3, 0.4),
+  AB('bridge', 'connection', 'git-merge', 'Brückenbauer', 'Jemanden in die App geholt', 0, 3, 0),
+  AB('deep_talk', 'depth', 'water', 'Tiefgang', '30 Minuten am Stück gesprochen', 1, 1, 1),
+  AB('marathon', 'depth', 'infinite', 'Marathon', '90 Minuten am Stück', 0, 1, 0.3, true),
+  AB('hours', 'depth', 'hourglass', 'Zeit geschenkt', '10 Stunden Gesprächszeit', 2, 3, 0.25),
+  AB('streak', 'rituals', 'flame', 'Dranbleiber', '12 Wochen in Folge', 1, 3, 0.25),
+  AB('planner', 'rituals', 'calendar', 'Planer', 'Einen Zeitplan angelegt', 1, 1, 1),
+  AB('daily', 'rituals', 'sunny', 'Moment-Mensch', 'Beim Call Me Moment dabei', 1, 3, 0.3),
+  AB('blitz', 'rituals', 'flash', 'Blitzschnell', 'In der ersten Minute dabei', 1, 1, 1, true),
+  AB('founder', 'circles', 'add-circle', 'Gründer', 'Einen Kreis gegründet', 1, 1, 1),
+  AB('host', 'circles', 'mic', 'Gastgeber', '10 Runden eröffnet', 0, 3, 0.5),
+  AB('together', 'circles', 'people-circle', 'Zusammen', '4 Runden mit deinem Kreis', 3, 3, 1),
+  AB('full_house', 'circles', 'home', 'Volles Haus', 'Alle in einer Runde', 0, 1, 0, true),
+  AB('storyteller', 'discover', 'sparkles', 'Erzähler', 'Einen Moment geteilt', 1, 3, 0.1),
+  AB('night_owl', 'discover', 'moon', 'Nachteule', 'Ein Gespräch nach 23 Uhr', 1, 1, 1, true),
+  AB('early_bird', 'discover', 'partly-sunny', 'Frühaufsteher', 'Vor 7 Uhr', 0, 1, 0, true),
+];
+const SAMPLE_TICKETS: SupportTicket[] = [
+  {
+    id: 't1',
+    category: 'bug',
+    status: 'answered',
+    unread: true,
+    messages: [
+      { from: 'user', text: 'Wenn die App geschlossen ist, klingelt es bei mir nicht.', at: '2026-09-24T18:02:00Z' },
+      { from: 'support', text: 'Danke dir! Schau bitte in Einstellungen → Mitteilungen, ob „Anrufe“ erlaubt ist. Wir haben außerdem einen Fix in Build 21.', at: '2026-09-25T08:15:00Z' },
+    ],
+    createdAt: '2026-09-24T18:02:00Z',
+    updatedAt: '2026-09-25T08:15:00Z',
+  },
+  {
+    id: 't2',
+    category: 'idea',
+    status: 'open',
+    unread: false,
+    messages: [{ from: 'user', text: 'Kreise mit eigenem Chat wären cool', at: '2026-09-20T10:00:00Z' }],
+    createdAt: '2026-09-20T10:00:00Z',
+    updatedAt: '2026-09-20T10:00:00Z',
+  },  {
+    id: 't3',
+    category: 'account',
+    status: 'closed',
+    unread: false,
+    messages: [
+      { from: 'user', text: 'Wie ändere ich mein Profilbild?', at: '2026-09-18T09:00:00Z' },
+      { from: 'support', text: 'Tippe im Profil auf dein Bild, dann kannst du ein neues wählen.', at: '2026-09-18T12:00:00Z' },
+    ],
+    createdAt: '2026-09-18T09:00:00Z',
+    updatedAt: '2026-09-18T12:00:00Z',
+    closedAt: '2026-09-18T12:00:00Z',
+  },
+];
+const SAMPLE_ALBUM: Album = {
+  categories: [
+    { id: 'connection', title: 'Verbindung' },
+    { id: 'depth', title: 'Tiefe' },
+    { id: 'rituals', title: 'Rituale' },
+    { id: 'circles', title: 'Kreise' },
+    { id: 'discover', title: 'Entdecken' },
+  ],
+  badges: ALBUM_BADGES,
+  new: [],
+  nextUp: { id: 'talks', icon: 'call', title: 'Gesprächig', progress: 0.84, hint: 'Noch 2 Gespräche bis Gesprächig (Silber)' },
+  showcase: ['together', 'deep_talk', 'night_owl'],
+};
+const FRIEND_BADGES: AlbumBadge[] = [
+  AB('f_talks', 'friendship', 'chatbubbles', 'Plaudertaschen', '10 Gespräche zu zweit', 1, 3, 0.6),
+  AB('f_time', 'friendship', 'heart', 'Herzenszeit', '5 Stunden zusammen', 1, 3, 0.66),
+  AB('f_streak', 'friendship', 'flame', 'Wie verabredet', '4 Wochen in Folge', 1, 3, 0.4),
+  AB('f_year', 'friendship', 'gift', 'Ein Jahr', 'Seit einem Jahr in Kontakt', 0, 1, 0.9),
+];
+const SHOWCASE = [
+  { id: 'together', title: 'Zusammen', icon: 'people-circle', tierName: 'Gold' },
+  { id: 'deep_talk', title: 'Tiefgang', icon: 'water', tierName: null },
+  { id: 'streak', title: 'Dranbleiber', icon: 'flame', tierName: 'Silber' },
+];
 const STATS: Stats = {
   totals: { weekSeconds: 57 * 60, lastWeekSeconds: 80 * 60, monthSeconds: 4 * 3600 + 10 * 60, allTimeSeconds: 12 * 3600, talks: 23, longestSeconds: 48 * 60 },
   weeks: [20, 0, 45, 80, 30, 95, 80, 57].map((m, i) => ({ week: new Date(Date.UTC(2026, 7, 3 + i * 7)).toISOString().slice(0, 10), seconds: m * 60 })),
   streak: { current: 3, best: 4 },
   badges: [
-    BADGE('first_talk', 'Erstes Gespräch', true),
-    BADGE('deep_talk', 'Tiefgang', true),
-    BADGE('hour', 'Eine Stunde', true),
-    BADGE('ten_talks', 'Zehn Gespräche', true),
+    BADGE('first_talk', 'Erstes Gespräch', true, 1, 'chatbubbles'),
+    BADGE('deep_talk', 'Tiefgang', true, 1, 'water'),
+    BADGE('hours', 'Zeit geschenkt', true, 1, 'hourglass', 'Silber'),
+    BADGE('talks', 'Gesprächig', true, 1, 'call', 'Bronze'),
+    BADGE('together', 'Zusammen', true, 1, 'people-circle', 'Gold'),
     BADGE('streak_4', 'Dranbleiber', false, 0.75),
     BADGE('circle', 'Dein Kreis', false, 0.6),
     BADGE('ten_hours', 'Zehn Stunden', false, 0.4),
@@ -234,6 +342,50 @@ const STATS: Stats = {
     { phone: '+491', seconds: 5 * 3600 + 12 * 60, talks: 9 },
     { phone: '+492', seconds: 3 * 3600, talks: 6 },
     { phone: '+493', seconds: 95 * 60, talks: 4 },
+  ],
+};
+
+const MEMBER = (phone: string, name: string, isAvailable = false) => ({ phone, name, avatarUrl: '', isAvailable, availableUntil: null });
+const SAMPLE_CIRCLES: CircleSummary[] = [
+  {
+    id: 'c1',
+    name: 'Familie Fischer',
+    emoji: '🏡',
+    createdBy: '+490',
+    members: [MEMBER('+490', 'Leroy'), MEMBER('+491', 'Anna Berg', true), MEMBER('+493', 'Mama', true)],
+    invitedCount: 1,
+    warmth: { minutes: 84, talkedCount: 2, memberCount: 3, goalReached: false },
+    room: { id: 'r1', channel: 'room_x', participants: ['+491', '+493'] },
+    ritual: { enabled: true, day: 0, start: 18 * 60 },
+  },
+  {
+    id: 'c2',
+    name: 'Enge Freunde',
+    emoji: '💛',
+    createdBy: '+490',
+    members: [MEMBER('+490', 'Leroy'), MEMBER('+492', 'Ben Koch'), MEMBER('+494', 'Clara')],
+    invitedCount: 0,
+    warmth: { minutes: 45, talkedCount: 3, memberCount: 3, goalReached: true },
+    room: null,
+    ritual: { enabled: false, day: 0, start: 18 * 60 },
+  },
+];
+const SAMPLE_CIRCLE_DETAIL: CircleDetail = {
+  ...SAMPLE_CIRCLES[0],
+  room: null,
+  code: 'K7M2Q9XA',
+  invites: [
+    { phone: '+495', name: 'Papa', status: 'pending', pendingSignup: false },
+    { phone: '+496', name: 'Oma', status: 'draft', pendingSignup: false },
+  ],
+  moments: [
+    { id: 'm1', screenshot: MOMENTS[0].screenshot, userPhone: '+491', targetPhone: '+493', mood: '😊', timestamp: new Date().toISOString() },
+  ],
+  badges: [
+    AB('c_goal', 'circle', 'flag', 'Wochenziel', '4 Wochen alle gesprochen', 1, 3, 0.5),
+    AB('c_rooms', 'circle', 'mic', 'Rundenzeit', '10 Runden', 1, 3, 0.3),
+    AB('c_ritual', 'circle', 'repeat', 'Ritual', 'Eine Ritual-Runde', 1, 1, 1),
+    AB('c_all', 'circle', 'home', 'Alle da', 'Alle in einer Runde', 0, 1, 0.66),
   ],
 };
 
@@ -262,6 +414,8 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpenSystemSettings={() => {}}
       onOpenNotifications={() => {}}
       onOpenStats={() => {}}
+      onOpenAlbum={() => {}}
+      onOpenSupport={() => {}}
       onOpenSchedule={() => {}}
       onInvite={() => {}}
       onExportData={() => {}}
@@ -378,16 +532,89 @@ const SCREENS: Record<string, () => React.ReactElement> = {
   ),
   circles: () => (
     <CirclesView
-      circles={[
-        { id: 'fam1', name: 'Familie', emoji: '🏡', members: ['+491', '+492', '+493'] },
-        { id: 'fr1', name: 'Enge Freunde', emoji: '💛', members: ['+491'] },
-      ]}
-      audience={{ mode: 'circles', circles: ['fam1'] }}
-      saving={false}
-      person={(phone) => ({ phone, name: phone === '+491' ? 'Anna Berg' : phone === '+492' ? 'Ben Koch' : 'Mama', avatarUrl: phone === '+491' ? PHOTO : null })}
+      circles={SAMPLE_CIRCLES}
+      invites={[{ circleId: 'c9', name: 'Uni-Crew', emoji: '🎓', memberCount: 4, invitedBy: '+492', invitedByName: 'Ben Koch' }]}
+      audience={{ mode: 'circles', circles: ['c1'] }}
+      myPhone="+490"
       onBack={() => {}}
+      onOpen={() => {}}
+      onNew={() => {}}
+      onJoinCode={() => {}}
+      onAnswerInvite={() => {}}
       onChangeAudience={() => {}}
-      onEdit={() => {}}
+    />
+  ),
+  circle: () => (
+    <CircleView
+      circle={SAMPLE_CIRCLE_DETAIL}
+      myPhone="+490"
+      person={(phone, name) => ({ name: name || 'Jemand', avatarUrl: phone === '+491' ? PHOTO : null })}
+      busy={false}
+      onBack={() => {}}
+      onMore={() => {}}
+      onRoom={() => {}}
+      onCall={() => {}}
+      onInvite={() => {}}
+      onShareLink={() => {}}
+      onSendDrafts={() => {}}
+      onSaveRitual={() => {}}
+    />
+  ),
+  room: () => (
+    <RoomView
+      title="🏡 Familie Fischer"
+      duration="12:04"
+      connecting={false}
+      micMuted={false}
+      cameraOn
+      tiles={[
+        { key: 'me', name: 'Leroy', avatarUrl: null, video: <FakeVideo />, speaking: false, isMe: true },
+        { key: '1', name: 'Anna Berg', avatarUrl: PHOTO, video: null, speaking: true, isMe: false },
+        { key: '2', name: 'Mama', avatarUrl: null, video: null, speaking: false, isMe: false },
+      ]}
+      onToggleMute={() => {}}
+      onToggleCamera={() => {}}
+      onSwitchCamera={() => {}}
+      onLeave={() => {}}
+    />
+  ),
+  support: () => <SupportView tickets={SAMPLE_TICKETS} sending={false} onBack={() => {}} onSend={async () => true} onOpen={() => {}} version="1.0.0 (21)" />,
+  'ticket-closed': () => <TicketView ticket={SAMPLE_TICKETS[2]} sending={false} onBack={() => {}} onReply={async () => true} />,
+  ticket: () => <TicketView ticket={SAMPLE_TICKETS[0]} sending={false} onBack={() => {}} onReply={async () => true} />,
+  'force-update': () => <ForceUpdate updateUrl="https://testflight.apple.com/join/abc" />,
+  album: () => <AlbumView album={SAMPLE_ALBUM} error={false} onRetry={() => {}} onBack={() => {}} onSelect={() => {}} />,
+  'album-sheet': () => (
+    <>
+      <AlbumView album={SAMPLE_ALBUM} error={false} onRetry={() => {}} onBack={() => {}} onSelect={() => {}} />
+      <BadgeSheet badge={ALBUM_BADGES[1]} pinned={false} canPin onTogglePin={() => {}} onClose={() => {}} />
+    </>
+  ),
+  celebration: () => (
+    <>
+      <AlbumView album={SAMPLE_ALBUM} error={false} onRetry={() => {}} onBack={() => {}} onSelect={() => {}} />
+      <BadgeCelebration badges={[ALBUM_BADGES[7], ALBUM_BADGES[17]]} onOpenAlbum={() => {}} onDone={() => {}} />
+    </>
+  ),
+  'status-circles': () => (
+    <StatusView
+      {...statusProps}
+      available={false}
+      availableContacts={[]}
+      nudges={[]}
+      nextUp={SAMPLE_ALBUM.nextUp}
+      onOpenAlbum={() => {}}
+      notice={<NoticeBanner banner={{ text: 'Heute ab 22 Uhr kurze Wartung, Anrufe können kurz ausfallen.', level: 'warning', until: null }} />}
+      circlesStrip={
+        <CirclesStrip
+          circles={SAMPLE_CIRCLES}
+          invites={[{ circleId: 'c9', name: 'Uni-Crew', emoji: '🎓', memberCount: 4, invitedBy: '+492', invitedByName: 'Ben Koch' }]}
+          myPhone="+490"
+          onOpen={() => {}}
+          onNew={() => {}}
+          onAnswerInvite={() => {}}
+          onSeeAll={() => {}}
+        />
+      }
     />
   ),
   'friend-available': () => (
@@ -397,6 +624,8 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       available
       statusText="Jetzt erreichbar"
       together={{ seconds: 3 * 3600 + 20 * 60, talks: 7 }}
+      friendshipBadges={FRIEND_BADGES}
+      showcase={SHOWCASE}
       shared={null}
       nudged={false}
       onBack={() => {}}
@@ -478,6 +707,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       error={false}
       onRetry={() => {}}
       onBack={() => {}}
+      onOpenAlbum={() => {}}
       person={(phone) => ({ name: phone === '+491' ? 'Anna Berg' : phone === '+492' ? 'Ben Koch' : 'Mama', avatarUrl: phone === '+491' ? PHOTO : null })}
       onChangeVisibility={() => {}}
       onPickPeople={() => {}}
@@ -510,6 +740,8 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       available={false}
       statusText="Zuletzt erreichbar vor 2 Std."
       together={{ seconds: 3 * 3600 + 20 * 60, talks: 7 }}
+      friendshipBadges={FRIEND_BADGES}
+      showcase={SHOWCASE}
       shared={{
         totals: { weekSeconds: 42 * 60, monthSeconds: 5 * 3600, allTimeSeconds: 20 * 3600 },
         streak: { current: 5, best: 7 },
@@ -535,11 +767,6 @@ const SECTIONS: Record<string, () => React.ReactElement> = {
       <BannerCard name="Anna Berg" avatarUrl={PHOTO} kind="available" onPress={() => {}} onAction={() => {}} />
       <BannerCard name="Ben Koch" avatarUrl={null} kind="nudge" onPress={() => {}} onAction={() => {}} />
       <BannerCard name="Clara Diaz" avatarUrl={null} kind="joined" onPress={() => {}} onAction={() => {}} />
-    </View>
-  ),
-  badges: () => (
-    <View style={{ marginTop: spacing.xl }}>
-      <BadgeGrid badges={STATS.badges} />
     </View>
   ),
 };

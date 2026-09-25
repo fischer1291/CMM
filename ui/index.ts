@@ -10,3 +10,5 @@ export { Screen } from './components/Screen';
 export { StatusOrb } from './components/StatusOrb';
 export { TextField } from './components/TextField';
 export { PageHeader, Segmented, TimeStepper, Toggle } from './components/controls';
+export { WarmthRing } from './components/WarmthRing';
+export { BadgeMedal } from './components/BadgeMedal';

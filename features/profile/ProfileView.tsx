@@ -20,6 +20,8 @@ type Props = {
   onOpenSystemSettings: () => void;
   onOpenNotifications: () => void;
   onOpenStats: () => void;
+  onOpenAlbum: () => void;
+  onOpenSupport: () => void;
   onOpenSchedule: () => void;
   onInvite: () => void;
   onExportData: () => void;
@@ -99,6 +101,7 @@ export function ProfileView(props: Props) {
           { icon: 'calendar-outline', label: 'Zeitplan', onPress: props.onOpenSchedule },
           { icon: 'people-circle-outline', label: 'Kreise & Sichtbarkeit', onPress: props.onOpenCircles },
           { icon: 'pulse-outline', label: 'Gesprächszeit & Freigabe', onPress: props.onOpenStats },
+          { icon: 'ribbon-outline', label: 'Sammelalbum & Vitrine', onPress: props.onOpenAlbum },
         ]}
       />
 
@@ -111,7 +114,12 @@ export function ProfileView(props: Props) {
       />
 
       <SectionHeader title="Community" />
-      <RowGroup rows={[{ icon: 'gift-outline', label: 'Freunde einladen', onPress: props.onInvite }]} />
+      <RowGroup
+        rows={[
+          { icon: 'gift-outline', label: 'Freunde einladen', onPress: props.onInvite },
+          { icon: 'help-buoy-outline', label: 'Hilfe & Feedback', onPress: props.onOpenSupport },
+        ]}
+      />
 
       <SectionHeader title="Deine Daten" />
       <RowGroup
