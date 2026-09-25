@@ -91,6 +91,7 @@ export default function ProfileScreen() {
       onOpenNotifications={() => router.push('/notifications')}
       onOpenStats={() => router.push('/stats')}
       onOpenAlbum={() => router.push('/album')}
+      onOpenSupport={() => router.push('/support')}
       onOpenSchedule={() => router.push('/schedule')}
       onInvite={() => Share.share({ message: inviteText(userProfile?.name?.split(' ')[0]) })}
       onExportData={exportData}

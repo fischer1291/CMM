@@ -21,6 +21,7 @@ type Props = {
   onOpenNotifications: () => void;
   onOpenStats: () => void;
   onOpenAlbum: () => void;
+  onOpenSupport: () => void;
   onOpenSchedule: () => void;
   onInvite: () => void;
   onExportData: () => void;
@@ -113,7 +114,12 @@ export function ProfileView(props: Props) {
       />
 
       <SectionHeader title="Community" />
-      <RowGroup rows={[{ icon: 'gift-outline', label: 'Freunde einladen', onPress: props.onInvite }]} />
+      <RowGroup
+        rows={[
+          { icon: 'gift-outline', label: 'Freunde einladen', onPress: props.onInvite },
+          { icon: 'help-buoy-outline', label: 'Hilfe & Feedback', onPress: props.onOpenSupport },
+        ]}
+      />
 
       <SectionHeader title="Deine Daten" />
       <RowGroup

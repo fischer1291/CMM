@@ -37,6 +37,8 @@ type Props = {
   nudges: ReceivedNudge[];
   week: { label: string; streak: number } | null;
   onOpenStats: () => void;
+  /** Notice from the admin console (components/NoticeBanner) */
+  notice?: React.ReactNode;
   /** "Fast geschafft": the closest badge */
   nextUp?: Album['nextUp'];
   onOpenAlbum?: () => void;
@@ -162,6 +164,7 @@ export function StatusView({
   nudges,
   week,
   onOpenStats,
+  notice,
   nextUp,
   onOpenAlbum,
   scheduleLabel,
@@ -190,6 +193,8 @@ export function StatusView({
           <Avatar name={name || '?'} uri={avatarUrl} size={48} />
         </Pressable>
       </View>
+
+      {notice}
 
       {daily ? <DailyMomentCard {...daily} /> : null}
 
