@@ -17,8 +17,9 @@ const CONFIG = {
   siteUrl: process.env.SITE_URL || 'https://wanna-yap.netlify.app',
   /** The existing app web build with /impressum and /datenschutz. */
   legalUrl: 'https://cmm-app.netlify.app',
-  /** TestFlight public link or App Store link; null shows the waitlist. Mirrors content/links.ts. */
-  downloadUrl: process.env.DOWNLOAD_URL || null,
+  /** TestFlight public link or App Store link. Placeholder until the app is live —
+   *  replace with the real App Store URL (or set DOWNLOAD_URL) before launch. */
+  downloadUrl: process.env.DOWNLOAD_URL || 'https://apps.apple.com/app/wanna-yap/id0000000000',
 };
 /** QR target on print material: the landing page, tagged so scans show up separately. */
 const QR_URL = `${CONFIG.siteUrl}/?utm_source=flyer&utm_medium=print`;

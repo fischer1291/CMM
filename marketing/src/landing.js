@@ -37,14 +37,12 @@ const FAQ = [
   ['Brauchen meine Freunde die App auch?', 'Ja, damit ihr euren Status gegenseitig seht. Du lädst sie mit einem Link ein. Wer über deinen Link kommt, ist nach der Anmeldung direkt mit dir verbunden.'],
   ['Wer sieht, dass ich erreichbar bin?', 'Nur deine Kontakte, die ebenfalls Wanna yap? nutzen. Fremde finden dich nicht, und du kannst jede Person blockieren.'],
   ['Ist das ein Video- oder ein Telefon-Anruf?', 'Beides. Du startest einen Video- oder Audioanruf direkt in der App, auch in der Gruppe mit deinem Kreis.'],
-  ['Gibt es die App für Android?', 'Zuerst kommt die iPhone-Version, Android folgt. Trag dich in die Warteliste ein, dann sagen wir dir Bescheid.'],
+  ['Gibt es die App für Android?', 'Zuerst kommt die iPhone-Version. Eine Android-Version ist geplant, aber noch nicht terminiert.'],
   ['Was passiert mit meinen Daten?', 'Wir speichern nur, was die App zum Funktionieren braucht. Du kannst deine Daten jederzeit exportieren und dein Konto in der App löschen. Details stehen in der Datenschutzerklärung.'],
 ];
 
 module.exports = function landing({ logoSvg, siteUrl, legalUrl, downloadUrl, ogImage }) {
-  const heroCta = downloadUrl
-    ? `<a class="cta" href="${downloadUrl}">${ICON.phone}<span>Jetzt die Beta testen</span></a>`
-    : `<a class="cta" href="#warteliste">${ICON.flash}<span>Auf die Warteliste</span></a>`;
+  const heroCta = `<a class="cta" href="${downloadUrl}">${ICON.phone}<span>Im App Store laden</span></a>`;
 
   return `<!doctype html>
 <html lang="de">
@@ -168,24 +166,12 @@ p { margin: 0; }
 .who-grid p { color: var(--text-2); font-size: 16px; }
 .who h2 { font-size: clamp(36px, 5vw, 64px); }
 
-/* Waitlist */
+/* Download */
 .join { padding-block: 60px 120px; }
 .join-card { position: relative; border-radius: 40px; padding: 2px; background: var(--brand); box-shadow: 0 0 80px rgba(255,46,147,0.25); }
 .join-inner { border-radius: 38px; background: radial-gradient(80% 120% at 100% 0%, rgba(139,92,255,0.22), transparent 60%), #11111b; padding: clamp(32px, 6vw, 72px); display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
 .join h2 { font-size: clamp(40px, 5.6vw, 72px); }
 .join .sub { color: var(--text-2); font-size: 19px; margin-top: 18px; max-width: 36ch; }
-form { display: flex; flex-direction: column; gap: 14px; }
-label.f { display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--text-2); font-weight: 500; }
-input[type=email], select { height: 58px; border-radius: 18px; border: 1px solid var(--border-strong); background: rgba(255,255,255,0.05); color: var(--text); font: inherit; font-size: 17px; padding: 0 18px; width: 100%; }
-select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--text-2) 50%), linear-gradient(135deg, var(--text-2) 50%, transparent 50%); background-position: calc(100% - 22px) 26px, calc(100% - 16px) 26px; background-size: 6px 6px; background-repeat: no-repeat; }
-input[type=email]:focus, select:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(0,229,255,0.18); }
-.consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--text-2); line-height: 1.45; }
-.consent input { margin-top: 3px; accent-color: #FF2E93; width: 18px; height: 18px; flex: none; }
-form .cta { justify-content: center; width: 100%; }
-.form-msg { font-size: 15px; min-height: 1.4em; }
-.form-msg.ok { color: var(--success); }
-.form-msg.err { color: #FF3B5C; }
-.hp { position: absolute; left: -9999px; }
 
 /* FAQ */
 .faq { padding-block: 20px 100px; }
@@ -237,7 +223,7 @@ footer a:hover { color: var(--text); }
       <a href="#so-gehts">So geht’s</a>
       <a href="#features">Features</a>
       <a href="#faq">FAQ</a>
-      <a class="mini" href="${downloadUrl || '#warteliste'}">${downloadUrl ? 'Beta testen' : 'Warteliste'}</a>
+      <a class="mini" href="${downloadUrl}">Laden</a>
     </nav>
   </div>
 </header>
@@ -250,7 +236,7 @@ footer a:hover { color: var(--text); }
         <h1 style="margin-top:20px">Ruf an,<span class="line2 grad-text">wenn’s passt.</span></h1>
         <p class="lead">Sieh, wer aus deinen Leuten <b>gerade Zeit hat</b>, und ruf einfach an. Kein Anruf ins Leere, kein „Lass mal bald telefonieren“.</p>
         <div class="actions">${heroCta}<a class="ghost" href="#so-gehts">So funktioniert’s</a></div>
-        <p class="note">Kostenlos · ohne Werbung · erst mal fürs iPhone</p>
+        <p class="note">Kostenlos</p>
       </div>
       <div class="stage" aria-hidden="true">
         ${screens.moment({ pw: 300, extraClass: 'back' })}
@@ -302,30 +288,16 @@ footer a:hover { color: var(--text); }
     </div>
   </section>
 
-  <section class="join wrap" id="warteliste">
+  <section class="join wrap" id="download">
     <div class="join-card"><div class="join-inner">
       <div>
-        <p class="eyebrow">${downloadUrl ? 'Beta läuft' : 'Bald im App Store'}</p>
-        <h2 style="margin-top:18px">Sei bei den Ersten.</h2>
-        <p class="sub">Trag dich ein, und wir schicken dir den Link, sobald Wanna yap? für dich bereit ist. Bring am besten gleich deine Leute mit: Zusammen macht die App am meisten Sinn.</p>
+        <p class="eyebrow">Bald im App Store</p>
+        <h2 style="margin-top:18px">Bereit, wenn du es bist.</h2>
+        <p class="sub">Lad dir Wanna yap? und sieh sofort, wer aus deinen Leuten gerade Zeit hat. Bring am besten gleich deine Leute mit: Zusammen macht die App am meisten Sinn.</p>
       </div>
-      <form name="warteliste" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="waitlist" novalidate>
-        <input type="hidden" name="form-name" value="warteliste">
-        <p class="hp"><label>Nicht ausfüllen: <input name="bot-field" id="bot-field" tabindex="-1" autocomplete="off"></label></p>
-        <label class="f" for="email">E-Mail-Adresse
-          <input type="email" id="email" name="email" placeholder="du@beispiel.de" autocomplete="email" required>
-        </label>
-        <label class="f" for="phone-os">Dein Handy
-          <select id="phone-os" name="plattform">
-            <option value="ios">iPhone</option>
-            <option value="android">Android</option>
-          </select>
-        </label>
-        <label class="consent" for="consent"><input type="checkbox" id="consent" name="einwilligung" value="ja" required>
-          <span>Ich möchte per E-Mail informiert werden, wenn Wanna yap? für mich verfügbar ist. Abmelden geht jederzeit. Mehr in der <a href="${legalUrl}/datenschutz">Datenschutzerklärung</a>.</span></label>
-        <button class="cta" type="submit">${ICON.flash}<span>Auf die Warteliste</span></button>
-        <p class="form-msg" id="form-msg" role="status"></p>
-      </form>
+      <div style="display:flex;align-items:center;justify-content:center">
+        <a class="cta" href="${downloadUrl}">${ICON.phone}<span>Im App Store laden</span></a>
+      </div>
     </div></div>
   </section>
 
@@ -342,25 +314,6 @@ footer a:hover { color: var(--text); }
     <span>Gemacht für echte Gespräche.</span>
   </div>
 </footer>
-
-<script>
-(function () {
-  var form = document.getElementById('waitlist');
-  var msg = document.getElementById('form-msg');
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var email = form.email.value.trim();
-    msg.className = 'form-msg';
-    if (!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) { msg.textContent = 'Bitte gib eine gültige E-Mail-Adresse ein.'; msg.classList.add('err'); form.email.focus(); return; }
-    if (!form.einwilligung.checked) { msg.textContent = 'Bitte bestätige, dass wir dir schreiben dürfen.'; msg.classList.add('err'); return; }
-    var btn = form.querySelector('button'); btn.disabled = true;
-    fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(new FormData(form)).toString() })
-      .then(function (r) { if (!r.ok) throw new Error(r.status); msg.textContent = 'Du bist drauf! Wir melden uns, sobald es losgeht. 💛'; msg.classList.add('ok'); form.reset(); })
-      .catch(function () { msg.textContent = 'Das hat nicht geklappt. Prüf deine Verbindung und versuch es noch einmal.'; msg.classList.add('err'); })
-      .finally(function () { btn.disabled = false; });
-  });
-})();
-</script>
 </body>
 </html>`;
 };
