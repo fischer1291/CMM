@@ -1,0 +1,191 @@
+/* Call Me Maybe marketing: tokens from ui/theme.ts ("Bold & dark") plus the phone mockup. */
+:root {
+  color-scheme: dark;
+  --bg: #0B0B12;
+  --bg-elevated: #13131E;
+  --surface: rgba(255,255,255,0.06);
+  --surface-strong: rgba(255,255,255,0.10);
+  --border: rgba(255,255,255,0.10);
+  --border-strong: rgba(255,255,255,0.18);
+  --text: #F4F4FA;
+  --text-2: #A6A6BF;
+  --text-3: #6C6C88;
+  --cyan: #00E5FF;
+  --pink: #FF2E93;
+  --violet: #8B5CFF;
+  --success: #3DF5A7;
+  --offline: #4A4A63;
+  --brand: linear-gradient(135deg, #00E5FF 0%, #8B5CFF 50%, #FF2E93 100%);
+  --sans: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'Space Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+.grad-text {
+  background: var(--brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Phone mockup (sizes scale with --pw) ---------- */
+.phone {
+  --pw: 320px;
+  --u: calc(var(--pw) / 390);
+  position: relative;
+  width: var(--pw);
+  max-width: 100%;
+  aspect-ratio: 390 / 844;
+  border-radius: calc(56 * var(--u));
+  padding: calc(12 * var(--u));
+  background: linear-gradient(160deg, #2a2a3a, #0f0f17 40%, #1c1c29);
+  box-shadow:
+    0 0 0 calc(1.5 * var(--u)) rgba(255,255,255,0.14) inset,
+    0 calc(40 * var(--u)) calc(90 * var(--u)) rgba(0,0,0,0.6),
+    0 0 calc(120 * var(--u)) rgba(139,92,255,0.25);
+  font-family: var(--sans);
+  color: var(--text);
+  flex: none;
+}
+.phone .screen {
+  position: relative;
+  height: 100%;
+  border-radius: calc(44 * var(--u));
+  overflow: hidden;
+  background:
+    radial-gradient(120% 60% at 0% 0%, rgba(0,229,255,0.16), transparent 60%),
+    radial-gradient(120% 60% at 100% 100%, rgba(255,46,147,0.14), transparent 60%),
+    var(--bg);
+  font-size: calc(15 * var(--u));
+  line-height: 1.35;
+}
+.phone .island {
+  position: absolute; top: calc(11 * var(--u)); left: 50%; transform: translateX(-50%);
+  width: calc(120 * var(--u)); height: calc(34 * var(--u)); border-radius: 999px; background: #000; z-index: 5;
+}
+.phone .sb {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: calc(16 * var(--u)) calc(32 * var(--u)) 0;
+  font-size: calc(15 * var(--u)); font-weight: 600; height: calc(50 * var(--u));
+}
+.phone .sb-icons { display: flex; gap: calc(6 * var(--u)); align-items: center; }
+.phone .sb-icons i { display: block; background: var(--text); border-radius: calc(2 * var(--u)); }
+.phone .content { padding: calc(10 * var(--u)) calc(20 * var(--u)); display: flex; flex-direction: column; gap: calc(14 * var(--u)); }
+.phone .label { font-size: calc(11.5 * var(--u)); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2); }
+.phone .h1 { font-size: calc(28 * var(--u)); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.phone .h2 { font-size: calc(20 * var(--u)); font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
+.phone .cap { font-size: calc(13 * var(--u)); color: var(--text-2); line-height: 1.35; }
+.phone .glass {
+  background: var(--surface); border: 1px solid var(--border); border-radius: calc(22 * var(--u));
+  padding: calc(14 * var(--u)); backdrop-filter: blur(12px);
+}
+.phone .row { display: flex; align-items: center; gap: calc(12 * var(--u)); }
+.phone .grow { flex: 1; min-width: 0; }
+.phone .name { font-weight: 600; font-size: calc(15.5 * var(--u)); }
+.phone .avatar {
+  position: relative; flex: none;
+  width: calc(44 * var(--u)); height: calc(44 * var(--u)); border-radius: 50%;
+  display: grid; place-items: center; font-weight: 700; font-size: calc(16 * var(--u));
+  color: #0B0B12;
+}
+.phone .avatar.on { box-shadow: 0 0 0 calc(2.5 * var(--u)) var(--bg), 0 0 0 calc(5 * var(--u)) var(--cyan), 0 0 calc(18 * var(--u)) rgba(0,229,255,0.6); }
+.phone .avatar.off { filter: saturate(0.3) brightness(0.7); }
+.phone .dot { width: calc(8 * var(--u)); height: calc(8 * var(--u)); border-radius: 50%; background: var(--cyan); box-shadow: 0 0 calc(8 * var(--u)) var(--cyan); display: inline-block; }
+.phone .call-btn {
+  width: calc(42 * var(--u)); height: calc(42 * var(--u)); border-radius: 50%; flex: none;
+  display: grid; place-items: center; background: var(--cyan); color: #0B0B12;
+  box-shadow: 0 0 calc(18 * var(--u)) rgba(0,229,255,0.55);
+}
+.phone .call-btn svg { width: 46%; height: 46%; }
+.phone .btn {
+  display: flex; align-items: center; justify-content: center; gap: calc(8 * var(--u));
+  height: calc(50 * var(--u)); border-radius: 999px; font-weight: 700; font-size: calc(16 * var(--u));
+  background: var(--brand); color: #0B0B12;
+}
+.phone .btn svg { width: calc(18 * var(--u)); height: calc(18 * var(--u)); }
+.phone .pill {
+  display: inline-flex; align-items: center; gap: calc(6 * var(--u));
+  padding: calc(5 * var(--u)) calc(10 * var(--u)); border-radius: 999px;
+  background: var(--surface-strong); font-size: calc(12 * var(--u)); font-weight: 600; color: var(--text-2);
+}
+.phone .tabbar {
+  position: absolute; left: calc(18 * var(--u)); right: calc(18 * var(--u)); bottom: calc(24 * var(--u));
+  height: calc(64 * var(--u)); border-radius: 999px;
+  background: rgba(30,30,46,0.75); border: 1px solid var(--border-strong); backdrop-filter: blur(20px);
+  display: flex; justify-content: space-around; align-items: center;
+}
+.phone .tabbar span { width: calc(24 * var(--u)); height: calc(24 * var(--u)); color: var(--text-3); display: grid; place-items: center; }
+.phone .tabbar span.active { color: var(--cyan); filter: drop-shadow(0 0 calc(6 * var(--u)) var(--cyan)); }
+.phone .tabbar svg { width: 100%; height: 100%; }
+.phone .home-ind { position: absolute; bottom: calc(8 * var(--u)); left: 50%; transform: translateX(-50%); width: calc(134 * var(--u)); height: calc(5 * var(--u)); border-radius: 999px; background: rgba(255,255,255,0.5); }
+
+/* Status ring */
+.phone .ring-wrap { display: grid; place-items: center; padding: calc(8 * var(--u)) 0 calc(2 * var(--u)); }
+.phone .ring {
+  position: relative; width: calc(200 * var(--u)); height: calc(200 * var(--u)); border-radius: 50%;
+  display: grid; place-items: center; text-align: center;
+  background: radial-gradient(circle at 40% 35%, #23233A, #101019 70%);
+}
+.phone .ring::before {
+  content: ''; position: absolute; inset: calc(-7 * var(--u)); border-radius: 50%; padding: calc(7 * var(--u));
+  background: conic-gradient(from 200deg, #00E5FF, #8B5CFF, #FF2E93, #00E5FF);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+.phone .ring::after {
+  content: ''; position: absolute; inset: calc(-22 * var(--u)); border-radius: 50%; z-index: -1;
+  background: conic-gradient(from 200deg, rgba(0,229,255,0.55), rgba(139,92,255,0.45), rgba(255,46,147,0.55), rgba(0,229,255,0.55));
+  filter: blur(calc(22 * var(--u)));
+}
+.phone .ring .big { font-size: calc(26 * var(--u)); font-weight: 700; letter-spacing: -0.02em; }
+.phone .ring .small { font-size: calc(12 * var(--u)); color: var(--text-2); font-family: var(--mono); letter-spacing: 0.04em; }
+.phone .ring .power { width: calc(34 * var(--u)); height: calc(34 * var(--u)); color: var(--cyan); margin: 0 auto calc(6 * var(--u)); filter: drop-shadow(0 0 calc(8 * var(--u)) var(--cyan)); }
+
+/* Moment card */
+.phone .moment {
+  position: relative; border-radius: calc(24 * var(--u)); padding: calc(1.5 * var(--u));
+  background: var(--brand); box-shadow: 0 0 calc(30 * var(--u)) rgba(255,46,147,0.45);
+}
+.phone .moment > div { background: #12121c; border-radius: calc(22.5 * var(--u)); padding: calc(16 * var(--u)); display: flex; flex-direction: column; gap: calc(10 * var(--u)); }
+.phone .timer { font-family: var(--mono); font-weight: 700; font-size: calc(18 * var(--u)); }
+
+/* Chart */
+.phone .bars { display: flex; align-items: flex-end; gap: calc(8 * var(--u)); height: calc(110 * var(--u)); }
+.phone .bars i { flex: 1; border-radius: calc(6 * var(--u)) calc(6 * var(--u)) calc(3 * var(--u)) calc(3 * var(--u)); background: rgba(139,92,255,0.35); display: block; }
+.phone .bars i.now { background: var(--brand); box-shadow: 0 0 calc(14 * var(--u)) rgba(255,46,147,0.5); }
+.phone .badge {
+  width: calc(64 * var(--u)); height: calc(64 * var(--u)); border-radius: calc(20 * var(--u));
+  display: grid; place-items: center; font-size: calc(30 * var(--u));
+  background: var(--surface-strong); border: 1px solid var(--border-strong);
+}
+.phone .badge.lit { background: linear-gradient(135deg, rgba(0,229,255,0.25), rgba(255,46,147,0.25)); box-shadow: 0 0 calc(16 * var(--u)) rgba(139,92,255,0.45); }
+.phone .badge.locked { opacity: 0.35; filter: grayscale(1); }
+
+/* Moments feed */
+.phone .shot {
+  position: relative; border-radius: calc(22 * var(--u)); overflow: hidden; aspect-ratio: 4 / 5;
+  background: linear-gradient(160deg, #3a2a55, #1b2b44 60%, #0f1622);
+}
+.phone .shot .blur { position: absolute; inset: 0; backdrop-filter: blur(18px); background: rgba(11,11,18,0.35); }
+.phone .lock {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: calc(10 * var(--u)); text-align: center; padding: calc(22 * var(--u));
+}
+.phone .lock svg { width: calc(38 * var(--u)); height: calc(38 * var(--u)); color: var(--pink); filter: drop-shadow(0 0 calc(10 * var(--u)) var(--pink)); }
+
+/* Video call */
+.phone .call-bg { position: absolute; inset: 0; background: linear-gradient(170deg, #4b2b6b 0%, #203a5c 45%, #0c1320 100%); }
+.phone .call-face {
+  position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%);
+  width: calc(180 * var(--u)); height: calc(180 * var(--u)); border-radius: 50%;
+  display: grid; place-items: center; font-size: calc(72 * var(--u)); font-weight: 700; color: #0B0B12;
+}
+.phone .pip {
+  position: absolute; right: calc(18 * var(--u)); top: calc(70 * var(--u)); width: calc(96 * var(--u)); height: calc(136 * var(--u));
+  border-radius: calc(18 * var(--u)); border: 1px solid var(--border-strong); background: linear-gradient(160deg, #2b4a4f, #15222a);
+  display: grid; place-items: center; font-weight: 700; font-size: calc(30 * var(--u));
+}
+.phone .call-ctrl { position: absolute; left: 0; right: 0; bottom: calc(46 * var(--u)); display: flex; justify-content: center; gap: calc(18 * var(--u)); }
+.phone .call-ctrl span { width: calc(58 * var(--u)); height: calc(58 * var(--u)); border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,0.16); backdrop-filter: blur(12px); }
+.phone .call-ctrl span.end { background: #FF3B5C; box-shadow: 0 0 calc(18 * var(--u)) rgba(255,59,92,0.6); }
+.phone .call-ctrl span.spark { background: var(--brand); color: #0B0B12; box-shadow: 0 0 calc(18 * var(--u)) rgba(255,46,147,0.5); }
+.phone .call-ctrl svg { width: 42%; height: 42%; }
