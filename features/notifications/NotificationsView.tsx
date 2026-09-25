@@ -26,6 +26,9 @@ const TYPE_TEXT: Record<string, (name: string) => string> = {
   daily_moment: () => 'Call Me Moment',
   moment_consent: (name) => `${name} möchte einen Moment teilen`,
   moment_approved: (name) => `${name} hat euren Moment freigegeben`,
+  circle_invite: (name) => `${name} hat dich in einen Kreis eingeladen`,
+  room_open: (name) => `${name} hat eine Runde gestartet`,
+  circle_ritual: () => 'Euer Kreis-Ritual',
 };
 
 const RESULT_TEXT: Record<string, { text: string; color: string }> = {

@@ -10,6 +10,9 @@ import { StatusView } from '../../features/status/StatusView';
 import { useCountdown } from '../../hooks/useCountdown';
 import { useNudges } from '../../hooks/useNudges';
 import { useDailyMoment } from '../../hooks/useDailyMoment';
+import { useCircles } from '../../hooks/useCircles';
+import { CirclesStrip } from '../../features/circles/CirclesStrip';
+import { answerCircleInvite } from '../../services/circlesApi';
 import {
   clock,
   fetchSchedule,
@@ -42,6 +45,19 @@ export default function StatusScreen() {
   const { startVideoCall } = useNewCall();
   const { received, dismiss: dismissNudges, reload: reloadNudges } = useNudges();
   const { daily, join: joinDaily } = useDailyMoment();
+  const { circles, invites: circleInvites, reload: reloadCircles, setInvites: setCircleInvites } = useCircles();
+
+  const answerInvite = async (circleId: string, accept: boolean) => {
+    setCircleInvites((list) => list.filter((i) => i.circleId !== circleId));
+    try {
+      await answerCircleInvite(circleId, accept);
+      if (accept) router.push({ pathname: '/circle', params: { id: circleId } });
+    } catch {
+      Alert.alert('Hat nicht geklappt', 'Bitte versuche es erneut.');
+    } finally {
+      reloadCircles();
+    }
+  };
 
   const [status, setStatus] = useState<OwnStatus>({ available: false, until: null, source: null });
   const [toggling, setToggling] = useState(false);
@@ -193,6 +209,17 @@ export default function StatusScreen() {
         onOpenSchedule={() => router.push('/schedule')}
         onOpenProfile={() => router.push('/(tabs)/settings')}
         onDismissNudges={() => dismissNudges()}
+        circlesStrip={
+          <CirclesStrip
+            circles={circles}
+            invites={circleInvites}
+            myPhone={userPhone}
+            onOpen={(id) => router.push({ pathname: '/circle', params: { id } })}
+            onNew={(s) => router.push({ pathname: '/circles', params: s ? { newName: s.name, newEmoji: s.emoji } : { newName: '' } })}
+            onAnswerInvite={answerInvite}
+            onSeeAll={() => router.push('/circles')}
+          />
+        }
         daily={
           daily.active
             ? {

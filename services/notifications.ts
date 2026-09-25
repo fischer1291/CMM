@@ -17,7 +17,15 @@ export type PushType =
   | 'call_ended';
 
 /** Types the open app shows itself, live via socket (components/InAppBanner) */
-const LIVE_IN_APP = new Set<string>(['contact_available', 'nudge', 'contact_joined', 'daily_moment', 'moment_consent']);
+const LIVE_IN_APP = new Set<string>([
+  'contact_available',
+  'nudge',
+  'contact_joined',
+  'daily_moment',
+  'moment_consent',
+  'room_open',
+  'circle_invite',
+]);
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
@@ -90,5 +98,5 @@ export function setupNotifications(): void {
 /** Deep links a push may open; anything else is ignored. */
 export function safeRoute(url: unknown): string | null {
   if (typeof url !== 'string') return null;
-  return /^\/(friend\?phone=[%+0-9A-Za-z]+|callmoments|stats|schedule)?$/.test(url) ? url : null;
+  return /^\/(friend\?phone=[%+0-9A-Za-z]+|circle\?id=[0-9a-f]{24}|callmoments|stats|schedule|circles)?$/.test(url) ? url : null;
 }

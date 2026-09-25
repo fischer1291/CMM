@@ -88,6 +88,8 @@ function InnerLayout() {
           <Stack.Screen name="circles" />
           <Stack.Screen name="blocked" />
           <Stack.Screen name="memories" />
+          <Stack.Screen name="circle" />
+          <Stack.Screen name="room" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
           <Stack.Screen
             name="videocall"
             options={{
@@ -110,6 +112,7 @@ function InnerLayout() {
         <Stack.Screen name="datenschutz" />
         <Stack.Screen name="impressum" />
         <Stack.Screen name="einladung" />
+        <Stack.Screen name="kreis" />
       </Stack>
       {signedIn && <NotificationRouter />}
       {signedIn && !needsProfileSetup && <InAppBanner />}

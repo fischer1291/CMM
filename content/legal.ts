@@ -53,7 +53,8 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     title: 'Kreise, Melden und Blockieren',
     paragraphs: [
-      'Deine Kreise (z. B. „Familie“) und wer darin ist, speichern wir, damit nur die gewählten Kreise sehen, wann du erreichbar bist.',
+      'Kreise sind gemeinsame Gruppen, denen man bewusst beitritt (Einladung oder Code). Wir speichern Name, Mitglieder und offene Einladungen; Einladungen an Menschen ohne App nur als Prüfwert (Hash) der Nummer. Mitglieder eines Kreises sehen einander, auch wenn sie ihre Nummern nicht gespeichert haben, und sehen, wann die anderen erreichbar sind (außer du schränkst das ein).',
+      'Für Gruppenanrufe (Runden) speichern wir, wer wann dabei war, 30 Tage, und für deine Gesprächszeit-Statistik deine Zeit in der Runde.',
       'Blockierst du jemanden, speichern wir das, bis du es aufhebst. Meldungen (Grund, optionaler Hinweis, ggf. der betroffene Moment) speichern wir bis zu 6 Monate, um Missbrauch zu prüfen. Die gemeldete Person erfährt nicht, von wem die Meldung kommt.',
     ],
   },

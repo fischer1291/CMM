@@ -12,6 +12,7 @@ import { contactJoinedEvents } from '../services/appEvents';
 import { markBannerShown } from '../services/bannerLog';
 import { startSession } from '../services/gamificationApi';
 import { joinDaily } from '../services/dailyApi';
+import { fetchCircle, openRoom } from '../services/circlesApi';
 import { LogoMark } from '../ui/components/LogoMark';
 import { socket } from '../services/socket';
 import { AppText, Avatar, colors, glow, radius, spacing } from '../ui';
@@ -21,7 +22,9 @@ type Banner = {
   phone: string;
   name: string;
   avatarUrl: string | null;
-  kind: 'available' | 'nudge' | 'joined' | 'daily' | 'consent';
+  kind: 'available' | 'nudge' | 'joined' | 'daily' | 'consent' | 'room' | 'circle';
+  /** For room/circle banners */
+  circleId?: string;
 };
 
 const TEXT = {
@@ -30,6 +33,8 @@ const TEXT = {
   joined: { title: (n: string) => `${n} ist jetzt dabei 🎉`, sub: 'Sag doch mal Hallo!', action: 'Hallo' },
   daily: { title: () => '⚡ Call Me Moment!', sub: 'Deine Leute haben jetzt 10 Minuten', action: 'Dabei' },
   consent: { title: (n: string) => `${n} möchte einen Moment teilen`, sub: 'Schau ihn dir an', action: 'Ansehen' },
+  room: { title: (n: string) => `${n}: Runde ist offen 🎙️`, sub: 'Spring rein, wenn du magst', action: 'Rein' },
+  circle: { title: () => 'Neue Kreis-Einladung', sub: 'Schau sie dir an', action: 'Ansehen' },
 };
 
 const PUSH_TYPE = {
@@ -38,6 +43,8 @@ const PUSH_TYPE = {
   joined: 'contact_joined',
   daily: 'daily_moment',
   consent: 'moment_consent',
+  room: 'room_open',
+  circle: 'circle_invite',
 } as const;
 
 const SHOW_MS = 6000;
@@ -103,14 +110,33 @@ export function InAppBanner() {
       show({ phone: from, name: contact?.name || 'Jemand', avatarUrl: contact?.avatarUrl ?? null, kind: 'consent' });
     };
 
+    const onRoom = async ({ circleId, startedBy }: { circleId?: string; startedBy?: string }) => {
+      if (!circleId || pathnameRef.current === '/circle' || pathnameRef.current === '/room') return;
+      const starter = startedBy && startedBy !== 'ritual' ? contactsRef.current.find((c) => c.phone === startedBy) : undefined;
+      try {
+        const circle = await fetchCircle(circleId);
+        show({ phone: startedBy || '', name: `${circle.emoji} ${circle.name}`, avatarUrl: starter?.avatarUrl ?? null, kind: 'room', circleId });
+      } catch {
+        // Not a member (anymore)
+      }
+    };
+    const onCircleInvite = ({ circleId }: { circleId?: string }) => {
+      if (!circleId || pathnameRef.current === '/') return;
+      show({ phone: '', name: 'Kreis', avatarUrl: null, kind: 'circle', circleId });
+    };
+
     socket.on('statusUpdate', onStatusUpdate);
     socket.on('nudge', onNudge);
+    socket.on('roomOpened', onRoom);
+    socket.on('circleInvite', onCircleInvite);
     socket.on('dailyMoment', onDaily);
     socket.on('momentConsent', onConsent);
     return () => {
       socket.off('statusUpdate', onStatusUpdate);
       socket.off('nudge', onNudge);
       socket.off('dailyMoment', onDaily);
+      socket.off('roomOpened', onRoom);
+      socket.off('circleInvite', onCircleInvite);
       socket.off('momentConsent', onConsent);
       offJoined();
     };
@@ -126,7 +152,14 @@ export function InAppBanner() {
 
   const act = () => {
     setBanner(null);
-    if (banner.kind === 'daily') {
+    if (banner.kind === 'room' && banner.circleId) {
+      const circleId = banner.circleId;
+      openRoom(circleId)
+        .then((r) => router.push({ pathname: '/room', params: { roomId: r.id, channel: r.channel, circleId } }))
+        .catch(() => router.push({ pathname: '/circle', params: { id: circleId } }));
+    } else if (banner.kind === 'circle') {
+      router.navigate('/');
+    } else if (banner.kind === 'daily') {
       joinDaily()
         .catch(() => {})
         .finally(() => router.navigate('/'));
@@ -152,7 +185,8 @@ export function InAppBanner() {
         {...banner}
         onPress={() => {
           setBanner(null);
-          if (banner.kind === 'daily') router.navigate('/');
+          if (banner.kind === 'daily' || banner.kind === 'circle') router.navigate('/');
+          else if (banner.kind === 'room' && banner.circleId) router.push({ pathname: '/circle', params: { id: banner.circleId } });
           else if (banner.kind === 'consent') router.navigate('/callmoments');
           else router.push({ pathname: '/friend', params: { phone: banner.phone } });
         }}
@@ -172,7 +206,7 @@ export function BannerCard({
 }: Pick<Banner, 'name' | 'avatarUrl' | 'kind'> & { onPress: () => void; onAction: () => void }) {
   const firstName = name.split(' ')[0];
   const text = TEXT[kind];
-  const accent = kind === 'available' ? colors.cyan : kind === 'nudge' || kind === 'daily' ? colors.pink : colors.violet;
+  const accent = kind === 'available' ? colors.cyan : kind === 'nudge' || kind === 'daily' || kind === 'room' ? colors.pink : colors.violet;
   return (
     <Pressable
       onPress={onPress}
@@ -200,7 +234,7 @@ export function BannerCard({
         accessibilityLabel={text.action}
         style={[styles.action, { backgroundColor: accent }]}
       >
-        <AppText variant="caption" color={kind === 'joined' || kind === 'consent' ? colors.text : colors.bg} style={styles.actionText}>
+        <AppText variant="caption" color={kind === 'joined' || kind === 'consent' || kind === 'circle' ? colors.text : colors.bg} style={styles.actionText}>
           {text.action}
         </AppText>
       </Pressable>

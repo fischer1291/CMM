@@ -22,6 +22,10 @@ import { NotificationsView } from '../features/notifications/NotificationsView';
 import { BannerCard } from '../components/InAppBanner';
 import { LegalView } from '../features/legal/LegalView';
 import { CirclesView } from '../features/circles/CirclesView';
+import { CircleView } from '../features/circles/CircleView';
+import { RoomView } from '../features/circles/RoomView';
+import { CirclesStrip } from '../features/circles/CirclesStrip';
+import type { CircleDetail, CircleSummary } from '../services/circlesApi';
 import { PRIVACY_SECTIONS } from '../content/legal';
 import type { Stats } from '../services/gamificationApi';
 import { fetchPreviewState, PreviewState } from './previewControl';
@@ -237,6 +241,44 @@ const STATS: Stats = {
   ],
 };
 
+const MEMBER = (phone: string, name: string, isAvailable = false) => ({ phone, name, avatarUrl: '', isAvailable, availableUntil: null });
+const SAMPLE_CIRCLES: CircleSummary[] = [
+  {
+    id: 'c1',
+    name: 'Familie Fischer',
+    emoji: '🏡',
+    createdBy: '+490',
+    members: [MEMBER('+490', 'Leroy'), MEMBER('+491', 'Anna Berg', true), MEMBER('+493', 'Mama', true)],
+    invitedCount: 1,
+    warmth: { minutes: 84, talkedCount: 2, memberCount: 3, goalReached: false },
+    room: { id: 'r1', channel: 'room_x', participants: ['+491', '+493'] },
+    ritual: { enabled: true, day: 0, start: 18 * 60 },
+  },
+  {
+    id: 'c2',
+    name: 'Enge Freunde',
+    emoji: '💛',
+    createdBy: '+490',
+    members: [MEMBER('+490', 'Leroy'), MEMBER('+492', 'Ben Koch'), MEMBER('+494', 'Clara')],
+    invitedCount: 0,
+    warmth: { minutes: 45, talkedCount: 3, memberCount: 3, goalReached: true },
+    room: null,
+    ritual: { enabled: false, day: 0, start: 18 * 60 },
+  },
+];
+const SAMPLE_CIRCLE_DETAIL: CircleDetail = {
+  ...SAMPLE_CIRCLES[0],
+  room: null,
+  code: 'K7M2Q9XA',
+  invites: [
+    { phone: '+495', name: 'Papa', status: 'pending', pendingSignup: false },
+    { phone: '+496', name: 'Oma', status: 'draft', pendingSignup: false },
+  ],
+  moments: [
+    { id: 'm1', screenshot: MOMENTS[0].screenshot, userPhone: '+491', targetPhone: '+493', mood: '😊', timestamp: new Date().toISOString() },
+  ],
+};
+
 const SCREENS: Record<string, () => React.ReactElement> = {
   composer: () => (
     <MomentComposer
@@ -378,16 +420,69 @@ const SCREENS: Record<string, () => React.ReactElement> = {
   ),
   circles: () => (
     <CirclesView
-      circles={[
-        { id: 'fam1', name: 'Familie', emoji: '🏡', members: ['+491', '+492', '+493'] },
-        { id: 'fr1', name: 'Enge Freunde', emoji: '💛', members: ['+491'] },
-      ]}
-      audience={{ mode: 'circles', circles: ['fam1'] }}
-      saving={false}
-      person={(phone) => ({ phone, name: phone === '+491' ? 'Anna Berg' : phone === '+492' ? 'Ben Koch' : 'Mama', avatarUrl: phone === '+491' ? PHOTO : null })}
+      circles={SAMPLE_CIRCLES}
+      invites={[{ circleId: 'c9', name: 'Uni-Crew', emoji: '🎓', memberCount: 4, invitedBy: '+492', invitedByName: 'Ben Koch' }]}
+      audience={{ mode: 'circles', circles: ['c1'] }}
+      myPhone="+490"
       onBack={() => {}}
+      onOpen={() => {}}
+      onNew={() => {}}
+      onJoinCode={() => {}}
+      onAnswerInvite={() => {}}
       onChangeAudience={() => {}}
-      onEdit={() => {}}
+    />
+  ),
+  circle: () => (
+    <CircleView
+      circle={SAMPLE_CIRCLE_DETAIL}
+      myPhone="+490"
+      person={(phone, name) => ({ name: name || 'Jemand', avatarUrl: phone === '+491' ? PHOTO : null })}
+      busy={false}
+      onBack={() => {}}
+      onMore={() => {}}
+      onRoom={() => {}}
+      onCall={() => {}}
+      onInvite={() => {}}
+      onShareLink={() => {}}
+      onSendDrafts={() => {}}
+      onSaveRitual={() => {}}
+    />
+  ),
+  room: () => (
+    <RoomView
+      title="🏡 Familie Fischer"
+      duration="12:04"
+      connecting={false}
+      micMuted={false}
+      cameraOn
+      tiles={[
+        { key: 'me', name: 'Leroy', avatarUrl: null, video: <FakeVideo />, speaking: false, isMe: true },
+        { key: '1', name: 'Anna Berg', avatarUrl: PHOTO, video: null, speaking: true, isMe: false },
+        { key: '2', name: 'Mama', avatarUrl: null, video: null, speaking: false, isMe: false },
+      ]}
+      onToggleMute={() => {}}
+      onToggleCamera={() => {}}
+      onSwitchCamera={() => {}}
+      onLeave={() => {}}
+    />
+  ),
+  'status-circles': () => (
+    <StatusView
+      {...statusProps}
+      available={false}
+      availableContacts={[]}
+      nudges={[]}
+      circlesStrip={
+        <CirclesStrip
+          circles={SAMPLE_CIRCLES}
+          invites={[{ circleId: 'c9', name: 'Uni-Crew', emoji: '🎓', memberCount: 4, invitedBy: '+492', invitedByName: 'Ben Koch' }]}
+          myPhone="+490"
+          onOpen={() => {}}
+          onNew={() => {}}
+          onAnswerInvite={() => {}}
+          onSeeAll={() => {}}
+        />
+      }
     />
   ),
   'friend-available': () => (

@@ -1,76 +1,68 @@
-import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
-import { useContacts } from '../contexts/ContactsContext';
-import { CircleDraft, CircleEditor, CirclesView } from '../features/circles/CirclesView';
-import { PeoplePicker } from '../features/stats/PeoplePicker';
-import { Audience, Circle, fetchCircles, saveAudience, saveCircles } from '../services/socialApi';
+import { useAuth } from '../contexts/AuthContext';
+import { CirclesView, JoinCodeSheet, NewCircleSheet } from '../features/circles/CirclesView';
+import { useCircles } from '../hooks/useCircles';
+import { answerCircleInvite, Audience, createCircle, fetchAudience, joinCircleByCode, saveAudience } from '../services/circlesApi';
 
 export default function CirclesScreen() {
   const router = useRouter();
-  const { contacts, find } = useContacts();
-  const [circles, setCircles] = useState<Circle[] | null>(null);
+  const params = useLocalSearchParams<{ newName?: string; newEmoji?: string }>();
+  const { userPhone } = useAuth();
+  const { circles, invites, reload, setInvites } = useCircles();
   const [audience, setAudience] = useState<Audience>({ mode: 'all', circles: [] });
-  const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState<CircleDraft | null>(null);
-  const [picking, setPicking] = useState<CircleDraft | null>(null);
+  const [creating, setCreating] = useState<{ name: string; emoji: string } | null>(
+    params.newName !== undefined ? { name: params.newName, emoji: params.newEmoji || '💛' } : null
+  );
+  const [joining, setJoining] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    fetchCircles()
-      .then((data) => {
-        setCircles(data.circles);
-        setAudience(data.audience);
-      })
-      .catch(() => {
-        setCircles([]);
-        Alert.alert('Nicht geladen', 'Deine Kreise konnten nicht geladen werden.');
-      });
+    fetchAudience().then(setAudience).catch(() => {});
   }, []);
 
-  const registered = useMemo(
-    () => contacts.filter((c) => c.registered).map(({ phone, name, avatarUrl }) => ({ phone, name, avatarUrl })),
-    [contacts]
-  );
-  const person = useCallback(
-    (phone: string) => {
-      const c = find(phone);
-      return { phone, name: c?.name || phone, avatarUrl: c?.avatarUrl ?? null };
-    },
-    [find]
-  );
+  const open = (id: string) => router.push({ pathname: '/circle', params: { id } });
 
-  const persist = async (next: CircleDraft[]) => {
-    setSaving(true);
+  const create = async (name: string, emoji: string) => {
+    setBusy(true);
     try {
-      const saved = await saveCircles(next);
-      setCircles(saved.circles);
-      setAudience(saved.audience);
-    } catch {
-      Alert.alert('Nicht gespeichert', 'Deine Kreise konnten nicht gespeichert werden.');
+      const circle = await createCircle(name, emoji);
+      setCreating(null);
+      reload();
+      open(circle.id);
+    } catch (error: any) {
+      Alert.alert('Nicht angelegt', error?.code === 'too_many_circles' ? 'Du bist schon in sehr vielen Kreisen.' : 'Bitte versuche es erneut.');
     } finally {
-      setSaving(false);
+      setBusy(false);
     }
   };
 
-  const saveDraft = (draft: CircleDraft) => {
-    const list = circles ?? [];
-    const next = draft.id ? list.map((c) => (c.id === draft.id ? { ...c, ...draft } : c)) : [...list, draft];
-    setEditing(null);
-    persist(next);
+  const join = async (code: string) => {
+    setBusy(true);
+    try {
+      const circle = await joinCircleByCode(code);
+      setJoining(false);
+      reload();
+      open(circle.id);
+    } catch (error: any) {
+      Alert.alert('Nicht beigetreten', error?.code === 'full' ? 'Der Kreis ist voll.' : 'Diesen Code gibt es nicht. Prüf ihn noch einmal.');
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const remove = (draft: CircleDraft) =>
-    Alert.alert(`„${draft.name}“ löschen?`, 'Die Personen bleiben natürlich deine Kontakte.', [
-      { text: 'Abbrechen', style: 'cancel' },
-      {
-        text: 'Löschen',
-        style: 'destructive',
-        onPress: () => {
-          setEditing(null);
-          persist((circles ?? []).filter((c) => c.id !== draft.id));
-        },
-      },
-    ]);
+  const answer = async (circleId: string, accept: boolean) => {
+    setInvites((list) => list.filter((i) => i.circleId !== circleId));
+    try {
+      await answerCircleInvite(circleId, accept);
+      reload();
+      if (accept) open(circleId);
+    } catch {
+      Alert.alert('Hat nicht geklappt', 'Bitte versuche es erneut.');
+      reload();
+    }
+  };
 
   const changeAudience = async (next: Audience) => {
     const previous = audience;
@@ -87,41 +79,20 @@ export default function CirclesScreen() {
     <>
       <CirclesView
         circles={circles}
+        invites={invites}
         audience={audience}
-        saving={saving}
-        person={person}
+        myPhone={userPhone}
         onBack={() => router.back()}
+        onOpen={open}
+        onNew={() => setCreating({ name: '', emoji: '💛' })}
+        onJoinCode={() => setJoining(true)}
+        onAnswerInvite={answer}
         onChangeAudience={changeAudience}
-        onEdit={setEditing}
       />
-      {editing && (
-        <CircleEditor
-          draft={editing}
-          onClose={() => setEditing(null)}
-          onSave={saveDraft}
-          onDelete={editing.id ? () => remove(editing) : undefined}
-          onPickMembers={(current) => {
-            // One modal at a time: the picker replaces the editor, then back
-            setEditing(null);
-            setPicking(current);
-          }}
-        />
+      {creating && (
+        <NewCircleSheet initialName={creating.name} initialEmoji={creating.emoji} busy={busy} onCreate={create} onClose={() => setCreating(null)} />
       )}
-      {picking && (
-        <PeoplePicker
-          title={`Wer gehört zu ${picking.emoji} ${picking.name || 'diesem Kreis'}?`}
-          people={registered}
-          initial={picking.members}
-          onCancel={() => {
-            setEditing(picking);
-            setPicking(null);
-          }}
-          onDone={(members) => {
-            setEditing({ ...picking, members });
-            setPicking(null);
-          }}
-        />
-      )}
+      {joining && <JoinCodeSheet busy={busy} onJoin={join} onClose={() => setJoining(false)} />}
     </>
   );
 }

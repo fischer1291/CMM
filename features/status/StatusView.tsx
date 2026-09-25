@@ -38,6 +38,8 @@ type Props = {
   scheduleLabel: string | null;
   onOpenSchedule: () => void;
   onOpenProfile?: () => void;
+  /** "Deine Kreise" (features/circles/CirclesStrip) */
+  circlesStrip?: React.ReactNode;
   /** The daily Call Me Moment while it runs */
   daily?: React.ComponentProps<typeof DailyMomentCard> | null;
   /** "Nicht jetzt" on the nudge card */
@@ -159,6 +161,7 @@ export function StatusView({
   onOpenSchedule,
   onOpenProfile,
   onDismissNudges,
+  circlesStrip,
   daily,
   showNotificationPrompt,
   onAllowNotifications,
@@ -218,6 +221,8 @@ export function StatusView({
           </View>
         )}
       </View>
+
+      {circlesStrip}
 
       {showNotificationPrompt && <NotificationPrompt onAllow={onAllowNotifications} onDismiss={onDismissNotifications} />}
 
