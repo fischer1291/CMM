@@ -20,6 +20,7 @@ type Props = {
   onOpenSystemSettings: () => void;
   onOpenNotifications: () => void;
   onOpenStats: () => void;
+  onOpenAlbum: () => void;
   onOpenSchedule: () => void;
   onInvite: () => void;
   onExportData: () => void;
@@ -99,6 +100,7 @@ export function ProfileView(props: Props) {
           { icon: 'calendar-outline', label: 'Zeitplan', onPress: props.onOpenSchedule },
           { icon: 'people-circle-outline', label: 'Kreise & Sichtbarkeit', onPress: props.onOpenCircles },
           { icon: 'pulse-outline', label: 'Gesprächszeit & Freigabe', onPress: props.onOpenStats },
+          { icon: 'ribbon-outline', label: 'Sammelalbum & Vitrine', onPress: props.onOpenAlbum },
         ]}
       />
 

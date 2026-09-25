@@ -82,6 +82,7 @@ function InnerLayout() {
         <Stack.Protected guard={signedIn && !needsProfileSetup}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="stats" />
+          <Stack.Screen name="album" />
           <Stack.Screen name="schedule" />
           <Stack.Screen name="friend" />
           <Stack.Screen name="notifications" />

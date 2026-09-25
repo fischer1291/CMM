@@ -15,6 +15,8 @@ import {
   TAB_BAR_SPACE,
 } from '../../ui';
 import { DailyMomentCard } from './DailyMomentCard';
+import { NextUpCard } from '../album/AlbumView';
+import type { Album } from '../../services/badgesApi';
 
 export type AvailableContact = { phone: string; name: string; avatarUrl: string | null };
 export type ReceivedNudge = { from: string; name: string; avatarUrl: string | null };
@@ -35,6 +37,9 @@ type Props = {
   nudges: ReceivedNudge[];
   week: { label: string; streak: number } | null;
   onOpenStats: () => void;
+  /** "Fast geschafft": the closest badge */
+  nextUp?: Album['nextUp'];
+  onOpenAlbum?: () => void;
   scheduleLabel: string | null;
   onOpenSchedule: () => void;
   onOpenProfile?: () => void;
@@ -157,6 +162,8 @@ export function StatusView({
   nudges,
   week,
   onOpenStats,
+  nextUp,
+  onOpenAlbum,
   scheduleLabel,
   onOpenSchedule,
   onOpenProfile,
@@ -271,6 +278,7 @@ export function StatusView({
 
       <SectionHeader title="Für dich" />
       <View style={styles.links}>
+        {nextUp && onOpenAlbum ? <NextUpCard nextUp={nextUp} onPress={onOpenAlbum} /> : null}
         <LinkCard
           icon="pulse"
           accent={colors.pink}

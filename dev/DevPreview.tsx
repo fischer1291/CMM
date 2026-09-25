@@ -15,7 +15,10 @@ import { ProfileSetupView } from '../features/profile/ProfileSetupView';
 import { ProfileView } from '../features/profile/ProfileView';
 import { MomentComposer } from '../features/moments/MomentComposer';
 import { StatusView } from '../features/status/StatusView';
-import { BadgeGrid, StatsView } from '../features/stats/StatsView';
+import { StatsView } from '../features/stats/StatsView';
+import { AlbumView, BadgeSheet } from '../features/album/AlbumView';
+import { BadgeCelebration } from '../components/BadgeCelebration';
+import type { Album, AlbumBadge } from '../services/badgesApi';
 import { ScheduleView } from '../features/schedule/ScheduleView';
 import { FriendView } from '../features/contacts/FriendView';
 import { NotificationsView } from '../features/notifications/NotificationsView';
@@ -218,16 +221,78 @@ const statusProps = {
   onDismissNudges: () => {},
 };
 
-const BADGE = (id: string, title: string, earned: boolean, progress = 1) => ({ id, title, description: '', earned, progress });
+const BADGE = (id: string, title: string, earned: boolean, progress = 1, icon = 'star', tierName: string | null = null) => ({ id, title, description: '', earned, progress, icon, tierName });
+const TIERS = ['Bronze', 'Silber', 'Gold'];
+const AB = (id: string, category: string, icon: string, title: string, description: string, tier: number, tiers: number, progress: number, secret = false): AlbumBadge => ({
+  id,
+  category,
+  icon: secret && !tier ? 'help' : icon,
+  title: secret && !tier ? 'Geheim' : title,
+  description,
+  secret,
+  tier,
+  tiers,
+  tierName: tiers > 1 && tier ? TIERS[tier - 1] : null,
+  earned: tier > 0,
+  progress,
+  current: Math.round(progress * 10),
+  next: tier === tiers ? null : 10,
+});
+const ALBUM_BADGES: AlbumBadge[] = [
+  AB('first_talk', 'connection', 'chatbubbles', 'Erstes Gespräch', 'Dein erstes echtes Gespräch', 1, 1, 1),
+  AB('talks', 'connection', 'call', 'Gesprächig', '50 Gespräche geführt', 1, 3, 0.46),
+  AB('people', 'connection', 'people', 'Menschenfreund', 'Mit 15 Menschen gesprochen', 1, 3, 0.6),
+  AB('reunion', 'connection', 'refresh', 'Wiedersehen', 'Nach 30 Tagen wieder gesprochen', 0, 3, 0.4),
+  AB('bridge', 'connection', 'git-merge', 'Brückenbauer', 'Jemanden in die App geholt', 0, 3, 0),
+  AB('deep_talk', 'depth', 'water', 'Tiefgang', '30 Minuten am Stück gesprochen', 1, 1, 1),
+  AB('marathon', 'depth', 'infinite', 'Marathon', '90 Minuten am Stück', 0, 1, 0.3, true),
+  AB('hours', 'depth', 'hourglass', 'Zeit geschenkt', '10 Stunden Gesprächszeit', 2, 3, 0.25),
+  AB('streak', 'rituals', 'flame', 'Dranbleiber', '12 Wochen in Folge', 1, 3, 0.25),
+  AB('planner', 'rituals', 'calendar', 'Planer', 'Einen Zeitplan angelegt', 1, 1, 1),
+  AB('daily', 'rituals', 'sunny', 'Moment-Mensch', 'Beim Call Me Moment dabei', 1, 3, 0.3),
+  AB('blitz', 'rituals', 'flash', 'Blitzschnell', 'In der ersten Minute dabei', 1, 1, 1, true),
+  AB('founder', 'circles', 'add-circle', 'Gründer', 'Einen Kreis gegründet', 1, 1, 1),
+  AB('host', 'circles', 'mic', 'Gastgeber', '10 Runden eröffnet', 0, 3, 0.5),
+  AB('together', 'circles', 'people-circle', 'Zusammen', '4 Runden mit deinem Kreis', 3, 3, 1),
+  AB('full_house', 'circles', 'home', 'Volles Haus', 'Alle in einer Runde', 0, 1, 0, true),
+  AB('storyteller', 'discover', 'sparkles', 'Erzähler', 'Einen Moment geteilt', 1, 3, 0.1),
+  AB('night_owl', 'discover', 'moon', 'Nachteule', 'Ein Gespräch nach 23 Uhr', 1, 1, 1, true),
+  AB('early_bird', 'discover', 'partly-sunny', 'Frühaufsteher', 'Vor 7 Uhr', 0, 1, 0, true),
+];
+const SAMPLE_ALBUM: Album = {
+  categories: [
+    { id: 'connection', title: 'Verbindung' },
+    { id: 'depth', title: 'Tiefe' },
+    { id: 'rituals', title: 'Rituale' },
+    { id: 'circles', title: 'Kreise' },
+    { id: 'discover', title: 'Entdecken' },
+  ],
+  badges: ALBUM_BADGES,
+  new: [],
+  nextUp: { id: 'talks', icon: 'call', title: 'Gesprächig', progress: 0.84, hint: 'Noch 2 Gespräche bis Gesprächig (Silber)' },
+  showcase: ['together', 'deep_talk', 'night_owl'],
+};
+const FRIEND_BADGES: AlbumBadge[] = [
+  AB('f_talks', 'friendship', 'chatbubbles', 'Plaudertaschen', '10 Gespräche zu zweit', 1, 3, 0.6),
+  AB('f_time', 'friendship', 'heart', 'Herzenszeit', '5 Stunden zusammen', 1, 3, 0.66),
+  AB('f_streak', 'friendship', 'flame', 'Wie verabredet', '4 Wochen in Folge', 1, 3, 0.4),
+  AB('f_year', 'friendship', 'gift', 'Ein Jahr', 'Seit einem Jahr in Kontakt', 0, 1, 0.9),
+];
+const SHOWCASE = [
+  { id: 'together', title: 'Zusammen', icon: 'people-circle', tierName: 'Gold' },
+  { id: 'deep_talk', title: 'Tiefgang', icon: 'water', tierName: null },
+  { id: 'streak', title: 'Dranbleiber', icon: 'flame', tierName: 'Silber' },
+];
 const STATS: Stats = {
   totals: { weekSeconds: 57 * 60, lastWeekSeconds: 80 * 60, monthSeconds: 4 * 3600 + 10 * 60, allTimeSeconds: 12 * 3600, talks: 23, longestSeconds: 48 * 60 },
   weeks: [20, 0, 45, 80, 30, 95, 80, 57].map((m, i) => ({ week: new Date(Date.UTC(2026, 7, 3 + i * 7)).toISOString().slice(0, 10), seconds: m * 60 })),
   streak: { current: 3, best: 4 },
   badges: [
-    BADGE('first_talk', 'Erstes Gespräch', true),
-    BADGE('deep_talk', 'Tiefgang', true),
-    BADGE('hour', 'Eine Stunde', true),
-    BADGE('ten_talks', 'Zehn Gespräche', true),
+    BADGE('first_talk', 'Erstes Gespräch', true, 1, 'chatbubbles'),
+    BADGE('deep_talk', 'Tiefgang', true, 1, 'water'),
+    BADGE('hours', 'Zeit geschenkt', true, 1, 'hourglass', 'Silber'),
+    BADGE('talks', 'Gesprächig', true, 1, 'call', 'Bronze'),
+    BADGE('together', 'Zusammen', true, 1, 'people-circle', 'Gold'),
     BADGE('streak_4', 'Dranbleiber', false, 0.75),
     BADGE('circle', 'Dein Kreis', false, 0.6),
     BADGE('ten_hours', 'Zehn Stunden', false, 0.4),
@@ -277,6 +342,12 @@ const SAMPLE_CIRCLE_DETAIL: CircleDetail = {
   moments: [
     { id: 'm1', screenshot: MOMENTS[0].screenshot, userPhone: '+491', targetPhone: '+493', mood: '😊', timestamp: new Date().toISOString() },
   ],
+  badges: [
+    AB('c_goal', 'circle', 'flag', 'Wochenziel', '4 Wochen alle gesprochen', 1, 3, 0.5),
+    AB('c_rooms', 'circle', 'mic', 'Rundenzeit', '10 Runden', 1, 3, 0.3),
+    AB('c_ritual', 'circle', 'repeat', 'Ritual', 'Eine Ritual-Runde', 1, 1, 1),
+    AB('c_all', 'circle', 'home', 'Alle da', 'Alle in einer Runde', 0, 1, 0.66),
+  ],
 };
 
 const SCREENS: Record<string, () => React.ReactElement> = {
@@ -304,6 +375,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpenSystemSettings={() => {}}
       onOpenNotifications={() => {}}
       onOpenStats={() => {}}
+      onOpenAlbum={() => {}}
       onOpenSchedule={() => {}}
       onInvite={() => {}}
       onExportData={() => {}}
@@ -466,12 +538,27 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onLeave={() => {}}
     />
   ),
+  album: () => <AlbumView album={SAMPLE_ALBUM} error={false} onRetry={() => {}} onBack={() => {}} onSelect={() => {}} />,
+  'album-sheet': () => (
+    <>
+      <AlbumView album={SAMPLE_ALBUM} error={false} onRetry={() => {}} onBack={() => {}} onSelect={() => {}} />
+      <BadgeSheet badge={ALBUM_BADGES[1]} pinned={false} canPin onTogglePin={() => {}} onClose={() => {}} />
+    </>
+  ),
+  celebration: () => (
+    <>
+      <AlbumView album={SAMPLE_ALBUM} error={false} onRetry={() => {}} onBack={() => {}} onSelect={() => {}} />
+      <BadgeCelebration badges={[ALBUM_BADGES[7], ALBUM_BADGES[17]]} onOpenAlbum={() => {}} onDone={() => {}} />
+    </>
+  ),
   'status-circles': () => (
     <StatusView
       {...statusProps}
       available={false}
       availableContacts={[]}
       nudges={[]}
+      nextUp={SAMPLE_ALBUM.nextUp}
+      onOpenAlbum={() => {}}
       circlesStrip={
         <CirclesStrip
           circles={SAMPLE_CIRCLES}
@@ -492,6 +579,8 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       available
       statusText="Jetzt erreichbar"
       together={{ seconds: 3 * 3600 + 20 * 60, talks: 7 }}
+      friendshipBadges={FRIEND_BADGES}
+      showcase={SHOWCASE}
       shared={null}
       nudged={false}
       onBack={() => {}}
@@ -573,6 +662,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       error={false}
       onRetry={() => {}}
       onBack={() => {}}
+      onOpenAlbum={() => {}}
       person={(phone) => ({ name: phone === '+491' ? 'Anna Berg' : phone === '+492' ? 'Ben Koch' : 'Mama', avatarUrl: phone === '+491' ? PHOTO : null })}
       onChangeVisibility={() => {}}
       onPickPeople={() => {}}
@@ -605,6 +695,8 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       available={false}
       statusText="Zuletzt erreichbar vor 2 Std."
       together={{ seconds: 3 * 3600 + 20 * 60, talks: 7 }}
+      friendshipBadges={FRIEND_BADGES}
+      showcase={SHOWCASE}
       shared={{
         totals: { weekSeconds: 42 * 60, monthSeconds: 5 * 3600, allTimeSeconds: 20 * 3600 },
         streak: { current: 5, best: 7 },
@@ -630,11 +722,6 @@ const SECTIONS: Record<string, () => React.ReactElement> = {
       <BannerCard name="Anna Berg" avatarUrl={PHOTO} kind="available" onPress={() => {}} onAction={() => {}} />
       <BannerCard name="Ben Koch" avatarUrl={null} kind="nudge" onPress={() => {}} onAction={() => {}} />
       <BannerCard name="Clara Diaz" avatarUrl={null} kind="joined" onPress={() => {}} onAction={() => {}} />
-    </View>
-  ),
-  badges: () => (
-    <View style={{ marginTop: spacing.xl }}>
-      <BadgeGrid badges={STATS.badges} />
     </View>
   ),
 };

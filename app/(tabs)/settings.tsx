@@ -90,6 +90,7 @@ export default function ProfileScreen() {
       onOpenSystemSettings={() => Linking.openSettings()}
       onOpenNotifications={() => router.push('/notifications')}
       onOpenStats={() => router.push('/stats')}
+      onOpenAlbum={() => router.push('/album')}
       onOpenSchedule={() => router.push('/schedule')}
       onInvite={() => Share.share({ message: inviteText(userProfile?.name?.split(' ')[0]) })}
       onExportData={exportData}

@@ -6,7 +6,8 @@ import { useNewCall } from '../contexts/NewCallContext';
 import { FriendView } from '../features/contacts/FriendView';
 import { useNudges } from '../hooks/useNudges';
 import { useSafetyMenu } from '../hooks/useSafetyMenu';
-import { fetchSharedStats, fetchStats, nextNudgeLabel, SharedStats } from '../services/gamificationApi';
+import { fetchFriendship, Friendship } from '../services/badgesApi';
+import { fetchSharedStats, nextNudgeLabel, SharedStats } from '../services/gamificationApi';
 import { formatLastSeen } from '../utils/time';
 
 export default function FriendScreen() {
@@ -18,7 +19,7 @@ export default function FriendScreen() {
   const { nudge, nudged, nextNudge } = useNudges();
   const safety = useSafetyMenu();
   const [shared, setShared] = useState<SharedStats | null>(null);
-  const [together, setTogether] = useState<{ seconds: number; talks: number } | null>(null);
+  const [friendship, setFriendship] = useState<Friendship | null>(null);
 
   const contact = contacts.find((c) => c.phone === phone);
 
@@ -27,11 +28,8 @@ export default function FriendScreen() {
     fetchSharedStats(phone)
       .then((result) => setShared(result?.stats ?? null))
       .catch(() => {});
-    fetchStats()
-      .then(({ stats }) => {
-        const entry = stats.people.find((p) => p.phone === phone);
-        if (entry) setTogether({ seconds: entry.seconds, talks: entry.talks });
-      })
+    fetchFriendship(phone)
+      .then(setFriendship)
       .catch(() => {});
   }, [phone]);
 
@@ -46,7 +44,9 @@ export default function FriendScreen() {
       avatarUrl={contact?.avatarUrl ?? null}
       available={available}
       statusText={available ? 'Jetzt erreichbar' : seen ? `Zuletzt erreichbar ${seen}` : 'Gerade offline'}
-      together={together}
+      together={friendship?.together ?? null}
+      friendshipBadges={friendship?.badges ?? []}
+      showcase={friendship?.showcase ?? []}
       shared={shared}
       nudged={nudged(phone)}
       nextNudgeLabel={nextNudge(phone) ? nextNudgeLabel(nextNudge(phone)!) : null}
