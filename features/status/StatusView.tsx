@@ -47,7 +47,7 @@ type Props = {
   onOpenProfile?: () => void;
   /** "Deine Kreise" (features/circles/CirclesStrip) */
   circlesStrip?: React.ReactNode;
-  /** The daily Call Me Moment while it runs */
+  /** The daily Yap Moment while it runs */
   daily?: React.ComponentProps<typeof DailyMomentCard> | null;
   /** "Nicht jetzt" on the nudge card */
   onDismissNudges: () => void;

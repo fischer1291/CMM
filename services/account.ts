@@ -14,9 +14,9 @@ export async function exportAccountData(): Promise<void> {
   const body = await res.json();
   if (!res.ok || !body.data) throw new Error(`HTTP ${res.status}`);
 
-  const file = new File(Paths.cache, `call-me-maybe-daten-${new Date().toISOString().slice(0, 10)}.json`);
+  const file = new File(Paths.cache, `wanna-yap-daten-${new Date().toISOString().slice(0, 10)}.json`);
   if (file.exists) file.delete();
   file.create();
   file.write(JSON.stringify(body.data, null, 2));
-  await Share.share({ url: file.uri, title: 'Meine Call Me Maybe Daten' });
+  await Share.share({ url: file.uri, title: 'Meine Wanna yap? Daten' });
 }

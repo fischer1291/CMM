@@ -21,7 +21,7 @@ public class AppDelegate: ExpoAppDelegate, PKPushRegistryDelegate {
     // when the app was killed and JS has not started yet. Must match the
     // options in services/PlatformCallAdapter.ts.
     RNCallKeep.setup([
-      "appName": "Call Me Maybe",
+      "appName": "Wanna yap?",
       "supportsVideo": true,
       "maximumCallGroups": "1",
       "maximumCallsPerCallGroup": "1",

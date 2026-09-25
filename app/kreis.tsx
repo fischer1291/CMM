@@ -60,7 +60,7 @@ export default function CircleInviteScreen() {
                   So kommst du rein
                 </AppText>
                 <AppText variant="caption" color={colors.textSecondary} center>
-                  Hol dir Call Me Maybe und tippe unter Kreise auf „Mit Code“:
+                  Hol dir Wanna yap? und tippe unter Kreise auf „Mit Code”:
                 </AppText>
                 <AppText variant="h1" center style={styles.code} selectable>
                   {code.toUpperCase()}

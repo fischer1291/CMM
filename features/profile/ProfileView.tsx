@@ -141,7 +141,7 @@ export function ProfileView(props: Props) {
       </View>
 
       <AppText variant="caption" color={colors.textMuted} center style={{ marginTop: spacing.xl }}>
-        Call Me Maybe · Version {props.version}
+        Wanna yap? · Version {props.version}
       </AppText>
 
       <Modal visible={editing} transparent animationType="fade" onRequestClose={() => setEditing(false)}>

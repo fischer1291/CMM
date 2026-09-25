@@ -21,7 +21,7 @@ export default function InviteScreen() {
           Du bist eingeladen 💛
         </AppText>
         <AppText variant="body" color={colors.textSecondary} center style={styles.lead}>
-          Ein Freund möchte mit dir über Call Me Maybe in Kontakt bleiben. Ruf an, wenn’s passt.
+          Ein Freund möchte mit dir über Wanna yap? in Kontakt bleiben. Ruf an, wenn’s passt.
         </AppText>
       </View>
 

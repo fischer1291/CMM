@@ -41,8 +41,8 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="kontaktlisteapp"/>
-        <data android:scheme="exp+kontaktliste-app"/>
+        <data android:scheme="wannayap"/>
+        <data android:scheme="exp+wanna-yap"/>
       </intent-filter>
     </activity>
   </application>

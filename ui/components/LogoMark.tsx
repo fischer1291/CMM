@@ -42,7 +42,7 @@ type Props = {
   dotStyle?: AnimatedStyle<ViewStyle>;
 };
 
-/** The Call Me Maybe mark: neon ring, handset, signal and dot. */
+/** The Wanna yap? mark: neon ring, handset, signal and dot. */
 export function LogoMark({ size, style, innerArcStyle, outerArcStyle, dotStyle }: Props) {
   const g = logoGeometry(size);
   return (

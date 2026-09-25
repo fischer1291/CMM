@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Call Me Maybe</string>
+	<string>Wanna yap?</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,14 +27,14 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>kontaktlisteapp</string>
+				<string>wannayap</string>
 				<string>com.schly21.kontaktlisteapp</string>
 			</array>
 		</dict>
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>exp+kontaktliste-app</string>
+				<string>exp+wanna-yap</string>
 			</array>
 		</dict>
 	</array>
@@ -56,7 +56,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Für Videoanrufe und zum Aufnehmen deines Profilbilds.</string>
 	<key>NSContactsUsageDescription</key>
-	<string>Damit du siehst, wer aus deinem Adressbuch Call Me Maybe nutzt und gerade Zeit hat. Namen verlassen dein Gerät nicht.</string>
+	<string>Damit du siehst, wer aus deinem Adressbuch Wanna yap? nutzt und gerade Zeit hat. Namen verlassen dein Gerät nicht.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Damit man dich in Anrufen hören kann.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

@@ -1,6 +1,6 @@
 # Release: TestFlight und App Store
 
-Die Checkliste für die erste Veröffentlichung von Call Me Maybe auf iOS.
+Die Checkliste für die erste Veröffentlichung von Wanna yap? auf iOS.
 Android ist noch nicht dabei: Die Anruf-Oberfläche für eingehende Anrufe
 fehlt dort.
 
@@ -73,7 +73,7 @@ Video und Ton der Anrufe werden nicht gespeichert.
 
 ## 4. Hinweise für App Review
 
-> Call Me Maybe zeigt, wann Kontakte Zeit für einen Videoanruf haben.
+> Wanna yap? zeigt, wann Kontakte Zeit für einen Videoanruf haben.
 > Anmeldung per SMS-Code. Demo-Zugang: Telefonnummer `<REVIEW_PHONE>`,
 > Code `<REVIEW_CODE>`. Weil das Adressbuch des Testgeräts keine Nutzer
 > enthält, ist die Kontaktliste dort leer. Anrufe lassen sich mit einem

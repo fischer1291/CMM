@@ -16,3 +16,6 @@ expo-env.d.ts
 
 # Release archives (scripts/testflight.sh)
 /build
+
+# Local Netlify folder
+.netlify

@@ -114,7 +114,7 @@ export function LaunchScreen({ ready, fontsLoaded, onDone }: { ready: boolean; f
       {fontsLoaded && (
         <Animated.View style={[styles.wordmark, wordStyle]} pointerEvents="none">
           <AppText style={styles.title} center>
-            Call Me Maybe
+            Wanna yap?
           </AppText>
           <AppText variant="caption" color={colors.textSecondary} center style={styles.tagline}>
             Ruf an, wenn’s passt.

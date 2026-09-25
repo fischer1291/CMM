@@ -51,7 +51,7 @@ class PlatformCallAdapter {
   private isInitialized = false;
   private callKeepOptions = {
     ios: {
-      appName: 'Call Me Maybe',
+      appName: 'Wanna yap?',
       supportsVideo: true,
       maximumCallGroups: '1',
       maximumCallsPerCallGroup: '1',

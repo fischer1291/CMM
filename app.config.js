@@ -2,12 +2,12 @@ const IS_DEV = process.env.APP_VARIANT === 'development';
 
 export default {
   expo: {
-    name: IS_DEV ? 'Call Me Maybe (Dev)' : 'Call Me Maybe',
-    slug: 'kontaktliste-app',
+    name: IS_DEV ? 'Wanna yap? (Dev)' : 'Wanna yap?',
+    slug: 'wanna-yap',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
-    scheme: IS_DEV ? 'kontaktlisteapp-dev' : 'kontaktlisteapp',
+    scheme: IS_DEV ? 'wannayap-dev' : 'wannayap',
     userInterfaceStyle: 'dark',
     newArchEnabled: true,
     ios: {
@@ -20,7 +20,7 @@ export default {
       },
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-        NSContactsUsageDescription: 'Damit du siehst, wer aus deinem Adressbuch Call Me Maybe nutzt und gerade Zeit hat. Namen verlassen dein Gerät nicht.',
+        NSContactsUsageDescription: 'Damit du siehst, wer aus deinem Adressbuch Wanna yap? nutzt und gerade Zeit hat. Namen verlassen dein Gerät nicht.',
         NSPhotoLibraryUsageDescription: 'Damit du ein Foto als Profilbild auswählen kannst.',
         NSPhotoLibraryAddUsageDescription: 'Damit du Bilder aus deinen Anrufen in deiner Mediathek sichern kannst.',
         NSCameraUsageDescription: 'Für Videoanrufe und zum Aufnehmen deines Profilbilds.',

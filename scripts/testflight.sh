@@ -12,7 +12,7 @@ current=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$PLIST")
 build=${1:-$((current + 1))}
 version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$PLIST")
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build" "$PLIST"
-echo "▶ Call Me Maybe $version ($build)"
+echo "▶ Wanna yap? $version ($build)"
 
 OUT=build/testflight
 rm -rf "$OUT" && mkdir -p "$OUT"
