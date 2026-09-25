@@ -18,6 +18,10 @@ import { StatusView } from '../features/status/StatusView';
 import { StatsView } from '../features/stats/StatsView';
 import { AlbumView, BadgeSheet } from '../features/album/AlbumView';
 import { BadgeCelebration } from '../components/BadgeCelebration';
+import { ForceUpdate } from '../components/ForceUpdate';
+import { NoticeBanner } from '../components/NoticeBanner';
+import { SupportView, TicketView } from '../features/support/SupportView';
+import type { SupportTicket } from '../services/supportApi';
 import type { Album, AlbumBadge } from '../services/badgesApi';
 import { ScheduleView } from '../features/schedule/ScheduleView';
 import { FriendView } from '../features/contacts/FriendView';
@@ -259,6 +263,29 @@ const ALBUM_BADGES: AlbumBadge[] = [
   AB('night_owl', 'discover', 'moon', 'Nachteule', 'Ein Gespräch nach 23 Uhr', 1, 1, 1, true),
   AB('early_bird', 'discover', 'partly-sunny', 'Frühaufsteher', 'Vor 7 Uhr', 0, 1, 0, true),
 ];
+const SAMPLE_TICKETS: SupportTicket[] = [
+  {
+    id: 't1',
+    category: 'bug',
+    status: 'answered',
+    unread: true,
+    messages: [
+      { from: 'user', text: 'Wenn die App geschlossen ist, klingelt es bei mir nicht.', at: '2026-09-24T18:02:00Z' },
+      { from: 'support', text: 'Danke dir! Schau bitte in Einstellungen → Mitteilungen, ob „Anrufe“ erlaubt ist. Wir haben außerdem einen Fix in Build 21.', at: '2026-09-25T08:15:00Z' },
+    ],
+    createdAt: '2026-09-24T18:02:00Z',
+    updatedAt: '2026-09-25T08:15:00Z',
+  },
+  {
+    id: 't2',
+    category: 'idea',
+    status: 'open',
+    unread: false,
+    messages: [{ from: 'user', text: 'Kreise mit eigenem Chat wären cool', at: '2026-09-20T10:00:00Z' }],
+    createdAt: '2026-09-20T10:00:00Z',
+    updatedAt: '2026-09-20T10:00:00Z',
+  },
+];
 const SAMPLE_ALBUM: Album = {
   categories: [
     { id: 'connection', title: 'Verbindung' },
@@ -376,6 +403,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpenNotifications={() => {}}
       onOpenStats={() => {}}
       onOpenAlbum={() => {}}
+      onOpenSupport={() => {}}
       onOpenSchedule={() => {}}
       onInvite={() => {}}
       onExportData={() => {}}
@@ -538,6 +566,9 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onLeave={() => {}}
     />
   ),
+  support: () => <SupportView tickets={SAMPLE_TICKETS} sending={false} onBack={() => {}} onSend={async () => true} onOpen={() => {}} version="1.0.0 (21)" />,
+  ticket: () => <TicketView ticket={SAMPLE_TICKETS[0]} sending={false} onBack={() => {}} onReply={async () => true} />,
+  'force-update': () => <ForceUpdate updateUrl="https://testflight.apple.com/join/abc" />,
   album: () => <AlbumView album={SAMPLE_ALBUM} error={false} onRetry={() => {}} onBack={() => {}} onSelect={() => {}} />,
   'album-sheet': () => (
     <>
@@ -559,6 +590,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       nudges={[]}
       nextUp={SAMPLE_ALBUM.nextUp}
       onOpenAlbum={() => {}}
+      notice={<NoticeBanner banner={{ text: 'Heute ab 22 Uhr kurze Wartung, Anrufe können kurz ausfallen.', level: 'warning', until: null }} />}
       circlesStrip={
         <CirclesStrip
           circles={SAMPLE_CIRCLES}

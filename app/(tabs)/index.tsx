@@ -14,6 +14,8 @@ import { useCircles } from '../../hooks/useCircles';
 import { CirclesStrip } from '../../features/circles/CirclesStrip';
 import { BadgeCelebration } from '../../components/BadgeCelebration';
 import { useBadgeAlbum } from '../../hooks/useBadgeAlbum';
+import { NoticeBanner } from '../../components/NoticeBanner';
+import { useAppConfig } from '../../contexts/AppConfigContext';
 import { answerCircleInvite } from '../../services/circlesApi';
 import {
   clock,
@@ -48,6 +50,7 @@ export default function StatusScreen() {
   const { received, dismiss: dismissNudges, reload: reloadNudges } = useNudges();
   const { daily, join: joinDaily } = useDailyMoment();
   const { album, celebrate, check: checkBadges, celebrated } = useBadgeAlbum();
+  const { config: appConfig } = useAppConfig();
   const { circles, invites: circleInvites, reload: reloadCircles, setInvites: setCircleInvites } = useCircles();
 
   const answerInvite = async (circleId: string, accept: boolean) => {
@@ -213,6 +216,7 @@ export default function StatusScreen() {
         nudges={nudges}
         week={week}
         onOpenStats={() => router.push('/stats')}
+        notice={<NoticeBanner banner={appConfig.banner} />}
         nextUp={album?.nextUp ?? null}
         onOpenAlbum={() => router.push('/album')}
         scheduleLabel={scheduleLabel}

@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../config/env';
+import { appHeaders } from '../services/appInfo';
 import { session } from '../services/session';
 import { DEFAULT_TIMEOUT, fetchWithTimeout } from './apiUtils';
 
@@ -12,7 +13,7 @@ export async function apiFetch(
   timeout: number = DEFAULT_TIMEOUT
 ): Promise<Response> {
   const token = session.getToken();
-  const headers: Record<string, string> = { ...(init.headers as Record<string, string>) };
+  const headers: Record<string, string> = { ...appHeaders, ...(init.headers as Record<string, string>) };
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const response = await fetchWithTimeout(`${API_BASE_URL}${path}`, { ...init, headers }, timeout);
