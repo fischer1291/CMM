@@ -18,7 +18,7 @@ const EXCUSES = [
 
 const FEATURES = [
   { tag: 'Status', title: 'Ein Tipp, und alle wissen: Du hast Zeit.', text: 'Schalte dich erreichbar, wenn es dir passt. Deine Leute sehen den Neon-Ring und rufen an, statt ins Leere zu tippen.', screen: 'status' },
-  { tag: 'Call Me Moment', title: 'Jeden Tag 10 Minuten, in denen alle Zeit haben.', text: 'Einmal am Tag bekommen alle gleichzeitig den Moment. Wer dabei ist, ist erreichbar, bis er endet. Oder tipp auf „Überrasch mich“.', screen: 'moment' },
+  { tag: 'Yap Moment', title: 'Jeden Tag 10 Minuten, in denen alle Zeit haben.', text: 'Einmal am Tag bekommen alle gleichzeitig den Moment. Wer dabei ist, ist erreichbar, bis er endet. Oder tipp auf „Überrasch mich“.', screen: 'moment' },
   { tag: 'Kreise & Rituale', title: 'Sonntag, 18 Uhr: Familienrunde.', text: 'Leg einen Kreis für Familie, WG oder die Leute von früher an. Mit festem Ritual öffnet sich eure Videorunde von allein, und alle bekommen Bescheid.', screen: 'circle' },
   { tag: 'Moments', title: 'Erst reden, dann gucken.', text: 'Halte im Anruf mit ✨ einen Moment fest, nur wenn beide zustimmen. Sichtbar 24 Stunden, und nur für Leute, die heute selbst ein echtes Gespräch geführt haben.', screen: 'moments' },
   { tag: 'Gesprächszeit', title: 'Sieh, wie viel Zeit du dir für deine Menschen nimmst.', text: 'Wochen-Serien und Abzeichen zum Sammeln, ohne Rangliste. Privat, bis du selbst entscheidest, wer es sehen darf. Mit wem du sprichst, sieht nie jemand.', screen: 'stats' },
@@ -33,9 +33,9 @@ const NOPE = [
 ];
 
 const FAQ = [
-  ['Was kostet Call Me Maybe?', 'Nichts. Die App ist kostenlos und ohne Werbung.'],
+  ['Was kostet Wanna yap?', 'Nichts. Die App ist kostenlos und ohne Werbung.'],
   ['Brauchen meine Freunde die App auch?', 'Ja, damit ihr euren Status gegenseitig seht. Du lädst sie mit einem Link ein. Wer über deinen Link kommt, ist nach der Anmeldung direkt mit dir verbunden.'],
-  ['Wer sieht, dass ich erreichbar bin?', 'Nur deine Kontakte, die ebenfalls Call Me Maybe nutzen. Fremde finden dich nicht, und du kannst jede Person blockieren.'],
+  ['Wer sieht, dass ich erreichbar bin?', 'Nur deine Kontakte, die ebenfalls Wanna yap? nutzen. Fremde finden dich nicht, und du kannst jede Person blockieren.'],
   ['Ist das ein Video- oder ein Telefon-Anruf?', 'Beides. Du startest einen Video- oder Audioanruf direkt in der App, auch in der Gruppe mit deinem Kreis.'],
   ['Gibt es die App für Android?', 'Zuerst kommt die iPhone-Version, Android folgt. Trag dich in die Warteliste ein, dann sagen wir dir Bescheid.'],
   ['Was passiert mit meinen Daten?', 'Wir speichern nur, was die App zum Funktionieren braucht. Du kannst deine Daten jederzeit exportieren und dein Konto in der App löschen. Details stehen in der Datenschutzerklärung.'],
@@ -51,11 +51,11 @@ module.exports = function landing({ logoSvg, siteUrl, legalUrl, downloadUrl, ogI
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Call Me Maybe · Ruf an, wenn’s passt</title>
+<title>Wanna yap? · Ruf an, wenn’s passt</title>
 <meta name="description" content="Sieh, wer aus deinen Leuten gerade Zeit hat, und ruf einfach an. Die App für echte Gespräche: kein Feed, keine Likes, keine Fremden.">
 <meta name="theme-color" content="#0B0B12">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Call Me Maybe · Ruf an, wenn’s passt">
+<meta property="og:title" content="Wanna yap? · Ruf an, wenn’s passt">
 <meta property="og:description" content="Sieh, wer aus deinen Leuten gerade Zeit hat, und ruf einfach an.">
 <meta property="og:url" content="${siteUrl}">
 <meta property="og:image" content="${siteUrl}/${ogImage}">
@@ -232,7 +232,7 @@ footer a:hover { color: var(--text); }
 <body>
 <header class="nav">
   <div class="wrap">
-    <a class="logo" href="#top" aria-label="Call Me Maybe">${logoSvg}<span>Call Me Maybe</span></a>
+    <a class="logo" href="#top" aria-label="Wanna yap?">${logoSvg}<span>Wanna yap?</span></a>
     <nav class="nav-links" aria-label="Hauptnavigation">
       <a href="#so-gehts">So geht’s</a>
       <a href="#features">Features</a>
@@ -259,7 +259,7 @@ footer a:hover { color: var(--text); }
         <div class="ping p2"><span class="av" style="background:linear-gradient(135deg,#3DF5A7,#00E5FF)">H</span><span>Oma Helga ruft an …</span></div>
       </div>
     </div>
-    <div class="excuses" aria-label="Sätze, die du mit Call Me Maybe nicht mehr brauchst">
+    <div class="excuses" aria-label="Sätze, die du mit Wanna yap? nicht mehr brauchst">
       <div class="track">${[...EXCUSES, ...EXCUSES].map((e) => `<span>${e}</span>`).join('')}</div>
     </div>
   </section>
@@ -267,7 +267,7 @@ footer a:hover { color: var(--text); }
   <section class="statement wrap">
     <p class="eyebrow">Warum?</p>
     <h2 style="margin-top:18px">Wir schreiben hundert Nachrichten und telefonieren nie.</h2>
-    <p>Dabei ist ein echtes Gespräch das, was Freundschaften wirklich trägt. Das Problem ist selten die Lust, sondern das Timing. Call Me Maybe löst genau das: Du siehst, wann deine Leute Zeit haben, und sie sehen es bei dir.</p>
+    <p>Dabei ist ein echtes Gespräch das, was Freundschaften wirklich trägt. Das Problem ist selten die Lust, sondern das Timing. Wanna yap? löst genau das: Du siehst, wann deine Leute Zeit haben, und sie sehen es bei dir.</p>
   </section>
 
   <section class="steps wrap" id="so-gehts">
@@ -296,7 +296,7 @@ footer a:hover { color: var(--text); }
     <p class="eyebrow">Für wen?</p>
     <h2 style="margin-top:18px">Für alle, die sich öfter hören wollen.</h2>
     <div class="who-grid">
-      <figure><span class="emo">🎓</span><h3>Neu in der Stadt</h3><p>Studium, Job, Umzug: Die besten Freunde wohnen plötzlich 400 km weg. Mit Call Me Maybe erwischst du sie trotzdem.</p></figure>
+      <figure><span class="emo">🎓</span><h3>Neu in der Stadt</h3><p>Studium, Job, Umzug: Die besten Freunde wohnen plötzlich 400 km weg. Mit Wanna yap? erwischst du sie trotzdem.</p></figure>
       <figure><span class="emo">🏡</span><h3>Familie auf Abstand</h3><p>Ein fester Sonntagstermin mit Eltern und Großeltern, der von allein stattfindet, statt jedes Mal neu geplant zu werden.</p></figure>
       <figure><span class="emo">🫶</span><h3>Freundschaften, die fehlen</h3><p>Die Leute, mit denen du „echt mal wieder“ reden wolltest. Die App zeigt dir, wann es passt, und stupst dich an.</p></figure>
     </div>
@@ -307,7 +307,7 @@ footer a:hover { color: var(--text); }
       <div>
         <p class="eyebrow">${downloadUrl ? 'Beta läuft' : 'Bald im App Store'}</p>
         <h2 style="margin-top:18px">Sei bei den Ersten.</h2>
-        <p class="sub">Trag dich ein, und wir schicken dir den Link, sobald Call Me Maybe für dich bereit ist. Bring am besten gleich deine Leute mit: Zusammen macht die App am meisten Sinn.</p>
+        <p class="sub">Trag dich ein, und wir schicken dir den Link, sobald Wanna yap? für dich bereit ist. Bring am besten gleich deine Leute mit: Zusammen macht die App am meisten Sinn.</p>
       </div>
       <form name="warteliste" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="waitlist" novalidate>
         <input type="hidden" name="form-name" value="warteliste">
@@ -322,7 +322,7 @@ footer a:hover { color: var(--text); }
           </select>
         </label>
         <label class="consent" for="consent"><input type="checkbox" id="consent" name="einwilligung" value="ja" required>
-          <span>Ich möchte per E-Mail informiert werden, wenn Call Me Maybe für mich verfügbar ist. Abmelden geht jederzeit. Mehr in der <a href="${legalUrl}/datenschutz">Datenschutzerklärung</a>.</span></label>
+          <span>Ich möchte per E-Mail informiert werden, wenn Wanna yap? für mich verfügbar ist. Abmelden geht jederzeit. Mehr in der <a href="${legalUrl}/datenschutz">Datenschutzerklärung</a>.</span></label>
         <button class="cta" type="submit">${ICON.flash}<span>Auf die Warteliste</span></button>
         <p class="form-msg" id="form-msg" role="status"></p>
       </form>
@@ -337,7 +337,7 @@ footer a:hover { color: var(--text); }
 
 <footer>
   <div class="wrap">
-    <a class="logo" href="#top">${logoSvg}<span>Call Me Maybe</span></a>
+    <a class="logo" href="#top">${logoSvg}<span>Wanna yap?</span></a>
     <nav aria-label="Rechtliches"><a href="${legalUrl}/impressum">Impressum</a><a href="${legalUrl}/datenschutz">Datenschutz</a></nav>
     <span>Gemacht für echte Gespräche.</span>
   </div>

@@ -1,4 +1,4 @@
-# Call Me Maybe – Launch-Playbook
+# Wanna yap? – Launch-Playbook
 
 Alles, was du brauchst, um die ersten 1.000 aktiven Nutzer zu holen: Positionierung,
 Wachstumsplan, fertige Texte und Skripte. Die Motive dazu liegen in `dist/kit/`.
@@ -13,9 +13,9 @@ Wachstumsplan, fertige Texte und Skripte. Die Motive dazu liegen in `dist/kit/`.
 
 **Pitch (30 Sekunden):**
 Wir schreiben hundert Nachrichten und telefonieren nie. Nicht, weil wir keine Lust
-haben, sondern weil das Timing nie passt. Call Me Maybe zeigt dir, wann deine
+haben, sondern weil das Timing nie passt. Wanna yap? zeigt dir, wann deine
 Freunde und deine Familie gerade Zeit haben. Ein Tipp, und du bist erreichbar.
-Jeden Tag gibt es den Call Me Moment: 10 Minuten, in denen alle gleichzeitig Zeit
+Jeden Tag gibt es den Yap Moment: 10 Minuten, in denen alle gleichzeitig Zeit
 haben. Kein Feed, keine Likes, keine Fremden. Nur echte Gespräche.
 
 **Kategorie, in der wir gewinnen:** „BeReal für echte Gespräche“. Nicht noch ein
@@ -44,7 +44,7 @@ Bewertungen, Vergleiche, die andere Apps schlecht machen.
 
 ## 2. Warum Reichweite allein nicht reicht: die Dichte-Regel
 
-Call Me Maybe ist nur so gut wie die Zahl deiner Leute, die es auch haben. Eine
+Wanna yap? ist nur so gut wie die Zahl deiner Leute, die es auch haben. Eine
 einzelne Person mit der App sieht einen leeren Status-Screen und löscht sie wieder.
 Daraus folgen drei Regeln:
 
@@ -88,8 +88,8 @@ sich bezahlte Reichweite.
 
 ### Woche 2 – Content-Motor anwerfen
 - Täglich ein kurzes Video auf TikTok und Reels (Skripte in Abschnitt 5).
-- Der Call Me Moment ist der tägliche Anlass: Poste zur Moment-Uhrzeit eine Story
-  mit `story-2-call-me-moment.png` („Jetzt! 10 Minuten, alle haben Zeit.“).
+- Der Yap Moment ist der tägliche Anlass: Poste zur Moment-Uhrzeit eine Story
+  mit `story-2-yap-moment.png` („Jetzt! 10 Minuten, alle haben Zeit.“).
 - Karussell posten, in den Stories die „Ich hab Zeit“-Story teilen und Freunde
   bitten, sie zu reposten.
 
@@ -131,7 +131,7 @@ sich bezahlte Reichweite.
 | `social/instagram/post-3-talk-first.png` | 1080×1350 | Moments-Feature, Differenzierung |
 | `social/instagram/carousel-1…5.png` | 1080×1350 | Erklär-Karussell „So geht’s“ |
 | `social/stories/story-1-ich-hab-zeit.png` | 1080×1920 | Status-Story zum Reposten |
-| `social/stories/story-2-call-me-moment.png` | 1080×1920 | Täglicher Moment-Reminder |
+| `social/stories/story-2-yap-moment.png` | 1080×1920 | Täglicher Moment-Reminder |
 | `social/stories/story-3-warteliste.png` | 1080×1920 | Story mit Link-Sticker zur Warteliste |
 | `appstore/appstore-1…6.png` | 1290×2796 | App-Store-Screenshots 6,9″ |
 | `print/flyer-a6.pdf` / `.png` | A6 | Flyer mit QR-Code (ohne Beschnittzugabe) |
@@ -151,7 +151,7 @@ wiedererkennbare Alltagsmomente.
    Overlay: *„Wie oft ich dieses Jahr ‚lass mal bald telefonieren‘ geschrieben habe“*
    → Screen-Recording, wie ein Chatverlauf voller „bald!“ nach oben scrollt → Schnitt:
    Status-Ring leuchtet, Freundin ruft an. Text: *„Jetzt ruf ich einfach an, wenn der Ring leuchtet.“*
-2. **Der Call Me Moment**
+2. **Der Yap Moment**
    Overlay: *„Jeden Tag bekommen alle meine Freunde gleichzeitig 10 Minuten“*
    → Push kommt rein, drei Leute tippen „Dabei sein“, Gruppen-Runde startet, alle lachen.
 3. **Oma-Content** (funktioniert immer)
@@ -181,24 +181,24 @@ wiedererkennbare Alltagsmomente.
 
 **Post 1 (Hook):**
 Ehrliche Frage: Wann hast du zuletzt jemanden einfach so angerufen? 📞
-Call Me Maybe zeigt dir, wer aus deinen Leuten gerade Zeit hat. Ein Tipp, und du
+Wanna yap? zeigt dir, wer aus deinen Leuten gerade Zeit hat. Ein Tipp, und du
 bist erreichbar. Link in Bio.
-#callmemaybe #echtegespräche #freundschaft #fernfreundschaft #studentlife
+#wannayap #echtegespräche #freundschaft #fernfreundschaft #studentlife
 
 **Post 2 (Ausreden):**
 Wir alle kennen diese Sätze. Wir wollen sie nicht mehr schreiben. 💛
 Schick das an die Person, mit der du „bald mal“ telefonieren wolltest.
-#callmemaybe #lassmalbaldtelefonieren #freunde #wgleben
+#wannayap #lassmalbaldtelefonieren #freunde #wgleben
 
 **Post 3 (Talk first):**
 Talk first. Then see. ✨ Die Moments deiner Leute siehst du erst, wenn du heute selbst
 ein echtes Gespräch geführt hast. Kein Feed, kein Endlos-Scrollen.
-#callmemaybe #digitalwellbeing #echteverbindung
+#wannayap #digitalwellbeing #echteverbindung
 
 **Karussell:**
 Deine Freunde haben gerade Zeit. Du weißt es nur nicht. Wisch dich durch 👉
 Welcher Freundin würdest du als Erstes Bescheid geben? Markier sie.
-#callmemaybe #freundschaft #familie #appempfehlung
+#wannayap #freundschaft #familie #appempfehlung
 
 ---
 
@@ -223,25 +223,25 @@ holen. Diese Hebel passen zum bestehenden Einladungs- und Kreis-System:
 
 ## 8. Pressetext (Kurzfassung)
 
-**Call Me Maybe: Die App, die aus „Lass mal bald telefonieren“ echte Gespräche macht**
+**Wanna yap?: Die App, die aus „Lass mal bald telefonieren“ echte Gespräche macht**
 
 Wir schreiben mehr Nachrichten als je zuvor und telefonieren trotzdem kaum noch mit
-den Menschen, die uns wichtig sind. Die neue iPhone-App Call Me Maybe setzt genau da
+den Menschen, die uns wichtig sind. Die neue iPhone-App Wanna yap? setzt genau da
 an: Sie zeigt, wer aus dem eigenen Freundes- und Familienkreis gerade Zeit für einen
 Anruf hat. Ein Tipp auf den Status-Ring genügt, und die eigenen Kontakte sehen:
 Jetzt passt es.
 
-Einmal am Tag gibt es den „Call Me Moment“, zehn Minuten, in denen alle Nutzer
+Einmal am Tag gibt es den „Yap Moment“, zehn Minuten, in denen alle Nutzer
 gleichzeitig erreichbar sein können. Familien und Freundeskreise können feste Rituale
 anlegen, etwa „jeden Sonntag um 18 Uhr“, zu denen sich die gemeinsame Videorunde von
 allein öffnet. Fotos aus Gesprächen („Moments“) werden nur geteilt, wenn beide
 zustimmen, und sind erst sichtbar, wenn man selbst ein Gespräch geführt hat.
 
-Bewusst verzichtet Call Me Maybe auf Feed, Likes, Werbung und Kontakt zu Fremden.
+Bewusst verzichtet Wanna yap? auf Feed, Likes, Werbung und Kontakt zu Fremden.
 Eine private Statistik zeigt, wie viel Zeit man sich für echte Gespräche genommen
 hat, und bleibt privat, bis man sie selbst teilt.
 
-Call Me Maybe ist kostenlos und startet zunächst für das iPhone. Android folgt.
+Wanna yap? ist kostenlos und startet zunächst für das iPhone. Android folgt.
 
 Kontakt: [Name, E-Mail, Telefon] · Website: [Landing-Page-URL] · Presse-Motive: `dist/kit/`
 
@@ -249,21 +249,21 @@ Kontakt: [Name, E-Mail, Telefon] · Website: [Landing-Page-URL] · Presse-Motive
 
 ## 9. App-Store-Texte
 
-**Name (max. 30):** Call Me Maybe
+**Name (max. 30):** Wanna yap?
 **Untertitel (max. 30):** Ruf an, wenn’s passt
-**Werbetext (max. 170):** Sieh, wer aus deinen Leuten gerade Zeit hat, und ruf einfach an. Jeden Tag 10 Minuten Call Me Moment. Kein Feed, keine Likes, keine Fremden.
+**Werbetext (max. 170):** Sieh, wer aus deinen Leuten gerade Zeit hat, und ruf einfach an. Jeden Tag 10 Minuten Yap Moment. Kein Feed, keine Likes, keine Fremden.
 **Keywords (max. 100, ohne Leerzeichen nach Kommas):**
 `anrufen,telefonieren,freunde,familie,erreichbar,videoanruf,gruppenanruf,kontakt,status,freundschaft`
 
 **Beschreibung:**
 
-Wir schreiben hundert Nachrichten und telefonieren nie. Call Me Maybe ändert das.
+Wir schreiben hundert Nachrichten und telefonieren nie. Wanna yap? ändert das.
 
 SIEH, WER GERADE ZEIT HAT
 Ein Tipp auf den Ring, und deine Kontakte sehen: Jetzt passt ein Anruf. Wenn ihr beide
 gerade Zeit habt, sagt dir die App Bescheid.
 
-DER CALL ME MOMENT
+DER YAP MOMENT
 Einmal am Tag haben alle gleichzeitig 10 Minuten. Wer dabei ist, ist erreichbar.
 
 KREISE UND RITUALE
@@ -289,10 +289,9 @@ echte Simulator-Screenshots (gleiche Vorlage, `src/kit.js` → `store(...)`).
 
 ## 10. Rechtliches und offene Punkte vor dem Start
 
-- **Name prüfen:** „Call Me Maybe“ ist ein bekannter Songtitel. Lass vor größeren
-  Werbeausgaben eine Markenrecherche machen (DPMA, EUIPO, Klasse 9 und 38) oder frag
-  einen Markenanwalt. Das Risiko ist bei einer Wortmarke für Software ein anderes als
-  bei Musik, aber ein Rebranding nach dem Launch wäre teuer.
+- **Name prüfen:** Auch für „Wanna yap?“ lohnt sich vor größeren Werbeausgaben eine
+  Markenrecherche (DPMA, EUIPO, Klasse 9 und 38) oder ein Markenanwalt, bevor viel Geld
+  in den Namen fließt. Ein Rebranding nach dem Launch wäre teuer.
 - **Warteliste und Datenschutz:** Die Formulareinträge landen bei Netlify (USA, EU-US
   Data Privacy Framework). Die Datenschutzerklärung braucht einen Abschnitt zur
   Warteliste (Zweck, Rechtsgrundlage Einwilligung, Speicherdauer, Widerruf).

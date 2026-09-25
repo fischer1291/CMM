@@ -24,7 +24,7 @@ p{margin:0}
 ${css}</style></head><body><div class="art">${body}</div></body></html>`;
 
 module.exports = function kit({ logoSvg, qrSvg, shortUrl }) {
-  const brandRow = (size = 34) => `<div class="brand" style="font-size:${size}px"><span style="width:${size * 1.5}px;height:${size * 1.5}px;display:block">${logoSvg}</span>Call Me Maybe</div>`;
+  const brandRow = (size = 34) => `<div class="brand" style="font-size:${size}px"><span style="width:${size * 1.5}px;height:${size * 1.5}px;display:block">${logoSvg}</span>Wanna yap?</div>`;
   const assets = [];
   const add = (dir, name, w, h, body, css, pdf) => assets.push({ dir, name, w, h, html: page(w, h, body, css), pdf });
 
@@ -87,7 +87,7 @@ module.exports = function kit({ logoSvg, qrSvg, shortUrl }) {
     <div class="glowblob" style="width:560px;height:560px;left:260px;bottom:0"></div>
     <div style="position:absolute;left:50%;bottom:-420px;transform:translateX(-50%) rotate(${rot}deg)">${screens[screen]({ pw: 520 })}</div>`);
   carouselStep(2, 'Schritt 1', 'Tipp auf den Ring, wenn du Zeit hast.', 'Deine Leute sehen sofort: Jetzt passt ein Anruf.', 'status', -3);
-  carouselStep(3, 'Jeden Tag', 'Der Call Me Moment: 10 Minuten, alle haben Zeit.', 'Alle bekommen ihn gleichzeitig. Wer dabei ist, ist erreichbar.', 'moment', 3);
+  carouselStep(3, 'Jeden Tag', 'Der Yap Moment: 10 Minuten, alle haben Zeit.', 'Alle bekommen ihn gleichzeitig. Wer dabei ist, ist erreichbar.', 'moment', 3);
   carouselStep(4, 'Kreise & Rituale', 'Sonntag, 18 Uhr: Familienrunde.', 'Die Runde öffnet sich von allein, und alle bekommen Bescheid.', 'circle', -3);
   add('social/instagram', 'carousel-5', 1080, 1350, `${slideNo(5)}
     <div class="glowblob" style="width:700px;height:700px;left:190px;top:300px"></div>
@@ -117,9 +117,9 @@ module.exports = function kit({ logoSvg, qrSvg, shortUrl }) {
       ${brandRow(34)}
     </div>`);
 
-  add('social/stories', 'story-2-call-me-moment', 1080, 1920, `
+  add('social/stories', 'story-2-yap-moment', 1080, 1920, `
     <div style="position:absolute;inset:170px 90px 160px;display:flex;flex-direction:column;justify-content:space-between">
-      <p class="eyebrow" style="font-size:30px;color:var(--pink)">⚡ Call Me Moment</p>
+      <p class="eyebrow" style="font-size:30px;color:var(--pink)">⚡ Yap Moment</p>
       <div>
         <div style="font-family:var(--mono);font-weight:700;font-size:250px;letter-spacing:-.04em;line-height:1" class="grad-text">09:59</div>
         <h1 style="font-size:112px;margin-top:40px">Deine Leute haben jetzt 10 Minuten.</h1>
@@ -150,7 +150,7 @@ module.exports = function kit({ logoSvg, qrSvg, shortUrl }) {
     </div>
     <div style="position:absolute;left:50%;top:880px;transform:translateX(-50%)">${screens[screen]({ pw: 960 })}</div>`);
   store(1, 'Ruf an, wenn’s passt', 'Sieh, wer <span class="grad-text">gerade Zeit</span> hat.', 'status');
-  store(2, '⚡ Call Me Moment', 'Jeden Tag 10 Minuten, <span class="grad-text">alle haben Zeit.</span>', 'moment', { pink: true });
+  store(2, '⚡ Yap Moment', 'Jeden Tag 10 Minuten, <span class="grad-text">alle haben Zeit.</span>', 'moment', { pink: true });
   store(3, 'Kreise & Rituale', 'Die Familienrunde, <span class="grad-text">die von allein passiert.</span>', 'circle');
   store(4, 'Echte Gespräche', 'Video und Audio, <span class="grad-text">einfach so.</span>', 'call');
   store(5, 'Talk first', 'Erst reden, <span class="grad-text">dann gucken.</span>', 'moments', { pink: true });

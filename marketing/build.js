@@ -14,7 +14,7 @@ const kit = require('./src/kit');
 
 const CONFIG = {
   /** Where the landing page will live (used for og:image and share links). */
-  siteUrl: process.env.SITE_URL || 'https://callmemaybe-app.netlify.app',
+  siteUrl: process.env.SITE_URL || 'https://wanna-yap.netlify.app',
   /** The existing app web build with /impressum and /datenschutz. */
   legalUrl: 'https://cmm-app.netlify.app',
   /** TestFlight public link or App Store link; null shows the waitlist. Mirrors content/links.ts. */

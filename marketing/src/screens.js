@@ -1,5 +1,5 @@
 // Phone screens for the landing page and marketing assets. They mirror the real
-// app screens (status, Call Me Moment, circles, moments, stats, call) with
+// app screens (status, Yap Moment, circles, moments, stats, call) with
 // example people. Swap in real App Store screenshots where Apple requires them.
 
 const ICON = {
@@ -62,12 +62,12 @@ const screens = {
       </div>
     </div>${tabbar('home')}`, o),
 
-  /** The daily Call Me Moment card on the status tab. */
+  /** The daily Yap Moment card on the status tab. */
   moment: (o) => frame(`${statusBar()}
     <div class="content">
       <div><div class="label">Donnerstag</div><div class="h1">Dein Status</div></div>
       <div class="moment"><div>
-        <div class="row" style="justify-content:space-between"><div class="label" style="color:var(--pink)">⚡ Call Me Moment</div><div class="timer">09:42</div></div>
+        <div class="row" style="justify-content:space-between"><div class="label" style="color:var(--pink)">⚡ Yap Moment</div><div class="timer">09:42</div></div>
         <div class="h2">Deine Leute haben jetzt 10 Minuten.</div>
         <div class="cap">Alle bekommen den Moment gleichzeitig. Wer dabei ist, ist erreichbar, bis er endet.</div>
         <div class="row" style="gap:calc(-8*var(--u))">${['J', 'M', 'D', 'S'].map((l, i) => `<div style="margin-left:${i ? 'calc(-10*var(--u))' : 0}">${avatar(l)}</div>`).join('')}<div class="cap" style="margin-left:calc(12*var(--u))">4 sind dabei</div></div>

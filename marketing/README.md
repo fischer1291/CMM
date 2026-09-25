@@ -1,6 +1,6 @@
 # Marketing
 
-Landing Page und Werbemittel für Call Me Maybe. Strategie, Texte und Launchplan:
+Landing Page und Werbemittel für Wanna yap?. Strategie, Texte und Launchplan:
 [PLAYBOOK.md](PLAYBOOK.md).
 
 ```bash
