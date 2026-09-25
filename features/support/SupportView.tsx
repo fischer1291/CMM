@@ -10,7 +10,23 @@ export const CATEGORIES: { value: SupportCategory; label: string; icon: keyof ty
   { value: 'account', label: 'Mein Konto', icon: 'person-outline' },
   { value: 'other', label: 'Sonstiges', icon: 'chatbubble-ellipses-outline' },
 ];
-const STATUS = { open: 'Wartet auf Antwort', answered: 'Beantwortet', closed: 'Erledigt' };
+const STATUS = {
+  open: { label: 'Wartet auf Antwort', icon: 'time-outline', color: colors.textSecondary },
+  answered: { label: 'Beantwortet', icon: 'chatbubble-outline', color: colors.violet },
+  closed: { label: 'Erledigt', icon: 'checkmark-circle', color: colors.success },
+} as const;
+
+function StatusPill({ ticket }: { ticket: SupportTicket }) {
+  const s = ticket.unread ? { label: 'Neue Antwort', icon: 'sparkles', color: colors.violet } : STATUS[ticket.status];
+  return (
+    <View style={[styles.pill, { borderColor: `${s.color}66`, backgroundColor: `${s.color}1A` }]}>
+      <Ionicons name={s.icon as keyof typeof Ionicons.glyphMap} size={12} color={s.color} />
+      <AppText variant="caption" color={s.color}>
+        {s.label}
+      </AppText>
+    </View>
+  );
+}
 const when = (at: string) => new Date(at).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 function Field({ value, onChange, placeholder }: { value: string; onChange: (t: string) => void; placeholder: string }) {
@@ -97,15 +113,18 @@ export function SupportView({ tickets, sending, onBack, onSend, onOpen, version 
               const last = t.messages[t.messages.length - 1];
               return (
                 <Pressable key={t.id} onPress={() => onOpen(t)} accessibilityRole="button">
-                  <GlassCard glow={t.unread ? colors.violet : undefined}>
+                  <GlassCard glow={t.unread ? colors.violet : undefined} style={t.status === 'closed' && !t.unread ? styles.closed : undefined}>
                     <View style={styles.row}>
-                      <View style={{ flex: 1 }}>
+                      <View style={{ flex: 1, gap: 6 }}>
                         <AppText variant="bodyStrong" numberOfLines={1}>
                           {t.messages[0]?.text}
                         </AppText>
-                        <AppText variant="caption" color={t.unread ? colors.violet : colors.textSecondary}>
-                          {t.unread ? 'Neue Antwort' : STATUS[t.status]} · {when(last?.at ?? t.updatedAt)}
-                        </AppText>
+                        <View style={styles.row}>
+                          <StatusPill ticket={t} />
+                          <AppText variant="caption" color={colors.textMuted}>
+                            {when(last?.at ?? t.updatedAt)}
+                          </AppText>
+                        </View>
                       </View>
                       <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
                     </View>
@@ -127,6 +146,9 @@ export function TicketView({ ticket, sending, onBack, onReply }: { ticket: Suppo
     <Screen scroll>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'position' : undefined}>
         <PageHeader title={CATEGORIES.find((c) => c.value === ticket.category)?.label ?? 'Anfrage'} onBack={onBack} />
+        <View style={{ marginBottom: spacing.lg, alignItems: 'flex-start' }}>
+          <StatusPill ticket={{ ...ticket, unread: false }} />
+        </View>
         <View style={{ gap: spacing.sm }}>
           {ticket.messages.map((m, i) => (
             <View key={i} style={[styles.bubble, m.from === 'support' ? styles.support : styles.mine]}>
@@ -142,10 +164,21 @@ export function TicketView({ ticket, sending, onBack, onReply }: { ticket: Suppo
             </View>
           ))}
         </View>
+        {ticket.status === 'closed' ? (
+          <View style={styles.closedNote}>
+            <Ionicons name="checkmark-circle" size={22} color={colors.success} />
+            <View style={{ flex: 1 }}>
+              <AppText variant="bodyStrong">Anfrage erledigt</AppText>
+              <AppText variant="caption" color={colors.textSecondary}>
+                {ticket.closedAt ? `Abgeschlossen am ${when(ticket.closedAt)}. ` : ''}Ist doch noch etwas offen? Schreib einfach, dann öffnen wir sie wieder.
+              </AppText>
+            </View>
+          </View>
+        ) : null}
         <View style={{ marginTop: spacing.xl }}>
           <Field value={text} onChange={setText} placeholder={ticket.status === 'closed' ? 'Doch noch etwas? Schreib einfach.' : 'Antworten …'} />
           <Button
-            title="Antworten"
+            title={ticket.status === 'closed' ? 'Wieder öffnen & senden' : 'Antworten'}
             icon="send"
             loading={sending}
             disabled={!text.trim()}
@@ -186,6 +219,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.pill, borderWidth: 1 },
+  closed: { opacity: 0.6 },
+  closedNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(61,245,167,0.35)',
+    backgroundColor: 'rgba(61,245,167,0.08)',
+  },
   bubble: { maxWidth: '85%', padding: spacing.md, borderRadius: radius.md, gap: 4 },
   mine: { alignSelf: 'flex-end', backgroundColor: colors.surfaceStrong },
   support: { alignSelf: 'flex-start', backgroundColor: 'rgba(139,92,255,0.16)', borderWidth: 1, borderColor: 'rgba(139,92,255,0.35)' },

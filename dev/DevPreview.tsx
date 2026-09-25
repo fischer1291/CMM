@@ -284,6 +284,18 @@ const SAMPLE_TICKETS: SupportTicket[] = [
     messages: [{ from: 'user', text: 'Kreise mit eigenem Chat wären cool', at: '2026-09-20T10:00:00Z' }],
     createdAt: '2026-09-20T10:00:00Z',
     updatedAt: '2026-09-20T10:00:00Z',
+  },  {
+    id: 't3',
+    category: 'account',
+    status: 'closed',
+    unread: false,
+    messages: [
+      { from: 'user', text: 'Wie ändere ich mein Profilbild?', at: '2026-09-18T09:00:00Z' },
+      { from: 'support', text: 'Tippe im Profil auf dein Bild, dann kannst du ein neues wählen.', at: '2026-09-18T12:00:00Z' },
+    ],
+    createdAt: '2026-09-18T09:00:00Z',
+    updatedAt: '2026-09-18T12:00:00Z',
+    closedAt: '2026-09-18T12:00:00Z',
   },
 ];
 const SAMPLE_ALBUM: Album = {
@@ -567,6 +579,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
     />
   ),
   support: () => <SupportView tickets={SAMPLE_TICKETS} sending={false} onBack={() => {}} onSend={async () => true} onOpen={() => {}} version="1.0.0 (21)" />,
+  'ticket-closed': () => <TicketView ticket={SAMPLE_TICKETS[2]} sending={false} onBack={() => {}} onReply={async () => true} />,
   ticket: () => <TicketView ticket={SAMPLE_TICKETS[0]} sending={false} onBack={() => {}} onReply={async () => true} />,
   'force-update': () => <ForceUpdate updateUrl="https://testflight.apple.com/join/abc" />,
   album: () => <AlbumView album={SAMPLE_ALBUM} error={false} onRetry={() => {}} onBack={() => {}} onSelect={() => {}} />,

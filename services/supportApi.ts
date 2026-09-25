@@ -14,6 +14,8 @@ export type SupportTicket = {
   messages: SupportMessage[];
   createdAt: string;
   updatedAt: string;
+  /** When support closed it (null while open) */
+  closedAt?: string | null;
 };
 
 async function ok<T = any>(res: Response): Promise<T> {
