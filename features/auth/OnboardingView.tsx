@@ -15,7 +15,7 @@ export function OnboardingView({ onStart, onOpenPrivacy }: { onStart: () => void
     <Screen edges={['top', 'bottom']}>
       <View style={styles.hero}>
         <AppText variant="label" color={colors.cyan}>
-          Call Me Maybe
+          Wanna yap?
         </AppText>
         <AppText variant="display" style={styles.headline}>
           {'Ruf an,\nwenn’s passt.'}

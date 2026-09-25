@@ -25,7 +25,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     title: 'Kurz gesagt',
     paragraphs: [
-      'Call Me Maybe zeigt dir, wann Menschen aus deinem Adressbuch Zeit für ein Gespräch haben. Dafür verarbeiten wir nur, was die App zum Funktionieren braucht.',
+      'Wanna yap? zeigt dir, wann Menschen aus deinem Adressbuch Zeit für ein Gespräch haben. Dafür verarbeiten wir nur, was die App zum Funktionieren braucht.',
       'Keine Werbung, kein Tracking, keine Analyse-Tools, kein Verkauf von Daten.',
     ],
   },

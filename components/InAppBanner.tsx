@@ -31,7 +31,7 @@ const TEXT = {
   available: { title: (n: string) => `${n} ist jetzt erreichbar`, sub: 'Zeit für einen Anruf?', action: 'Anrufen' },
   nudge: { title: (n: string) => `${n} möchte sprechen 👋`, sub: 'Nur wenn es dir passt', action: '30 Min.' },
   joined: { title: (n: string) => `${n} ist jetzt dabei 🎉`, sub: 'Sag doch mal Hallo!', action: 'Hallo' },
-  daily: { title: () => '⚡ Call Me Moment!', sub: 'Deine Leute haben jetzt 10 Minuten', action: 'Dabei' },
+  daily: { title: () => '⚡ Yap Moment!', sub: 'Deine Leute haben jetzt 10 Minuten', action: 'Dabei' },
   consent: { title: (n: string) => `${n} möchte einen Moment teilen`, sub: 'Schau ihn dir an', action: 'Ansehen' },
   room: { title: (n: string) => `${n}: Runde ist offen 🎙️`, sub: 'Spring rein, wenn du magst', action: 'Rein' },
   circle: { title: () => 'Neue Kreis-Einladung', sub: 'Schau sie dir an', action: 'Ansehen' },
@@ -102,7 +102,7 @@ export function InAppBanner() {
     const onDaily = () => {
       // The status screen shows the moment itself
       if (pathnameRef.current === '/') return;
-      show({ phone: '', name: 'Call Me Moment', avatarUrl: null, kind: 'daily' });
+      show({ phone: '', name: 'Yap Moment', avatarUrl: null, kind: 'daily' });
     };
     const onConsent = ({ from }: { from?: string }) => {
       if (typeof from !== 'string' || pathnameRef.current === '/callmoments') return;

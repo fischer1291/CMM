@@ -57,7 +57,7 @@ function Components() {
   const [available, setAvailable] = useState(true);
   return (
     <>
-      <AppText variant="display">Call Me Maybe</AppText>
+      <AppText variant="display">Wanna yap?</AppText>
       <AppText variant="h1">Heading 1</AppText>
       <AppText variant="h2">Heading 2</AppText>
       <AppText variant="title">Title</AppText>
@@ -253,7 +253,7 @@ const ALBUM_BADGES: AlbumBadge[] = [
   AB('hours', 'depth', 'hourglass', 'Zeit geschenkt', '10 Stunden Gesprächszeit', 2, 3, 0.25),
   AB('streak', 'rituals', 'flame', 'Dranbleiber', '12 Wochen in Folge', 1, 3, 0.25),
   AB('planner', 'rituals', 'calendar', 'Planer', 'Einen Zeitplan angelegt', 1, 1, 1),
-  AB('daily', 'rituals', 'sunny', 'Moment-Mensch', 'Beim Call Me Moment dabei', 1, 3, 0.3),
+  AB('daily', 'rituals', 'sunny', 'Moment-Mensch', 'Beim Yap Moment dabei', 1, 3, 0.3),
   AB('blitz', 'rituals', 'flash', 'Blitzschnell', 'In der ersten Minute dabei', 1, 1, 1, true),
   AB('founder', 'circles', 'add-circle', 'Gründer', 'Einen Kreis gegründet', 1, 1, 1),
   AB('host', 'circles', 'mic', 'Gastgeber', '10 Runden eröffnet', 0, 3, 0.5),

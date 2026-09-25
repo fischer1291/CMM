@@ -1,5 +1,5 @@
 /**
- * The daily Call Me Moment and moment consent (backend routes/daily.js,
+ * The daily Yap Moment and moment consent (backend routes/daily.js,
  * routes/moment.js).
  */
 import { apiFetch, apiPostJson } from '../utils/api';

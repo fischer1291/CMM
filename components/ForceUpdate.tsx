@@ -14,7 +14,7 @@ export function ForceUpdate({ updateUrl }: { updateUrl: string | null }) {
           Zeit für ein Update
         </AppText>
         <AppText variant="body" color={colors.textSecondary} center style={styles.text}>
-          Diese Version von Call Me Maybe wird nicht mehr unterstützt. Mit dem Update klappen Anrufe, Kreise und alles
+          Diese Version von Wanna yap? wird nicht mehr unterstützt. Mit dem Update klappen Anrufe, Kreise und alles
           andere wieder zuverlässig.
         </AppText>
         {updateUrl ? (

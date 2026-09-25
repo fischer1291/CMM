@@ -8,4 +8,4 @@ export const INVITE_URL = `${WEB_URL}/einladung`;
 export const DOWNLOAD_URL: string | null = null;
 
 export const inviteText = (fromName?: string) =>
-  `${fromName ? `${fromName} hier! ` : 'Hey! '}Ich nutze Call Me Maybe – da siehst du, wann ich Zeit für einen Anruf habe, und wir erwischen uns endlich mal. Hol dir die App: ${INVITE_URL}`;
+  `${fromName ? `${fromName} hier! ` : 'Hey! '}Ich nutze Wanna yap? – da siehst du, wann ich Zeit für einen Anruf habe, und wir erwischen uns endlich mal. Hol dir die App: ${INVITE_URL}`;

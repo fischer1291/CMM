@@ -1,4 +1,4 @@
-# Call Me Maybe
+# Wanna yap?
 
 Expo / React Native app that shows which of your contacts are available for a
 call right now, with native video calls (Agora + iOS CallKit) and shared

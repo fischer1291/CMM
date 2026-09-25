@@ -5,7 +5,7 @@ import { Alert } from 'react-native';
 import { DailyState, fetchDaily, joinDaily } from '../services/dailyApi';
 import { socket } from '../services/socket';
 
-/** The daily Call Me Moment: live while it runs, refreshed by socket events. */
+/** The daily Yap Moment: live while it runs, refreshed by socket events. */
 export function useDailyMoment() {
   const [daily, setDaily] = useState<DailyState>({ active: false });
 
@@ -47,7 +47,7 @@ export function useDailyMoment() {
       return true;
     } catch (error: any) {
       Alert.alert(
-        'Call Me Moment',
+        'Yap Moment',
         error?.code === 'not_active' ? 'Der Moment ist schon vorbei. Morgen gibt es einen neuen!' : 'Das hat leider nicht geklappt.'
       );
       reload();

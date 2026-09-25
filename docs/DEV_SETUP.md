@@ -5,15 +5,15 @@ This project is configured to support parallel installation of development and p
 ## App Variants
 
 ### Production App
-- **Name:** "Call Me Maybe"
+- **Name:** "Wanna yap?"
 - **Bundle ID:** `com.schly21.kontaktlisteapp`
-- **Scheme:** `kontaktlisteapp`
+- **Scheme:** `wannayap`
 - **Distribution:** TestFlight/App Store
 
 ### Development App  
-- **Name:** "Call Me Maybe (Dev)"
+- **Name:** "Wanna yap? (Dev)"
 - **Bundle ID:** `com.schly21.kontaktlisteapp.dev`
-- **Scheme:** `kontaktlisteapp-dev`
+- **Scheme:** `wannayap-dev`
 - **Distribution:** Internal builds
 
 ## Building

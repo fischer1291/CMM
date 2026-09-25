@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "🚀 Building development version of Call Me Maybe..."
-echo "This will create: Call Me Maybe (Dev) with bundle ID: com.schly21.kontaktlisteapp.dev"
+echo "🚀 Building development version of Wanna yap?..."
+echo "This will create: Wanna yap? (Dev) with bundle ID: com.schly21.kontaktlisteapp.dev"
 echo ""
 
 eas build --profile development --platform ios

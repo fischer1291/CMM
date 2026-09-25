@@ -154,7 +154,7 @@ export function TicketView({ ticket, sending, onBack, onReply }: { ticket: Suppo
             <View key={i} style={[styles.bubble, m.from === 'support' ? styles.support : styles.mine]}>
               {m.from === 'support' ? (
                 <AppText variant="label" color={colors.violet}>
-                  Call Me Maybe Support
+                  Wanna yap? Support
                 </AppText>
               ) : null}
               <AppText variant="body">{m.text}</AppText>

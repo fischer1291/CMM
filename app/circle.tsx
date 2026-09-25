@@ -89,7 +89,7 @@ export default function CircleScreen() {
     if (!circle) return;
     const link = `${WEB_URL}/kreis?code=${circle.code}`;
     Share.share({
-      message: `Komm in unseren Kreis ${circle.emoji} ${circle.name} bei Call Me Maybe! ${link} (Code: ${circle.code})`,
+      message: `Komm in unseren Kreis ${circle.emoji} ${circle.name} bei Wanna yap? ${link} (Code: ${circle.code})`,
     });
   };
 

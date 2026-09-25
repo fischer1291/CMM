@@ -23,7 +23,7 @@ const TYPE_TEXT: Record<string, (name: string) => string> = {
   moment_shared: (name) => `${name} hat einen Moment geteilt`,
   missed_call: (name) => `Verpasster Anruf von ${name}`,
   contact_joined: (name) => `${name} ist jetzt dabei`,
-  daily_moment: () => 'Call Me Moment',
+  daily_moment: () => 'Yap Moment',
   moment_consent: (name) => `${name} möchte einen Moment teilen`,
   moment_approved: (name) => `${name} hat euren Moment freigegeben`,
   circle_invite: (name) => `${name} hat dich in einen Kreis eingeladen`,
@@ -124,7 +124,7 @@ export function NotificationsView({ permission, prefs, onBack, onAllow, onOpenSe
                 onChange={(nudges) => onChange({ nudges })}
               />
               <Toggle
-                label="Call Me Moment"
+                label="Yap Moment"
                 description="Einmal am Tag, zu einer überraschenden Zeit: 10 Minuten für deine Leute"
                 value={prefs.dailyMoment}
                 onChange={(dailyMoment) => onChange({ dailyMoment })}

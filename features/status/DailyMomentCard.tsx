@@ -15,7 +15,7 @@ type Props = {
   onSurprise: () => void;
 };
 
-/** The daily Call Me Moment while it runs: join, see who's in, call someone. */
+/** The daily Yap Moment while it runs: join, see who's in, call someone. */
 export function DailyMomentCard({ endsAt, joined, participants, onJoin, onCall, onSurprise }: Props) {
   const { formatted } = useCountdown(endsAt);
   return (
@@ -24,7 +24,7 @@ export function DailyMomentCard({ endsAt, joined, participants, onJoin, onCall, 
         <View style={styles.card}>
           <View style={styles.head}>
             <AppText variant="label" color={colors.pink}>
-              ⚡ Call Me Moment
+              ⚡ Yap Moment
             </AppText>
             <AppText variant="bodyStrong" style={styles.timer} accessibilityLabel={`Noch ${formatted}`}>
               {formatted}
