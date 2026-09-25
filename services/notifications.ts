@@ -98,5 +98,5 @@ export function setupNotifications(): void {
 /** Deep links a push may open; anything else is ignored. */
 export function safeRoute(url: unknown): string | null {
   if (typeof url !== 'string') return null;
-  return /^\/(friend\?phone=[%+0-9A-Za-z]+|circle\?id=[0-9a-f]{24}|callmoments|stats|schedule|circles)?$/.test(url) ? url : null;
+  return /^\/(friend\?phone=[%+0-9A-Za-z]+|circle\?id=[0-9a-f]{24}|callmoments|stats|schedule|circles|support)?$/.test(url) ? url : null;
 }

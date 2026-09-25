@@ -2,6 +2,7 @@
  * Shared circles, invites and rooms (backend routes/circles.js).
  */
 import { hashPhone } from '../utils/phone';
+import type { AlbumBadge } from './badgesApi';
 import { apiFetch, apiPostJson } from '../utils/api';
 
 export type CircleMember = { phone: string; name: string; avatarUrl: string; isAvailable: boolean; availableUntil: string | null };
@@ -25,6 +26,8 @@ export type CircleDetail = CircleSummary & {
   code: string;
   invites: { phone: string | null; name: string; status: 'draft' | 'pending'; pendingSignup: boolean }[];
   moments: { id: string; screenshot: string; userPhone: string; targetPhone: string; mood: string; note?: string; timestamp: string }[];
+  /** Circle badges (older servers: missing) */
+  badges?: AlbumBadge[];
 };
 
 export type CircleInvite = {

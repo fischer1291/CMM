@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { CircleDetail, Ritual } from '../../services/circlesApi';
+import { BadgeGrid } from '../album/AlbumView';
 import { clock, WEEK_ORDER, WEEKDAYS_LONG, WEEKDAYS_SHORT } from '../../services/gamificationApi';
 import {
   AppText,
@@ -246,6 +247,15 @@ export function CircleView({ circle, myPhone, person, busy, onBack, onMore, onRo
           </View>
         </GlassCard>
       </Pressable>
+
+      {circle.badges && circle.badges.length > 0 ? (
+        <>
+          <SectionHeader title={`Kreis-Abzeichen · ${circle.badges.filter((b) => b.earned).length}/${circle.badges.length}`} />
+          <GlassCard>
+            <BadgeGrid badges={circle.badges} />
+          </GlassCard>
+        </>
+      ) : null}
 
       {circle.moments.length > 0 && (
         <>

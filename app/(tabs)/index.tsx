@@ -12,6 +12,10 @@ import { useNudges } from '../../hooks/useNudges';
 import { useDailyMoment } from '../../hooks/useDailyMoment';
 import { useCircles } from '../../hooks/useCircles';
 import { CirclesStrip } from '../../features/circles/CirclesStrip';
+import { BadgeCelebration } from '../../components/BadgeCelebration';
+import { useBadgeAlbum } from '../../hooks/useBadgeAlbum';
+import { NoticeBanner } from '../../components/NoticeBanner';
+import { useAppConfig } from '../../contexts/AppConfigContext';
 import { answerCircleInvite } from '../../services/circlesApi';
 import {
   clock,
@@ -45,6 +49,8 @@ export default function StatusScreen() {
   const { startVideoCall } = useNewCall();
   const { received, dismiss: dismissNudges, reload: reloadNudges } = useNudges();
   const { daily, join: joinDaily } = useDailyMoment();
+  const { album, celebrate, check: checkBadges, celebrated } = useBadgeAlbum();
+  const { config: appConfig } = useAppConfig();
   const { circles, invites: circleInvites, reload: reloadCircles, setInvites: setCircleInvites } = useCircles();
 
   const answerInvite = async (circleId: string, accept: boolean) => {
@@ -120,9 +126,14 @@ export default function StatusScreen() {
       reloadProfile();
       loadExtras();
       checkNotificationPrompt().catch(() => {});
+      // Right after a call the talk may still be on its way to the server
+      const badges = setTimeout(checkBadges, 1500);
       const timer = setInterval(fetchStatus, 60 * 1000);
-      return () => clearInterval(timer);
-    }, [fetchStatus, reloadProfile, loadExtras, checkNotificationPrompt])
+      return () => {
+        clearInterval(timer);
+        clearTimeout(badges);
+      };
+    }, [fetchStatus, reloadProfile, loadExtras, checkNotificationPrompt, checkBadges])
   );
 
   // A session ran out: the server switched us off
@@ -205,6 +216,9 @@ export default function StatusScreen() {
         nudges={nudges}
         week={week}
         onOpenStats={() => router.push('/stats')}
+        notice={<NoticeBanner banner={appConfig.banner} />}
+        nextUp={album?.nextUp ?? null}
+        onOpenAlbum={() => router.push('/album')}
         scheduleLabel={scheduleLabel}
         onOpenSchedule={() => router.push('/schedule')}
         onOpenProfile={() => router.push('/(tabs)/settings')}
@@ -244,6 +258,7 @@ export default function StatusScreen() {
         onAllowNotifications={allowNotifications}
         onDismissNotifications={dismissNotifications}
       />
+      {celebrate.length > 0 && <BadgeCelebration badges={celebrate} onDone={celebrated} onOpenAlbum={() => router.push('/album')} />}
     </>
   );
 }

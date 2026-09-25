@@ -13,6 +13,9 @@ export type Badge = {
   description: string;
   earned: boolean;
   progress: number;
+  /** Since the badge album (Phase 9) */
+  icon?: string;
+  tierName?: string | null;
 };
 
 export type Stats = {
@@ -36,7 +39,8 @@ export type Sharing = { visibility: Visibility; sharedWith: string[] };
 export type SharedStats = {
   totals: { weekSeconds: number; monthSeconds: number; allTimeSeconds: number };
   streak: { current: number; best: number };
-  badges: Pick<Badge, 'id' | 'title' | 'description'>[];
+  badges: Pick<Badge, 'id' | 'title' | 'description' | 'icon' | 'tierName'>[];
+  showcase?: { id: string; title: string; icon: string; tierName: string | null }[];
 };
 
 export type Nudges = {

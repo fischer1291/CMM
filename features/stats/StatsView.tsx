@@ -9,9 +9,9 @@ import {
   Avatar,
   Button,
   colors,
+  BadgeMedal,
   glow,
   GlassCard,
-  gradients,
   PageHeader,
   Screen,
   SectionHeader,
@@ -20,18 +20,6 @@ import {
 } from '../../ui';
 
 export type Person = { name: string; avatarUrl: string | null };
-
-const BADGE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  first_talk: 'chatbubbles',
-  deep_talk: 'water',
-  hour: 'time',
-  ten_talks: 'call',
-  streak_4: 'flame',
-  circle: 'people',
-  ten_hours: 'hourglass',
-  planner: 'calendar',
-  storyteller: 'sparkles',
-};
 
 const VISIBILITY_OPTIONS: { value: Visibility; label: string }[] = [
   { value: 'private', label: 'Nur ich' },
@@ -46,6 +34,7 @@ type Props = {
   error: boolean;
   onRetry: () => void;
   onBack: () => void;
+  onOpenAlbum: () => void;
   person: (phone: string) => Person;
   onChangeVisibility: (visibility: Visibility) => void;
   onPickPeople: () => void;
@@ -81,34 +70,32 @@ function WeekChart({ weeks }: { weeks: Stats['weeks'] }) {
   );
 }
 
-function BadgeTile({ badge }: { badge: Badge }) {
+/** Earned medals, newest tiers first, as a teaser for the album. */
+function AlbumTeaser({ badges, onOpen }: { badges: Badge[]; onOpen: () => void }) {
+  const earned = badges.filter((b) => b.earned);
   return (
-    <View style={styles.badge} accessibilityLabel={`${badge.title}: ${badge.description}${badge.earned ? ', erreicht' : ''}`}>
-      <View style={[styles.badgeIcon, badge.earned ? [styles.badgeIconEarned, glow(colors.pink, 0.45)] : null]}>
-        {badge.earned ? (
-          <LinearGradient colors={gradients.brand} style={[StyleSheet.absoluteFill, styles.round]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+    <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel="Sammelalbum öffnen">
+      <GlassCard>
+        {earned.length ? (
+          <View style={styles.medals}>
+            {earned.slice(0, 5).map((b) => (
+              <BadgeMedal key={b.id} icon={b.icon ?? 'star'} earned tierName={b.tierName} size={44} />
+            ))}
+            {earned.length > 5 ? (
+              <View style={styles.more}>
+                <AppText variant="caption">+{earned.length - 5}</AppText>
+              </View>
+            ) : null}
+          </View>
         ) : null}
-        <Ionicons name={BADGE_ICONS[badge.id] ?? 'star'} size={24} color={badge.earned ? colors.text : colors.textMuted} />
-      </View>
-      <AppText variant="caption" center numberOfLines={2} color={badge.earned ? colors.text : colors.textSecondary}>
-        {badge.title}
-      </AppText>
-      {!badge.earned && (
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${Math.round(badge.progress * 100)}%` }]} />
+        <View style={styles.albumRow}>
+          <AppText variant="bodyStrong" style={{ flex: 1 }}>
+            {earned.length ? 'Sammelalbum öffnen' : 'Dein erstes Abzeichen wartet im Album'}
+          </AppText>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </View>
-      )}
-    </View>
-  );
-}
-
-export function BadgeGrid({ badges }: { badges: Badge[] }) {
-  return (
-    <View style={styles.badges}>
-      {badges.map((badge) => (
-        <BadgeTile key={badge.id} badge={badge} />
-      ))}
-    </View>
+      </GlassCard>
+    </Pressable>
   );
 }
 
@@ -120,6 +107,7 @@ export function StatsView({
   error,
   onRetry,
   onBack,
+  onOpenAlbum,
   person,
   onChangeVisibility,
   onPickPeople,
@@ -236,7 +224,7 @@ export function StatsView({
       )}
 
       <SectionHeader title={`Abzeichen · ${earned}/${stats.badges.length}`} />
-      <BadgeGrid badges={stats.badges} />
+      <AlbumTeaser badges={stats.badges} onOpen={onOpenAlbum} />
 
       <SectionHeader title="Wer darf das sehen?" />
       <GlassCard>
@@ -284,23 +272,9 @@ const styles = StyleSheet.create({
   privateHint: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   personRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg },
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-  badges: { flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.lg },
-  badge: { width: '33.33%', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.xs },
-  badgeIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  badgeIconEarned: { borderColor: 'transparent', overflow: 'visible' },
-  round: { borderRadius: 30 },
-  progressTrack: { width: 48, height: 4, borderRadius: 2, backgroundColor: colors.surfaceStrong, overflow: 'hidden' },
-  progressFill: { height: 4, backgroundColor: colors.violet },
+  medals: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  more: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+  albumRow: { flexDirection: 'row', alignItems: 'center' },
   pick: {
     flexDirection: 'row',
     alignItems: 'center',
