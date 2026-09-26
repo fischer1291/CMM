@@ -1,3 +1,4 @@
+import { explainLimit } from '../features/plus/upsell';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
@@ -32,7 +33,7 @@ export default function CirclesScreen() {
       reload();
       open(circle.id);
     } catch (error: any) {
-      Alert.alert('Nicht angelegt', error?.code === 'too_many_circles' ? 'Du bist schon in sehr vielen Kreisen.' : 'Bitte versuche es erneut.');
+      if (!explainLimit(error, router)) Alert.alert('Nicht angelegt', error?.code === 'too_many_circles' ? 'Du bist schon in sehr vielen Kreisen.' : 'Bitte versuche es erneut.');
     } finally {
       setBusy(false);
     }
@@ -46,7 +47,7 @@ export default function CirclesScreen() {
       reload();
       open(circle.id);
     } catch (error: any) {
-      Alert.alert('Nicht beigetreten', error?.code === 'full' ? 'Der Kreis ist voll.' : 'Diesen Code gibt es nicht. Prüf ihn noch einmal.');
+      if (!explainLimit(error, router)) Alert.alert('Nicht beigetreten', 'Diesen Code gibt es nicht. Prüf ihn noch einmal.');
     } finally {
       setBusy(false);
     }

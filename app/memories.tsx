@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useContacts } from '../contexts/ContactsContext';
 import { Moment, toMoment } from '../features/moments/model';
-import { AppText, colors, EmptyState, PageHeader, Screen, spacing } from '../ui';
+import { AppText, colors, EmptyState, GlassCard, PageHeader, Screen, spacing } from '../ui';
 import { apiFetch } from '../utils/api';
 
 const dateOf = (iso: string) =>
@@ -22,12 +22,16 @@ export default function MemoriesScreen() {
   const { userPhone } = useAuth();
   const { find } = useContacts();
   const [memories, setMemories] = useState<Moment[] | null>(null);
+  const [older, setOlder] = useState(0);
   const [open, setOpen] = useState<Moment | null>(null);
 
   useEffect(() => {
     apiFetch('/moment/memories', {}, 15000)
       .then((res) => res.json())
-      .then((data) => setMemories((data.memories ?? []).map(toMoment)))
+      .then((data) => {
+        setMemories((data.memories ?? []).map(toMoment));
+        setOlder(data.olderHidden ?? 0);
+      })
       .catch(() => setMemories([]));
   }, []);
 
@@ -41,6 +45,16 @@ export default function MemoriesScreen() {
   return (
     <Screen>
       <PageHeader title="Erinnerungen" onBack={() => router.back()} />
+      {older > 0 ? (
+        <Pressable onPress={() => router.push('/plus')} accessibilityRole="button" style={{ marginBottom: spacing.md }}>
+          <GlassCard glow={colors.violet}>
+            <AppText variant="bodyStrong">{older === 1 ? '1 ältere Erinnerung' : `${older} ältere Erinnerungen`} ✨</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Gratis siehst du die letzten 30 Tage. Mit Wanna yap+ sind alle wieder da, nichts wurde gelöscht.
+            </AppText>
+          </GlassCard>
+        </Pressable>
+      ) : null}
       {!memories ? (
         <ActivityIndicator color={colors.cyan} style={{ marginTop: spacing.xxl }} />
       ) : memories.length === 0 ? (

@@ -17,6 +17,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppConfigProvider, useAppConfig } from '../contexts/AppConfigContext';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { PlanProvider } from '../contexts/PlanContext';
 import { ForceUpdate } from '../components/ForceUpdate';
 import { ContactsProvider } from '../contexts/ContactsContext';
 import { NewCallProvider } from '../contexts/NewCallContext';
@@ -98,6 +99,7 @@ function InnerLayout() {
           <Stack.Screen name="album" />
           <Stack.Screen name="support" />
           <Stack.Screen name="calls" />
+          <Stack.Screen name="plus" />
           <Stack.Screen name="schedule" />
           <Stack.Screen name="friend" />
           <Stack.Screen name="notifications" />
@@ -142,12 +144,14 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AppConfigProvider>
         <AuthProvider>
-          <ContactsProvider>
-            <NewCallProvider>
-              <StatusBar style="light" />
-              <InnerLayout />
-            </NewCallProvider>
-          </ContactsProvider>
+          <PlanProvider>
+            <ContactsProvider>
+              <NewCallProvider>
+                <StatusBar style="light" />
+                <InnerLayout />
+              </NewCallProvider>
+            </ContactsProvider>
+          </PlanProvider>
         </AuthProvider>
       </AppConfigProvider>
     </SafeAreaProvider>
