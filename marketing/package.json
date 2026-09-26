@@ -1,0 +1,11 @@
+{
+  "name": "cmm-marketing",
+  "private": true,
+  "description": "Landing page and marketing assets for Wanna yap?",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  }
+}
