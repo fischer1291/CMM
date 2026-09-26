@@ -1,6 +1,6 @@
 /**
  * Public links on wannayap.app (netlify.toml, scripts/build-web.sh).
- * DOWNLOAD_URL is a redirect on the website (web/download.html) that points to
+ * DOWNLOAD_URL is a redirect on the website (public/download.html) that points to
  * TestFlight during the beta and to the App Store later, without a new build.
  */
 export const WEB_URL = 'https://wannayap.app';
