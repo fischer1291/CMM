@@ -37,6 +37,9 @@ type Props = {
   nudges: ReceivedNudge[];
   week: { label: string; streak: number } | null;
   onOpenStats: () => void;
+  /** Missed calls not yet seen in the call list */
+  missedCalls?: number;
+  onOpenCalls?: () => void;
   /** Notice from the admin console (components/NoticeBanner) */
   notice?: React.ReactNode;
   /** "Fast geschafft": the closest badge */
@@ -97,25 +100,26 @@ function NudgeCard({
   const who = others > 0 ? `${first.name.split(' ')[0]} und ${others} ${others === 1 ? 'weitere Person' : 'weitere'}` : first.name.split(' ')[0];
   return (
     <GlassCard glow={colors.pink} style={{ marginTop: spacing.xl }}>
-      <Pressable
-        onPress={onDismiss}
-        hitSlop={12}
-        accessibilityRole="button"
-        accessibilityLabel="Nicht jetzt, ausblenden"
-        style={styles.nudgeClose}
-      >
-        <Ionicons name="close" size={18} color={colors.textSecondary} />
-      </Pressable>
       <View style={styles.nudgeRow}>
         <Avatar name={first.name} uri={first.avatarUrl} size={44} />
         <View style={{ flex: 1 }}>
-          <AppText variant="bodyStrong" style={styles.nudgeTitle}>
+          <AppText variant="bodyStrong">
             {who} {others > 0 ? 'würden' : 'würde'} gern mit dir sprechen 👋
           </AppText>
           <AppText variant="caption" color={colors.textSecondary}>
             {available ? 'Du bist erreichbar: ruf doch einfach an.' : 'Kein Druck. Wenn es dir passt, schalte dich erreichbar.'}
           </AppText>
         </View>
+        {/* Part of the row, so the card's rounded corner never cuts it */}
+        <Pressable
+          onPress={onDismiss}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Nicht jetzt, ausblenden"
+          style={styles.nudgeClose}
+        >
+          <Ionicons name="close" size={18} color={colors.textSecondary} />
+        </Pressable>
       </View>
       {available ? (
         <Button title={`${first.name.split(' ')[0]} anrufen`} icon="videocam" onPress={() => onCall(first.from)} style={{ marginTop: spacing.md }} />
@@ -164,6 +168,8 @@ export function StatusView({
   nudges,
   week,
   onOpenStats,
+  missedCalls = 0,
+  onOpenCalls,
   notice,
   nextUp,
   onOpenAlbum,
@@ -237,6 +243,18 @@ export function StatusView({
       {circlesStrip}
 
       {showNotificationPrompt && <NotificationPrompt onAllow={onAllowNotifications} onDismiss={onDismissNotifications} />}
+
+      {missedCalls > 0 && onOpenCalls ? (
+        <View style={{ marginTop: spacing.xl }}>
+          <LinkCard
+            icon="call"
+            accent={colors.danger}
+            title={missedCalls === 1 ? '1 verpasster Anruf' : `${missedCalls} verpasste Anrufe`}
+            text="Schau, wer es versucht hat, und ruf zurück"
+            onPress={onOpenCalls}
+          />
+        </View>
+      ) : null}
 
       {nudges.length > 0 && (
         <NudgeCard
@@ -329,16 +347,11 @@ const styles = StyleSheet.create({
   },
   sessionPressed: { backgroundColor: 'rgba(0,229,255,0.18)', borderColor: colors.cyan },
   nudgeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  // Room for the close button in the top right corner
-  nudgeTitle: { paddingRight: spacing.xl },
   nudgeClose: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    zIndex: 1,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    alignSelf: 'flex-start',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surface,

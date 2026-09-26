@@ -32,6 +32,9 @@ type Props = {
   onNudge: (contact: Contact) => void;
   /** Already nudged today */
   nudged: (phone: string) => boolean;
+  /** The call list, with the number of unseen missed calls */
+  onOpenCalls: () => void;
+  missedCalls: number;
 };
 
 function subtitleOf(contact: Contact): { text: string; color: string } {
@@ -118,6 +121,8 @@ export function ContactsView({
   onOpen,
   onNudge,
   nudged,
+  onOpenCalls,
+  missedCalls,
 }: Props) {
   const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -133,9 +138,25 @@ export function ContactsView({
 
   const header = (
     <View>
-      <AppText variant="h1" style={{ marginTop: spacing.lg }}>
-        Kontakte
-      </AppText>
+      <View style={styles.titleRow}>
+        <AppText variant="h1">Kontakte</AppText>
+        <Pressable
+          onPress={onOpenCalls}
+          accessibilityRole="button"
+          accessibilityLabel={missedCalls ? `Anrufe, ${missedCalls} verpasst` : 'Anrufe'}
+          style={styles.callsButton}
+        >
+          <Ionicons name="time-outline" size={18} color={colors.text} />
+          <AppText variant="caption">Anrufe</AppText>
+          {missedCalls > 0 ? (
+            <View style={styles.badge}>
+              <AppText variant="caption" color={colors.text} style={styles.badgeText}>
+                {missedCalls > 9 ? '9+' : missedCalls}
+              </AppText>
+            </View>
+          ) : null}
+        </Pressable>
+      </View>
       <AppText variant="caption" color={colors.textSecondary}>
         {availableCount === 0
           ? 'Gerade ist niemand erreichbar'
@@ -215,6 +236,20 @@ export function ContactsView({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.lg },
+  callsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderStrong,
+  },
+  badge: { minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.danger },
+  badgeText: { fontSize: 11, lineHeight: 14, fontWeight: '700' },
   list: { paddingHorizontal: spacing.xl, paddingBottom: TAB_BAR_SPACE },
   search: {
     flexDirection: 'row',
