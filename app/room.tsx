@@ -2,6 +2,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, PermissionsAndroid, Platform, StyleSheet } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { usePlan } from '../contexts/PlanContext';
+import { applyVideoQuality } from '../services/videoQuality';
+import { socket } from '../services/socket';
 import { useContacts } from '../contexts/ContactsContext';
 import { RoomTile, RoomView } from '../features/circles/RoomView';
 import { AGORA_APP_ID } from '../config/env';
@@ -37,6 +40,9 @@ export default function RoomScreen() {
   const [title, setTitle] = useState('Runde');
   const [memberNames, setMemberNames] = useState<Map<string, { name: string; avatarUrl: string | null }>>(new Map());
   const account = (userPhone ?? '').replace(/^\+/, '');
+  const { plan } = usePlan();
+  const [endsAt, setEndsAt] = useState<number | null>(null);
+  const warnedRef = useRef(false);
 
   // Names of circle members who aren't in the address book
   useEffect(() => {
@@ -44,15 +50,42 @@ export default function RoomScreen() {
     fetchCircle(circleId)
       .then((c) => {
         setTitle(`${c.emoji} ${c.name}`);
+        if (c.room?.id === roomId && c.room.endsAt) setEndsAt(new Date(c.room.endsAt).getTime());
         setMemberNames(new Map(c.members.map((m) => [m.phone.replace(/^\+/, ''), { name: m.name, avatarUrl: m.avatarUrl || null }])));
       })
       .catch(() => {});
-  }, [circleId]);
+  }, [circleId, roomId]);
 
   useEffect(() => {
     const timer = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Rounds in free circles have an end: a heads-up 5 minutes before
+  useEffect(() => {
+    if (!endsAt || warnedRef.current) return;
+    if (endsAt - Date.now() <= 5 * 60 * 1000) {
+      warnedRef.current = true;
+      Alert.alert('Noch 5 Minuten', 'Runden in diesem Kreis dauern bis zu 60 Minuten. Mit Wanna yap+ gibt es kein Zeitlimit.');
+    }
+  }, [endsAt, seconds]);
+
+  // The server ended the round (time limit)
+  useEffect(() => {
+    const onUpdated = (data: { roomId?: string; ended?: boolean; reason?: string }) => {
+      if (data.roomId !== roomId || !data.ended) return;
+      if (data.reason === 'time_limit') {
+        Alert.alert('Die Runde ist zu Ende', 'Die Zeit für diese Runde ist um. Startet einfach eine neue, oder spart euch das Limit mit Wanna yap+.', [{ text: 'OK', onPress: () => leave() }]);
+      } else {
+        leave();
+      }
+    };
+    socket.on('roomUpdated', onUpdated);
+    return () => {
+      socket.off('roomUpdated', onUpdated);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- leave is stable enough for this
+  }, [roomId]);
 
   const update = (uid: number, patch: Partial<Remote>) =>
     setRemotes((prev) => {
@@ -90,6 +123,7 @@ export default function RoomScreen() {
           },
         });
         engine.enableVideo();
+        applyVideoQuality(engine, !!plan?.limits.hdVideo);
         engine.enableAudioVolumeIndication(400, 3, false);
         engine.startPreview();
         engine.setClientRole(ClientRoleType.ClientRoleBroadcaster);

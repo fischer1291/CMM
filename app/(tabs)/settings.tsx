@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
+import { usePlan } from '../../contexts/PlanContext';
 import React, { useState } from 'react';
 import { Alert, Linking, Share } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -10,6 +11,7 @@ import { pickAvatarImage, uploadAvatar } from '../../services/avatar';
 
 
 export default function ProfileScreen() {
+  const { isPlus } = usePlan();
   const router = useRouter();
   const { userPhone, userProfile, updateUserProfile, signOut } = useAuth();
   const [uploading, setUploading] = useState(false);
@@ -91,6 +93,8 @@ export default function ProfileScreen() {
       onOpenNotifications={() => router.push('/notifications')}
       onOpenStats={() => router.push('/stats')}
       onOpenAlbum={() => router.push('/album')}
+      onOpenPlus={() => router.push('/plus')}
+      isPlus={isPlus}
       onOpenSupport={() => router.push('/support')}
       onOpenSchedule={() => router.push('/schedule')}
       onInvite={() => Share.share({ message: inviteText(userProfile?.name?.split(' ')[0]) })}

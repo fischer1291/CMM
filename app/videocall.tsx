@@ -19,6 +19,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot, { captureRef } from 'react-native-view-shot';
 import { useAuth } from '../contexts/AuthContext';
+import { usePlan } from '../contexts/PlanContext';
+import { applyVideoQuality } from '../services/videoQuality';
 import { useNewCall } from '../contexts/NewCallContext';
 import { useContacts } from '../contexts/ContactsContext';
 import { MomentComposer, MomentDraft } from '../features/moments/MomentComposer';
@@ -152,6 +154,10 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing, startWit
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { userPhone: authUserPhone, userProfile } = useAuth();
+  // Plus sends HD video (services/videoQuality.ts)
+  const { plan } = usePlan();
+  const hdRef = useRef(false);
+  hdRef.current = !!plan?.limits.hdVideo;
   const { endCall } = useNewCall();
   const { find: findContact } = useContacts();
   const agoraSafeUserAccount = userPhone;
@@ -345,6 +351,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing, startWit
       }
 
       await engine.enableVideo();
+      applyVideoQuality(engine, hdRef.current);
       if (cameraOnRef.current) {
         await engine.startPreview();
       } else {
@@ -534,6 +541,7 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing, startWit
         console.log('🚪 Joining Agora channel:', channel);
         // Restart video and preview before joining channel
         await engineRef.current.enableVideo();
+        applyVideoQuality(engineRef.current, hdRef.current);
         if (cameraOnRef.current) await engineRef.current.startPreview();
 
         await engineRef.current.joinChannelWithUserAccount(token, channel, userPhone);

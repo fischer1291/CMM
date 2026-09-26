@@ -11,6 +11,8 @@ import { OnboardingView } from '../features/auth/OnboardingView';
 import { VerifyView } from '../features/auth/VerifyView';
 import { ContactsView } from '../features/contacts/ContactsView';
 import { CallsView } from '../features/calls/CallsView';
+import { PlusView } from '../features/plus/PlusView';
+import type { Plan } from '../services/planApi';
 import { MomentsView } from '../features/moments/MomentsView';
 import { UnlockCelebration } from '../features/moments/UnlockCelebration';
 import { ProfileSetupView } from '../features/profile/ProfileSetupView';
@@ -207,6 +209,35 @@ const MOMENTS = [
     totalReactions: 6,
   },
 ];
+const SAMPLE_PLAN: Plan = {
+  plan: 'free',
+  limits: { circles: 3, circleMembers: 12, roomParticipants: 6, roomMinutes: 60, memoriesDays: 30, hdVideo: false },
+  plus: null,
+  userId: 'u1',
+  all: {
+    free: { circles: 3, circleMembers: 12, roomParticipants: 6, roomMinutes: 60, memoriesDays: 30, hdVideo: false },
+    plus: { circles: 20, circleMembers: 50, roomParticipants: 12, roomMinutes: null, memoriesDays: null, hdVideo: true },
+  },
+  usage: { circlesFounded: 2 },
+  products: [],
+  interest: null,
+};
+const plusProps = {
+  plan: SAMPLE_PLAN,
+  offers: [],
+  selected: null,
+  onSelect: () => {},
+  busy: false,
+  onBuy: () => {},
+  onRestore: () => {},
+  onManage: () => {},
+  interest: new Set(['memories', 'family']),
+  onToggleInterest: () => {},
+  onSendInterest: () => {},
+  interestSent: false,
+  onBack: () => {},
+  onOpenLegal: () => {},
+};
 const SAMPLE_CALLS = [
   { callId: 'k1', direction: 'incoming', otherPhone: '+491', otherName: 'Anna Berg', otherAvatarUrl: PHOTO, status: 'missed', missed: true, video: true, createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(), durationSec: 0 },
   { callId: 'k2', direction: 'outgoing', otherPhone: '+492', otherName: 'Ben Koch', otherAvatarUrl: null, status: 'ended', missed: false, video: false, createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(), durationSec: 1460 },
@@ -424,6 +455,8 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpenNotifications={() => {}}
       onOpenStats={() => {}}
       onOpenAlbum={() => {}}
+      onOpenPlus={() => {}}
+      isPlus={false}
       onOpenSupport={() => {}}
       onOpenSchedule={() => {}}
       onInvite={() => {}}
@@ -452,6 +485,37 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       lockedCount={3}
       onOpenRequests={() => {}}
       onOpenMemories={() => {}}
+    />
+  ),
+  plus: () => <PlusView {...plusProps} />,
+  // The lower half (no scrolling in screen previews)
+  'plus-bottom': () => (
+    <View style={{ height: 2600, transform: [{ translateY: -1150 }] }}>
+      <PlusView {...plusProps} />
+    </View>
+  ),
+  'plus-store-bottom': () => (
+    <View style={{ height: 2600, transform: [{ translateY: -1150 }] }}>
+      <PlusView
+        {...plusProps}
+        offers={[
+          { id: '$rc_annual', title: 'Jährlich', price: '24,99 €', period: 'year', pkg: null },
+          { id: '$rc_monthly', title: 'Monatlich', price: '2,99 €', period: 'month', pkg: null },
+        ]}
+        selected="$rc_annual"
+        interest={new Set()}
+      />
+    </View>
+  ),
+  'plus-store': () => (
+    <PlusView
+      {...plusProps}
+      offers={[
+        { id: '$rc_annual', title: 'Jährlich', price: '24,99 €', period: 'year', pkg: null },
+        { id: '$rc_monthly', title: 'Monatlich', price: '2,99 €', period: 'month', pkg: null },
+      ]}
+      selected="$rc_annual"
+      interest={new Set()}
     />
   ),
   calls: () => (

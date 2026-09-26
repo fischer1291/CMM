@@ -7,7 +7,7 @@ import { apiFetch, apiPostJson } from '../utils/api';
 
 export type CircleMember = { phone: string; name: string; avatarUrl: string; isAvailable: boolean; availableUntil: string | null };
 export type Warmth = { minutes: number; talkedCount: number; memberCount: number; goalReached: boolean };
-export type RoomInfo = { id: string; channel: string; participants: string[] };
+export type RoomInfo = { id: string; channel: string; participants: string[]; /** Free circles: when the round ends */ endsAt?: string | null };
 export type Ritual = { enabled: boolean; day: number; start: number };
 
 export type CircleSummary = {

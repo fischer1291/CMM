@@ -1,3 +1,4 @@
+import { explainLimit } from '../features/plus/upsell';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -78,8 +79,8 @@ export default function CircleScreen() {
     try {
       const r = await openRoom(circle.id);
       router.push({ pathname: '/room', params: { roomId: r.id, channel: r.channel, circleId: circle.id } });
-    } catch {
-      Alert.alert('Runde', 'Die Runde konnte nicht geöffnet werden. Bitte versuche es erneut.');
+    } catch (error) {
+      if (!explainLimit(error, router)) Alert.alert('Runde', 'Die Runde konnte nicht geöffnet werden. Bitte versuche es erneut.');
     } finally {
       setBusy(false);
     }

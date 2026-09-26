@@ -1,3 +1,4 @@
+import { explainLimit } from '../features/plus/upsell';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, StyleSheet, View } from 'react-native';
@@ -28,7 +29,8 @@ export default function CircleInviteScreen() {
     try {
       const joined = await joinCircleByCode(code);
       router.replace({ pathname: '/circle', params: { id: joined.id } });
-    } catch {
+    } catch (error) {
+      explainLimit(error, router);
       setBusy(false);
     }
   };

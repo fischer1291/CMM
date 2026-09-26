@@ -21,6 +21,8 @@ type Props = {
   onOpenNotifications: () => void;
   onOpenStats: () => void;
   onOpenAlbum: () => void;
+  onOpenPlus: () => void;
+  isPlus: boolean;
   onOpenSupport: () => void;
   onOpenSchedule: () => void;
   onInvite: () => void;
@@ -95,6 +97,23 @@ export function ProfileView(props: Props) {
         </AppText>
       </View>
 
+      <Pressable onPress={props.onOpenPlus} accessibilityRole="button" style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1, marginTop: spacing.xl }]}>
+        <GlassCard glow={colors.violet}>
+          <View style={styles.plusRow}>
+            <View style={styles.plusIcon}>
+              <Ionicons name="sparkles" size={20} color={colors.text} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <AppText variant="bodyStrong">{props.isPlus ? 'Du hast Wanna yap+ ✨' : 'Wanna yap+'}</AppText>
+              <AppText variant="caption" color={colors.textSecondary}>
+                {props.isPlus ? 'Danke, dass du uns unterstützt' : 'Größere Kreise, Erinnerungen für immer, HD-Video'}
+              </AppText>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </View>
+        </GlassCard>
+      </Pressable>
+
       <SectionHeader title="Erreichbarkeit" />
       <RowGroup
         rows={[
@@ -159,6 +178,8 @@ export function ProfileView(props: Props) {
 }
 
 const styles = StyleSheet.create({
+  plusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  plusIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.violet },
   head: { alignItems: 'center', gap: spacing.sm, marginTop: spacing.xl },
   badge: {
     position: 'absolute',
