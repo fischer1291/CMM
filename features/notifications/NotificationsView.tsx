@@ -131,7 +131,7 @@ export function NotificationsView({ permission, prefs, onBack, onAllow, onOpenSe
               />
               <Toggle
                 label="Moments"
-                description="Wenn jemand einen Moment aus eurem Gespräch teilt"
+                description="Wenn jemand einen Moment aus eurem Gespräch teilt, und abends, wenn Moments auf dich warten"
                 value={prefs.moments}
                 onChange={(moments) => onChange({ moments })}
               />

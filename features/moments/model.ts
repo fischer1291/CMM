@@ -20,6 +20,23 @@ export type Moment = {
   sharedAt?: string | null;
 };
 
+/** A friend's moment you haven't unlocked yet: who, when, a blurred picture. */
+export type LockedMoment = {
+  id: string;
+  userPhone: string;
+  userName: string;
+  targetPhone: string;
+  targetName: string;
+  /** Strongly blurred and small; null for very old moments */
+  screenshot: string | null;
+  timestamp: string;
+};
+
+/** Today's unlock: a conversation of a minute or the Yap Moment. */
+export type UnlockState = { unlocked: boolean; via: 'talk' | 'daily' | null; streak: number; best: number; total: number };
+
+export const toLockedMoment = (m: any): LockedMoment => ({ ...m, id: m._id ?? m.id });
+
 /** Server moment -> app moment */
 export const toMoment = (m: any): Moment => ({
   ...m,
