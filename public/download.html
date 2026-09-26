@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Wanna yap? laden</title>
+<link rel="icon" href="/favicon.png">
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0B0B12; color: #F4F4FA; font: 17px/1.5 -apple-system, "Space Grotesk", system-ui, sans-serif; text-align: center; padding: 24px; box-sizing: border-box; }
+  .dot { width: 72px; height: 72px; margin: 0 auto 20px; border-radius: 50%; background: linear-gradient(135deg, #00E5FF, #8B5CFF, #FF2E93); box-shadow: 0 0 40px rgba(139,92,255,.6); }
+  h1 { font-size: 30px; margin: 0 0 8px; letter-spacing: -0.5px; }
+  p { color: #A6A6BF; max-width: 420px; margin: 0 auto 24px; }
+  a.cta { display: inline-block; padding: 16px 28px; border-radius: 999px; background: linear-gradient(90deg, #00E5FF, #8B5CFF, #FF2E93); color: #0B0B12; font-weight: 700; text-decoration: none; }
+  small { display: block; margin-top: 28px; color: #6C6C88; }
+</style>
+</head>
+<body>
+<main>
+  <div class="dot"></div>
+  <h1>Wanna yap?</h1>
+  <p id="text">Wir öffnen gerade den App Store für dich …</p>
+  <a class="cta" id="cta" href="/">Zur Startseite</a>
+  <small>Probleme? <a href="mailto:hallo@wannayap.app" style="color:#00E5FF">hallo@wannayap.app</a></small>
+</main>
+<script>
+  // Where "download" goes. One place for the whole site, flyers and campaigns.
+  // App Store: https://apps.apple.com/app/idXXXXXXXXXX (pt = provider token from
+  // App Store Connect → App Analytics → Campaigns). Until then: TestFlight or null.
+  var STORE_URL = null; // e.g. "https://apps.apple.com/app/id1234567890"
+  var PROVIDER_TOKEN = null; // e.g. "123456789"
+  var TESTFLIGHT_URL = null; // e.g. "https://testflight.apple.com/join/AbCdEf"
+
+  var params = new URLSearchParams(location.search);
+  var campaign = (params.get('ct') || params.get('utm_campaign') || '').replace(/[^\w-]/g, '').slice(0, 40);
+  var target = null;
+  if (STORE_URL) {
+    var url = new URL(STORE_URL);
+    if (PROVIDER_TOKEN) url.searchParams.set('pt', PROVIDER_TOKEN);
+    if (campaign) url.searchParams.set('ct', campaign);
+    url.searchParams.set('mt', '8');
+    target = url.toString();
+  } else if (TESTFLIGHT_URL) {
+    target = TESTFLIGHT_URL;
+  }
+  if (target) {
+    document.getElementById('cta').href = target;
+    document.getElementById('cta').textContent = 'Jetzt laden';
+    location.replace(target);
+  } else {
+    document.getElementById('text').textContent = 'Wanna yap? kommt in Kürze in den App Store. Schau bald wieder vorbei!';
+  }
+</script>
+</body>
+</html>

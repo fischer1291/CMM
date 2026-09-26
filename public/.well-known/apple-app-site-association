@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["UYQWS7M68U.com.schly21.kontaktlisteapp", "UYQWS7M68U.com.schly21.kontaktlisteapp.dev"],
+        "components": [
+          { "/": "/einladung*", "comment": "Invite links open the app" },
+          { "/": "/kreis*", "comment": "Circle invite links open the app" }
+        ]
+      }
+    ]
+  }
+}

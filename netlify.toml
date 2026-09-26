@@ -1,0 +1,39 @@
+# wannayap.app: landing page, legal pages, invite links (scripts/build-web.sh)
+[build]
+  command = "bash scripts/build-web.sh"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Universal Links: Apple wants JSON without redirects
+[[headers]]
+  for = "/.well-known/apple-app-site-association"
+  [headers.values]
+    Content-Type = "application/json"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# One domain: www and old addresses go to wannayap.app
+[[redirects]]
+  from = "https://www.wannayap.app/*"
+  to = "https://wannayap.app/:splat"
+  status = 301
+  force = true
+
+# Campaign links, e.g. wannayap.app/k/campus-leipzig -> App Store with ct=campus-leipzig
+[[redirects]]
+  from = "/k/:campaign"
+  to = "/download?ct=:campaign"
+  status = 302
+
+[[redirects]]
+  from = "/app"
+  to = "/download"
+  status = 302
