@@ -4,13 +4,18 @@ import React, { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useContacts } from '../../contexts/ContactsContext';
-import { Moment, toggleReaction, toMoment } from '../../features/moments/model';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LockedMoment, Moment, toggleReaction, toLockedMoment, toMoment, UnlockState } from '../../features/moments/model';
+import { UnlockCelebration } from '../../features/moments/UnlockCelebration';
 import { ConsentSheet } from '../../features/moments/ConsentSheet';
 import { answerMoment } from '../../services/dailyApi';
 import { socket } from '../../services/socket';
 import { MomentsView } from '../../features/moments/MomentsView';
 import { useSafetyMenu } from '../../hooks/useSafetyMenu';
 import { apiFetch, apiPostJson } from '../../utils/api';
+
+// The unlock celebration plays once a day
+const CELEBRATED_KEY = 'momentsUnlockCelebrated';
 
 export default function MomentsScreen() {
   const router = useRouter();
@@ -20,11 +25,15 @@ export default function MomentsScreen() {
   const [requests, setRequests] = useState<Moment[]>([]);
   const [waitingCount, setWaitingCount] = useState(0);
   const [lock, setLock] = useState({ locked: false, count: 0 });
+  const [lockedMoments, setLockedMoments] = useState<LockedMoment[]>([]);
+  const [unlock, setUnlock] = useState<UnlockState | null>(null);
+  const [celebrate, setCelebrate] = useState<{ screenshot: string | null; count: number } | null>(null);
   const [showRequests, setShowRequests] = useState(false);
   const [answering, setAnswering] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const safety = useSafetyMenu();
+  const endCelebration = useCallback(() => setCelebrate(null), []);
 
   const load = useCallback(async () => {
     try {
@@ -35,13 +44,28 @@ export default function MomentsScreen() {
       setRequests((data.pending ?? []).map(toMoment));
       setWaitingCount((data.waiting ?? []).length);
       setLock({ locked: !!data.locked, count: data.lockedCount ?? 0 });
+      setLockedMoments((data.lockedMoments ?? []).map(toLockedMoment));
+      const state: UnlockState | null = data.unlock ?? null;
+      setUnlock(state);
+
+      // Once a day, the first time friends' moments are visible: lift the blur
+      if (state?.unlocked) {
+        const all: Moment[] = (data.callMoments ?? []).map(toMoment);
+        const friends = all.filter((m) => m.userPhone.replace(/^\+?/, '+') !== userPhone && m.targetPhone.replace(/^\+?/, '+') !== userPhone);
+        const today = new Date().toLocaleDateString('sv-SE');
+        const seen = await AsyncStorage.getItem(CELEBRATED_KEY).catch(() => null);
+        if (friends.length && seen !== today) {
+          setCelebrate({ screenshot: friends[0].screenshot, count: friends.length });
+          AsyncStorage.setItem(CELEBRATED_KEY, today).catch(() => {});
+        }
+      }
     } catch {
       Alert.alert('Keine Verbindung', 'Moments konnten nicht geladen werden.');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [userPhone]);
 
   useFocusEffect(
     useCallback(() => {
@@ -108,6 +132,8 @@ export default function MomentsScreen() {
         waitingCount={waitingCount}
         locked={lock.locked}
         lockedCount={lock.count}
+        lockedMoments={lockedMoments}
+        unlock={unlock}
         onOpenRequests={() => setShowRequests(true)}
         onOpenMemories={() => router.push('/memories')}
         myPhone={userPhone}
@@ -130,6 +156,15 @@ export default function MomentsScreen() {
         person={person}
         onGoToContacts={() => router.push('/(tabs)/contacts')}
       />
+      {celebrate && (
+        <UnlockCelebration
+          screenshot={celebrate.screenshot}
+          count={celebrate.count}
+          streak={unlock?.streak ?? 0}
+          via={unlock?.via ?? null}
+          onDone={endCelebration}
+        />
+      )}
       {showRequests && requests[0] && (
         <ConsentSheet
           request={requests[0]}

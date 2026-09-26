@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Avatar, Button, colors, EmptyState, radius, Screen, spacing, TAB_BAR_SPACE } from '../../ui';
-import { Moment, momentAge, REACTIONS } from './model';
+import { LockedMoment, Moment, momentAge, REACTIONS, UnlockState } from './model';
 
 export type MomentPerson = { name: string; avatarUrl: string | null };
 
@@ -31,12 +31,15 @@ type Props = {
   /** Friends' moments I'll see after my first conversation today */
   locked: boolean;
   lockedCount: number;
+  /** Blurred previews of those (new backend; empty with older ones) */
+  lockedMoments?: LockedMoment[];
+  unlock?: UnlockState | null;
   onOpenRequests: () => void;
   onOpenMemories: () => void;
 };
 
 /** Pills above the feed: memories, requests, waiting, locked */
-function TopBar({ requestCount, waitingCount, locked, lockedCount, onOpenRequests, onOpenMemories }: Pick<Props, 'requestCount' | 'waitingCount' | 'locked' | 'lockedCount' | 'onOpenRequests' | 'onOpenMemories'>) {
+function TopBar({ requestCount, waitingCount, locked, lockedCount, unlock, onOpenRequests, onOpenMemories }: Pick<Props, 'requestCount' | 'waitingCount' | 'locked' | 'lockedCount' | 'unlock' | 'onOpenRequests' | 'onOpenMemories'>) {
   const insets = useSafeAreaInsets();
   return (
     <ScrollView
@@ -45,6 +48,11 @@ function TopBar({ requestCount, waitingCount, locked, lockedCount, onOpenRequest
       style={[styles.topBar, { top: insets.top + spacing.sm }]}
       contentContainerStyle={styles.topBarContent}
     >
+      {unlock && unlock.streak > 1 ? (
+        <View style={[styles.pill, styles.pillStreak]} accessibilityLabel={`${unlock.streak} Tage in Folge freigeschaltet`}>
+          <AppText variant="caption">🔓 {unlock.streak} Tage in Folge</AppText>
+        </View>
+      ) : null}
       <Pressable onPress={onOpenMemories} accessibilityRole="button" style={styles.pill}>
         <Ionicons name="images-outline" size={14} color={colors.text} />
         <AppText variant="caption">Erinnerungen</AppText>
@@ -191,9 +199,78 @@ function MomentPage({
   );
 }
 
+/** A friend's moment before you've unlocked the day: blurred, and how to see it. */
+function LockedPage({
+  moment,
+  height,
+  person,
+  unlock,
+  onFindSomeone,
+  topOffset,
+}: {
+  moment: LockedMoment;
+  height: number;
+  person: Props['person'];
+  unlock?: UnlockState | null;
+  onFindSomeone: () => void;
+  topOffset: number;
+}) {
+  const insets = useSafeAreaInsets();
+  const author = person(moment.userPhone, moment.userName);
+  const partner = person(moment.targetPhone, moment.targetName);
+  const streakText = unlock && unlock.streak > 0 ? `Deine Serie: ${unlock.streak} ${unlock.streak === 1 ? 'Tag' : 'Tage'}. Heute weitermachen?` : null;
+  return (
+    <View style={{ height }}>
+      {moment.screenshot ? (
+        <Image source={{ uri: moment.screenshot }} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={30} />
+      ) : (
+        <LinearGradient colors={['#2A1F4D', '#0B0B12', '#3D1030']} style={StyleSheet.absoluteFill} />
+      )}
+      <BlurView intensity={70} tint="dark" style={StyleSheet.absoluteFill} />
+
+      <View style={[styles.header, { top: insets.top + spacing.sm + topOffset }]}>
+        <Avatar name={author.name} uri={author.avatarUrl} size={40} />
+        <View style={{ flex: 1 }}>
+          <AppText variant="bodyStrong" numberOfLines={1}>
+            {author.name} <AppText color={colors.textSecondary}>mit</AppText> {partner.name}
+          </AppText>
+          <AppText variant="caption" color={colors.textSecondary}>
+            vor {momentAge(moment.timestamp)}
+          </AppText>
+        </View>
+      </View>
+
+      <View style={styles.lockCenter}>
+        <View style={styles.lockIcon}>
+          <Ionicons name="lock-closed" size={34} color={colors.text} />
+        </View>
+        <AppText variant="h2" center>
+          Erst sprechen, dann sehen
+        </AppText>
+        <AppText variant="body" color={colors.textSecondary} center style={{ maxWidth: 300 }}>
+          Führ heute ein Gespräch von mindestens einer Minute oder sei beim Yap Moment dabei. Dann siehst du, was {author.name.split(' ')[0]} geteilt hat.
+        </AppText>
+        {streakText ? (
+          <AppText variant="caption" color={colors.cyan} center>
+            {streakText}
+          </AppText>
+        ) : null}
+        <Button title="Wer hat gerade Zeit?" icon="videocam" onPress={onFindSomeone} style={{ alignSelf: 'stretch', marginTop: spacing.md }} />
+      </View>
+    </View>
+  );
+}
+
+type FeedItem = { kind: 'moment'; moment: Moment } | { kind: 'locked'; moment: LockedMoment };
+
 /** Full-screen, vertically paged feed of shared CallMoments. */
 export function MomentsView(props: Props) {
-  const { moments, loading, refreshing, onRefresh, onReact, person, onGoToContacts, onMore, myPhone, locked, lockedCount } = props;
+  const { moments, loading, refreshing, onRefresh, onReact, person, onGoToContacts, onMore, myPhone, locked, lockedCount, lockedMoments = [], unlock } = props;
+  // Newest first, locked ones among the rest
+  const items: FeedItem[] = [
+    ...moments.map((m) => ({ kind: 'moment' as const, moment: m })),
+    ...lockedMoments.map((m) => ({ kind: 'locked' as const, moment: m })),
+  ].sort((a, b) => new Date(b.moment.timestamp).getTime() - new Date(a.moment.timestamp).getTime());
   const { height } = useWindowDimensions();
   const topBar = <TopBar {...props} />;
 
@@ -205,7 +282,7 @@ export function MomentsView(props: Props) {
     );
   }
 
-  if (moments.length === 0) {
+  if (items.length === 0) {
     const waitingForYou = locked && lockedCount > 0;
     return (
       <View style={styles.root}>
@@ -238,19 +315,23 @@ export function MomentsView(props: Props) {
   return (
     <View style={styles.root}>
       <FlatList
-        data={moments}
-        keyExtractor={(m) => m.id}
-        renderItem={({ item }) => (
-          <MomentPage
-            moment={item}
-            height={height}
-            onReact={onReact}
-            person={person}
-            onMore={onMore}
-            mine={!!myPhone && item.userPhone.replace(/^\+?/, '+') === myPhone}
-            topOffset={44}
-          />
-        )}
+        data={items}
+        keyExtractor={(item) => `${item.kind}:${item.moment.id}`}
+        renderItem={({ item }) =>
+          item.kind === 'locked' ? (
+            <LockedPage moment={item.moment} height={height} person={person} unlock={unlock} onFindSomeone={onGoToContacts} topOffset={44} />
+          ) : (
+            <MomentPage
+              moment={item.moment}
+              height={height}
+              onReact={onReact}
+              person={person}
+              onMore={onMore}
+              mine={!!myPhone && item.moment.userPhone.replace(/^\+?/, '+') === myPhone}
+              topOffset={44}
+            />
+          )
+        }
         pagingEnabled
         showsVerticalScrollIndicator={false}
         decelerationRate="fast"
@@ -301,6 +382,19 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
   },
   pillHot: { backgroundColor: 'rgba(255,46,147,0.55)', borderColor: colors.pink },
+  pillStreak: { borderColor: colors.cyan },
+  lockCenter: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingHorizontal: spacing.xl },
+  lockIcon: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    marginBottom: spacing.sm,
+  },
   more: {
     width: 36,
     height: 36,

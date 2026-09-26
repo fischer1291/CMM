@@ -11,6 +11,7 @@ import { OnboardingView } from '../features/auth/OnboardingView';
 import { VerifyView } from '../features/auth/VerifyView';
 import { ContactsView } from '../features/contacts/ContactsView';
 import { MomentsView } from '../features/moments/MomentsView';
+import { UnlockCelebration } from '../features/moments/UnlockCelebration';
 import { ProfileSetupView } from '../features/profile/ProfileSetupView';
 import { ProfileView } from '../features/profile/ProfileView';
 import { MomentComposer } from '../features/moments/MomentComposer';
@@ -445,6 +446,29 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpenMemories={() => {}}
     />
   ),
+  'moments-locked': () => (
+    <MomentsView
+      moments={[]}
+      loading={false}
+      refreshing={false}
+      onRefresh={() => {}}
+      onReact={() => {}}
+      person={person}
+      onGoToContacts={() => {}}
+      requestCount={0}
+      waitingCount={0}
+      locked
+      lockedCount={2}
+      lockedMoments={[
+        { id: 'l1', userPhone: '+491', userName: 'Anna Berg', targetPhone: '+492', targetName: 'Ben Koch', screenshot: MOMENTS[0].screenshot, timestamp: new Date(Date.now() - 2 * 3600 * 1000).toISOString() },
+        { id: 'l2', userPhone: '+493', userName: 'Clara', targetPhone: '+491', targetName: 'Anna', screenshot: null, timestamp: new Date(Date.now() - 5 * 3600 * 1000).toISOString() },
+      ]}
+      unlock={{ unlocked: false, via: null, streak: 4, best: 6, total: 20 }}
+      onOpenRequests={() => {}}
+      onOpenMemories={() => {}}
+    />
+  ),
+  unlock: () => <UnlockCelebration screenshot={MOMENTS[0].screenshot} count={3} streak={5} via="talk" onDone={() => {}} />,
   'moments-empty': () => (
     <MomentsView
       moments={[]}
