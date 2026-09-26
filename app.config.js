@@ -17,6 +17,8 @@ export default {
         : 'com.schly21.kontaktlisteapp',
       entitlements: {
         'aps-environment': IS_DEV ? 'development' : 'production',
+        // Universal Links: wannayap.app/einladung and /kreis open the app
+        'com.apple.developer.associated-domains': ['applinks:wannayap.app'],
       },
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
@@ -62,7 +64,7 @@ export default {
       favicon: './assets/images/favicon.png'
     },
     plugins: [
-      'expo-router',
+      ['expo-router', { origin: 'https://wannayap.app' }],
       'expo-notifications',
       [
         'expo-splash-screen',

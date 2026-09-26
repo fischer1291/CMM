@@ -12,7 +12,7 @@ fehlt dort.
 | Datenschutzerklärung juristisch prüfen lassen | `content/legal.ts` → `PRIVACY_SECTIONS` | Entwurf |
 | App-Eintrag in App Store Connect (Bundle-ID `com.schly21.kontaktlisteapp`) | App Store Connect | offen |
 | Demo-Zugang für App Review: `REVIEW_PHONE` und `REVIEW_CODE` (6–10 Ziffern) | Render → Environment | offen |
-| Datenschutz-URL: `https://cmm-app.netlify.app/datenschutz` | App Store Connect → App-Informationen | offen |
+| Datenschutz-URL: `https://wannayap.app/datenschutz` | App Store Connect → App-Informationen | offen |
 
 ### Backend-Umgebung (Render)
 

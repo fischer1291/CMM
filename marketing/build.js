@@ -3,23 +3,25 @@
 //
 //   cd marketing && npm install && npm run build
 //
+// The website build (scripts/build-web.sh) only needs the landing page, without
+// Chrome:  node marketing/build.js --landing-only --out dist
+//
 // Set the URLs below before printing anything with a QR code on it.
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const QRCode = require('qrcode');
 const { markOnly } = require('../docs/brand/logo');
 const landing = require('./src/landing');
 const kit = require('./src/kit');
 
 const CONFIG = {
   /** Where the landing page will live (used for og:image and share links). */
-  siteUrl: process.env.SITE_URL || 'https://wanna-yap.netlify.app',
-  /** The existing app web build with /impressum and /datenschutz. */
-  legalUrl: 'https://cmm-app.netlify.app',
-  /** TestFlight public link or App Store link. Placeholder until the app is live —
-   *  replace with the real App Store URL (or set DOWNLOAD_URL) before launch. */
-  downloadUrl: process.env.DOWNLOAD_URL || 'https://apps.apple.com/app/wanna-yap/id0000000000',
+  siteUrl: process.env.SITE_URL || 'https://wannayap.app',
+  /** /impressum and /datenschutz come from the app's web build on the same site. */
+  legalUrl: '',
+  /** One place decides where "download" goes (netlify.toml: /download), so
+   *  printed QR codes and posts keep working when TestFlight becomes the App Store. */
+  downloadUrl: process.env.DOWNLOAD_URL || '/download',
 };
 /** QR target on print material: the landing page, tagged so scans show up separately. */
 const QR_URL = `${CONFIG.siteUrl}/?utm_source=flyer&utm_medium=print`;
@@ -29,7 +31,25 @@ const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/M
 const DIST = path.join(__dirname, 'dist');
 const TMP = path.join(DIST, '.html');
 
+/** Only the landing page, into `outDir` (for the website build; no Chrome). */
+function landingOnly(outDir) {
+  const logoSvg = markOnly(120).replace(/width="120" height="120"/, 'width="100%" height="100%"');
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.writeFileSync(path.join(outDir, 'index.html'), landing({ ...CONFIG, logoSvg, ogImage: 'og-image.png' }));
+  fs.copyFileSync(path.join(__dirname, 'static/og-image.png'), path.join(outDir, 'og-image.png'));
+  fs.copyFileSync(path.join(__dirname, '../assets/images/favicon.png'), path.join(outDir, 'favicon.png'));
+  fs.copyFileSync(path.join(__dirname, '../assets/images/icon.png'), path.join(outDir, 'apple-touch-icon.png'));
+}
+
 async function main() {
+  const args = process.argv.slice(2);
+  if (args.includes('--landing-only')) {
+    const out = args[args.indexOf('--out') + 1];
+    if (!out || args.indexOf('--out') < 0) throw new Error('--landing-only needs --out <dir>');
+    landingOnly(path.resolve(out));
+    console.log(`Landing page written to ${out}`);
+    return;
+  }
   fs.rmSync(DIST, { recursive: true, force: true });
   fs.mkdirSync(TMP, { recursive: true });
 
@@ -44,6 +64,8 @@ async function main() {
   fs.writeFileSync(path.join(landingDir, 'netlify.toml'), NETLIFY_TOML);
 
   // Marketing assets
+  // Only the full build needs it (marketing/node_modules)
+  const QRCode = require('qrcode');
   const qrSvg = (await QRCode.toString(QR_URL, { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#0B0B12', light: '#FFFFFF' } }))
     .replace('<svg ', '<svg width="100%" height="100%" ');
   const assets = kit({ logoSvg, qrSvg, shortUrl: SHORT_URL });
@@ -67,6 +89,8 @@ async function main() {
 
   // The landing page references its OG image next to index.html.
   fs.copyFileSync(path.join(DIST, 'kit/web/og-image.png'), path.join(landingDir, 'og-image.png'));
+  // The website build uses this copy (no Chrome there)
+  fs.copyFileSync(path.join(DIST, 'kit/web/og-image.png'), path.join(__dirname, 'static/og-image.png'));
   fs.rmSync(TMP, { recursive: true, force: true });
   console.log(`\nLanding page: ${path.relative(process.cwd(), landingDir)}/index.html`);
   console.log(`QR code points to: ${QR_URL}`);

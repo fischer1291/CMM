@@ -1,11 +1,11 @@
 /**
- * Public links. DOWNLOAD_URL is where invited people get the app: the
- * TestFlight public link during the beta, the App Store link later. While
- * it's null the invite page asks them to get the link from their friend.
+ * Public links on wannayap.app (netlify.toml, scripts/build-web.sh).
+ * DOWNLOAD_URL is a redirect on the website (web/download.html) that points to
+ * TestFlight during the beta and to the App Store later, without a new build.
  */
-export const WEB_URL = 'https://cmm-app.netlify.app';
+export const WEB_URL = 'https://wannayap.app';
 export const INVITE_URL = `${WEB_URL}/einladung`;
-export const DOWNLOAD_URL: string | null = null;
+export const DOWNLOAD_URL: string | null = `${WEB_URL}/download`;
 
 export const inviteText = (fromName?: string) =>
   `${fromName ? `${fromName} hier! ` : 'Hey! '}Ich nutze Wanna yap? – da siehst du, wann ich Zeit für einen Anruf habe, und wir erwischen uns endlich mal. Hol dir die App: ${INVITE_URL}`;
