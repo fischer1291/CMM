@@ -97,6 +97,7 @@ function InnerLayout() {
           <Stack.Screen name="stats" />
           <Stack.Screen name="album" />
           <Stack.Screen name="support" />
+          <Stack.Screen name="calls" />
           <Stack.Screen name="schedule" />
           <Stack.Screen name="friend" />
           <Stack.Screen name="notifications" />

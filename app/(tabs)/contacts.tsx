@@ -5,6 +5,7 @@ import { Contact, useContacts } from '../../contexts/ContactsContext';
 import { useNewCall } from '../../contexts/NewCallContext';
 import { useRouter } from 'expo-router';
 import { useNudges } from '../../hooks/useNudges';
+import { useMissedCalls } from '../../hooks/useMissedCalls';
 import { inviteText } from '../../content/links';
 import { recordInvites } from '../../services/socialApi';
 import { ContactsView } from '../../features/contacts/ContactsView';
@@ -16,6 +17,7 @@ export default function ContactsScreen() {
   const { startVideoCall } = useNewCall();
   const router = useRouter();
   const { nudge, nudged } = useNudges();
+  const missed = useMissedCalls();
   const [query, setQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -47,6 +49,8 @@ export default function ContactsScreen() {
       onInvite={invite}
       onOpen={(contact) => router.push({ pathname: '/friend', params: { phone: contact.phone } })}
       onNudge={(contact) => nudge(contact.phone, contact.name)}
+      onOpenCalls={() => router.push('/calls')}
+      missedCalls={missed.count}
       nudged={nudged}
     />
   );

@@ -10,6 +10,7 @@ import { CallView, localPreviewStyle } from '../features/call/CallView';
 import { OnboardingView } from '../features/auth/OnboardingView';
 import { VerifyView } from '../features/auth/VerifyView';
 import { ContactsView } from '../features/contacts/ContactsView';
+import { CallsView } from '../features/calls/CallsView';
 import { MomentsView } from '../features/moments/MomentsView';
 import { UnlockCelebration } from '../features/moments/UnlockCelebration';
 import { ProfileSetupView } from '../features/profile/ProfileSetupView';
@@ -206,6 +207,13 @@ const MOMENTS = [
     totalReactions: 6,
   },
 ];
+const SAMPLE_CALLS = [
+  { callId: 'k1', direction: 'incoming', otherPhone: '+491', otherName: 'Anna Berg', otherAvatarUrl: PHOTO, status: 'missed', missed: true, video: true, createdAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(), durationSec: 0 },
+  { callId: 'k2', direction: 'outgoing', otherPhone: '+492', otherName: 'Ben Koch', otherAvatarUrl: null, status: 'ended', missed: false, video: false, createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(), durationSec: 1460 },
+  { callId: 'k3', direction: 'incoming', otherPhone: '+493', otherName: 'Mama', otherAvatarUrl: null, status: 'ended', missed: false, video: true, createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(), durationSec: 3900 },
+  { callId: 'k4', direction: 'outgoing', otherPhone: '+491', otherName: 'Anna Berg', otherAvatarUrl: PHOTO, status: 'missed', missed: false, video: true, createdAt: new Date(Date.now() - 26 * 3600 * 1000).toISOString(), durationSec: 0 },
+  { callId: 'k5', direction: 'incoming', otherPhone: '+494', otherName: 'Clara', otherAvatarUrl: null, status: 'cancelled', missed: true, video: false, createdAt: new Date(Date.now() - 50 * 3600 * 1000).toISOString(), durationSec: 0 },
+] as const;
 const person = (phone: string, name: string) => ({ name, avatarUrl: phone === '+491' ? PHOTO : null });
 
 const statusProps = {
@@ -446,6 +454,19 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpenMemories={() => {}}
     />
   ),
+  calls: () => (
+    <CallsView
+      calls={SAMPLE_CALLS.map((c) => ({ ...c }))}
+      error={false}
+      refreshing={false}
+      onRefresh={() => {}}
+      onBack={() => {}}
+      person={(e) => ({ name: e.otherName || e.otherPhone, avatarUrl: e.otherAvatarUrl })}
+      onOpen={() => {}}
+      onCallBack={() => {}}
+    />
+  ),
+  'status-missed': () => <StatusView {...statusProps} available={false} availableContacts={[]} nudges={[{ from: '+491', name: 'Anna Berg', avatarUrl: PHOTO }]} missedCalls={2} onOpenCalls={() => {}} />,
   'moments-locked': () => (
     <MomentsView
       moments={[]}
@@ -511,6 +532,8 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpen={() => {}}
       onNudge={() => {}}
       nudged={(phone) => phone === CONTACTS[2]?.phone}
+      onOpenCalls={() => {}}
+      missedCalls={2}
     />
   ),
   'contacts-denied': () => (
@@ -528,6 +551,8 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpen={() => {}}
       onNudge={() => {}}
       nudged={(phone) => phone === CONTACTS[2]?.phone}
+      onOpenCalls={() => {}}
+      missedCalls={0}
     />
   ),
   'status-on': () => (

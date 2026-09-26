@@ -2,7 +2,8 @@ import * as Haptics from 'expo-haptics';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { SlideInUp, SlideOutUp } from 'react-native-reanimated';
+import Animated, { Easing, Keyframe } from 'react-native-reanimated';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { Contact, useContacts } from '../contexts/ContactsContext';
@@ -16,6 +17,17 @@ import { fetchCircle, openRoom } from '../services/circlesApi';
 import { LogoMark } from '../ui/components/LogoMark';
 import { socket } from '../services/socket';
 import { AppText, Avatar, colors, glow, radius, spacing } from '../ui';
+
+// Slides in a little from the top and fades in, like a messenger banner: calm,
+// no bounce. Leaves the same way, a bit quicker.
+const BANNER_IN = new Keyframe({
+  0: { opacity: 0, transform: [{ translateY: -28 }] },
+  100: { opacity: 1, transform: [{ translateY: 0 }], easing: Easing.out(Easing.cubic) },
+}).duration(260);
+const BANNER_OUT = new Keyframe({
+  0: { opacity: 1, transform: [{ translateY: 0 }] },
+  100: { opacity: 0, transform: [{ translateY: -20 }], easing: Easing.in(Easing.cubic) },
+}).duration(180);
 
 type Banner = {
   id: number;
@@ -176,8 +188,8 @@ export function InAppBanner() {
   return (
     <Animated.View
       key={banner.id}
-      entering={SlideInUp.springify().damping(18)}
-      exiting={SlideOutUp.duration(200)}
+      entering={BANNER_IN}
+      exiting={BANNER_OUT}
       style={[styles.wrap, { top: insets.top + spacing.sm }]}
       pointerEvents="box-none"
     >
