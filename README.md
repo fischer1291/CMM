@@ -29,7 +29,7 @@ Set via environment variables when starting Metro (see `config/env.ts`):
 
 | Variable | Default |
 |---|---|
-| `EXPO_PUBLIC_API_URL` | `https://cmm-backend-gdqx.onrender.com` |
+| `EXPO_PUBLIC_API_URL` | `https://api.wannayap.app` |
 | `EXPO_PUBLIC_AGORA_APP_ID` | production Agora App ID |
 
 ### Local machine notes
