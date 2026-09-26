@@ -24,7 +24,7 @@ Muss gesetzt sein:
 
 Optional: `EXPO_ACCESS_TOKEN` (empfohlen) und `REVIEW_PHONE`/`REVIEW_CODE`.
 
-Prüfen: `https://cmm-backend-gdqx.onrender.com/api/push-health` sollte
+Prüfen: `https://api.wannayap.app/api/push-health` sollte
 `authRequired`, `voipConfigured` und `agoraCertificateFromEnv` jeweils mit
 `true` zeigen, dazu unter `version` den erwarteten Commit.
 
