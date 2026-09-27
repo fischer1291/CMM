@@ -27,7 +27,9 @@ echte Aufnahmen aus der App (siehe „Store-Preview“ unten).
    `hero/audio/music.mp3`. Die Musik wird unter der Stimme automatisch leiser.
 **Feinschliff in `hero/shots.json`:**
 - `clip`: anderen Dateinamen für einen Shot verwenden (z. B. `"clip": "03"`).
-- `ambience`: Lautstärke des Clip-eigenen Tons (Standard 0,25; beim Lachen in 07 höher).
+- `ambience`: Lautstärke des Clip-eigenen Tons, oben für alle oder pro Shot (derzeit 0: nur Stimme und Musik).
+- `musicVolume`, `voiceVolume`: Balance; die Musik wird unter der Stimme zusätzlich abgesenkt, der fertige
+  Ton auf -16 LUFS normalisiert (üblich für TikTok, Instagram, YouTube).
 - `fallback`: Ersatz, solange der Clip fehlt (Shot 08 nutzt die animierte Yap-Moment-Einblendung).
 - `voice.cues`: welcher Abschnitt der Sprachaufnahme (`from`/`to` in Sekunden) bei welchem Shot beginnt
   (`offset`). So passt jeder Satz zu seinem Bild und Untertitel.
@@ -45,8 +47,11 @@ echte Aufnahmen aus der App (siehe „Store-Preview“ unten).
 - **Figurenbilder:** ein Bildmodell deiner Wahl (z. B. Gemini, Midjourney).
 - **Stimme:** am glaubwürdigsten ist deine eigene (iPhone in einem stillen Raum
   mit Decke drumherum reicht). Alternativ eine KI-Stimme mit kommerzieller Lizenz.
-- **Musik:** nur mit Lizenz für Werbung (Musikbibliothek im Abo oder ein
-  KI-Musiktool mit kommerziellen Rechten).
+- **Musik:** `npm run music` erzeugt eine eigene, per Code komponierte Spur
+  (`hero/audio/music.wav`, 90 bpm, Aufbruch genau bei Sekunde 16, wenn die App
+  erscheint). Daran gibt es keine fremden Rechte. Wer eine produzierte Spur will:
+  nur mit Lizenz für Werbung (Musikbibliothek im Abo oder ein KI-Musiktool mit
+  kommerziellen Rechten), einfach als `hero/audio/music.mp3` ablegen.
 - **Budget:** realistisch **50–200 €** für einen Monat Abo bzw. Credits, je nachdem
   wie viele Versuche du brauchst. Ein Dreh mit Videograf läge eher bei 1.500–5.000 €.
 
