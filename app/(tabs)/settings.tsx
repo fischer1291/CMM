@@ -94,6 +94,7 @@ export default function ProfileScreen() {
       onOpenStats={() => router.push('/stats')}
       onOpenAlbum={() => router.push('/album')}
       onOpenPlus={() => router.push('/plus')}
+      onOpenAppIcon={() => router.push('/appicon')}
       isPlus={isPlus}
       onOpenSupport={() => router.push('/support')}
       onOpenSchedule={() => router.push('/schedule')}

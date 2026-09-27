@@ -7,6 +7,7 @@ import { AppState } from 'react-native';
 import { useAuth } from './AuthContext';
 import { fetchPlan, Plan } from '../services/planApi';
 import { configurePurchases } from '../services/purchases';
+import { currentIcon, setIcon } from '../services/appIcon';
 import { socket } from '../services/socket';
 
 type Value = { plan: Plan | null; isPlus: boolean; refresh: () => Promise<void> };
@@ -22,6 +23,8 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       const next = await fetchPlan();
       setPlan(next);
       configurePurchases(next.userId).catch(() => {});
+      // Plus ended: back to the standard icon
+      if (!next.limits.appIcons && currentIcon()) setIcon(null).catch(() => {});
     } catch {
       // keep the last known plan
     }

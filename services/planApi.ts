@@ -12,6 +12,10 @@ export type Limits = {
   /** null: all memories */
   memoriesDays: number | null;
   hdVideo: boolean;
+  rituals?: number;
+  nudgeMessage?: boolean;
+  yearReview?: boolean;
+  appIcons?: boolean;
 };
 
 export type Plan = {
@@ -49,4 +53,31 @@ export async function fetchPlan(): Promise<Plan> {
 
 export async function sendInterest(features: string[]): Promise<void> {
   await ok(await apiPostJson('/me/plus-interest', { features }, 10000));
+}
+
+type Person = { phone: string; name: string | null; avatarUrl: string | null } | null;
+
+export type YearReview = {
+  year: number;
+  minutes: number;
+  talks: number;
+  people: number;
+  /** false: only the headline (free); the rest is Wanna yap+ */
+  full: boolean;
+  topPeople?: (NonNullable<Person> & { minutes: number; talks: number })[];
+  longest?: { minutes: number; with: Person; at: string } | null;
+  busiestMonth?: { month: number; minutes: number } | null;
+  firstTalk?: { at: string; with: Person } | null;
+  bestWeekStreak?: number;
+  rounds?: number;
+  roundMinutes?: number;
+  dailyJoins?: number;
+  unlockDays?: number;
+  moments?: number;
+  bestMoment?: { id: string; screenshot: string; note: string; reactions: number; with: Person; at: string } | null;
+  badges?: number;
+};
+
+export async function fetchYearReview(year?: number): Promise<YearReview> {
+  return (await ok<{ review: YearReview }>(await apiFetch(`/me/year-review${year ? `?year=${year}` : ''}`, {}, 15000))).review;
 }

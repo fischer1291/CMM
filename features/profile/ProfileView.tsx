@@ -22,6 +22,7 @@ type Props = {
   onOpenStats: () => void;
   onOpenAlbum: () => void;
   onOpenPlus: () => void;
+  onOpenAppIcon: () => void;
   isPlus: boolean;
   onOpenSupport: () => void;
   onOpenSchedule: () => void;
@@ -128,6 +129,7 @@ export function ProfileView(props: Props) {
       <RowGroup
         rows={[
           { icon: 'notifications-outline', label: 'Mitteilungen', onPress: props.onOpenNotifications },
+          { icon: 'color-palette-outline', label: 'App-Icon', onPress: props.onOpenAppIcon },
           { icon: 'people-outline', label: 'Kontaktzugriff', onPress: props.onOpenSystemSettings },
         ]}
       />

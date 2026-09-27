@@ -37,6 +37,8 @@ type Banner = {
   kind: 'available' | 'nudge' | 'joined' | 'daily' | 'consent' | 'room' | 'circle';
   /** For room/circle banners */
   circleId?: string;
+  /** Nudges with an own line (Wanna yap+) */
+  message?: string | null;
 };
 
 const TEXT = {
@@ -100,10 +102,10 @@ export function InAppBanner() {
       show({ phone, name: contact.name, avatarUrl: contact.avatarUrl, kind: 'available' });
     };
 
-    const onNudge = ({ from, name }: { from?: string; name?: string }) => {
+    const onNudge = ({ from, name, message }: { from?: string; name?: string; message?: string | null }) => {
       if (typeof from !== 'string') return;
       const contact = contactsRef.current.find((c) => c.phone === from);
-      show({ phone: from, name: contact?.name || name || 'Jemand', avatarUrl: contact?.avatarUrl ?? null, kind: 'nudge' });
+      show({ phone: from, name: contact?.name || name || 'Jemand', avatarUrl: contact?.avatarUrl ?? null, kind: 'nudge', message: typeof message === 'string' ? message : null });
     };
 
     const offJoined = contactJoinedEvents.on(({ phone, name }) => {
@@ -215,7 +217,8 @@ export function BannerCard({
   kind,
   onPress,
   onAction,
-}: Pick<Banner, 'name' | 'avatarUrl' | 'kind'> & { onPress: () => void; onAction: () => void }) {
+  message,
+}: Pick<Banner, 'name' | 'avatarUrl' | 'kind' | 'message'> & { onPress: () => void; onAction: () => void }) {
   const firstName = name.split(' ')[0];
   const text = TEXT[kind];
   const accent = kind === 'available' ? colors.cyan : kind === 'nudge' || kind === 'daily' || kind === 'room' ? colors.pink : colors.violet;
@@ -236,7 +239,7 @@ export function BannerCard({
           {text.title(firstName)}
         </AppText>
         <AppText variant="caption" color={colors.textSecondary} numberOfLines={1}>
-          {text.sub}
+          {message ? `„${message}“` : text.sub}
         </AppText>
       </View>
       <Pressable

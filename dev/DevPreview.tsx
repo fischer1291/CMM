@@ -12,6 +12,8 @@ import { VerifyView } from '../features/auth/VerifyView';
 import { ContactsView } from '../features/contacts/ContactsView';
 import { CallsView } from '../features/calls/CallsView';
 import { PlusView } from '../features/plus/PlusView';
+import { YearReviewView } from '../features/plus/YearReviewView';
+import { NudgeSheet } from '../components/NudgeSheet';
 import type { Plan } from '../services/planApi';
 import { MomentsView } from '../features/moments/MomentsView';
 import { UnlockCelebration } from '../features/moments/UnlockCelebration';
@@ -209,6 +211,29 @@ const MOMENTS = [
     totalReactions: 6,
   },
 ];
+const SAMPLE_YEAR = {
+  year: 2026,
+  minutes: 3840,
+  talks: 142,
+  people: 23,
+  full: true,
+  topPeople: [
+    { phone: '+491', name: 'Anna Berg', avatarUrl: PHOTO, minutes: 1260, talks: 38 },
+    { phone: '+493', name: 'Mama', avatarUrl: null, minutes: 840, talks: 51 },
+    { phone: '+492', name: 'Ben Koch', avatarUrl: null, minutes: 410, talks: 12 },
+  ],
+  longest: { minutes: 142, with: { phone: '+491', name: 'Anna Berg', avatarUrl: PHOTO }, at: '2026-03-14T20:10:00Z' },
+  busiestMonth: { month: 3, minutes: 610 },
+  firstTalk: { at: '2026-01-01T11:02:00Z', with: { phone: '+493', name: 'Mama', avatarUrl: null } },
+  bestWeekStreak: 14,
+  rounds: 21,
+  roundMinutes: 540,
+  dailyJoins: 37,
+  unlockDays: 118,
+  moments: 19,
+  bestMoment: { id: 'x', screenshot: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&fit=crop', note: 'Endlich mal wieder richtig gelacht', reactions: 12, with: { phone: '+491', name: 'Anna Berg', avatarUrl: PHOTO }, at: '2026-06-01T18:00:00Z' },
+  badges: 14,
+};
 const SAMPLE_PLAN: Plan = {
   plan: 'free',
   limits: { circles: 3, circleMembers: 12, roomParticipants: 6, roomMinutes: 60, memoriesDays: 30, hdVideo: false },
@@ -421,6 +446,10 @@ const SAMPLE_CIRCLE_DETAIL: CircleDetail = {
   moments: [
     { id: 'm1', screenshot: MOMENTS[0].screenshot, userPhone: '+491', targetPhone: '+493', mood: '😊', timestamp: new Date().toISOString() },
   ],
+  rituals: [
+    { id: 'main', label: 'Sonntagsrunde', enabled: true, day: 0, start: 18 * 60 },
+    { id: 'r2', label: 'Mittwochs-Quatsch', enabled: true, day: 3, start: 20 * 60 },
+  ],
   badges: [
     AB('c_goal', 'circle', 'flag', 'Wochenziel', '4 Wochen alle gesprochen', 1, 3, 0.5),
     AB('c_rooms', 'circle', 'mic', 'Rundenzeit', '10 Runden', 1, 3, 0.3),
@@ -456,6 +485,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpenStats={() => {}}
       onOpenAlbum={() => {}}
       onOpenPlus={() => {}}
+      onOpenAppIcon={() => {}}
       isPlus={false}
       onOpenSupport={() => {}}
       onOpenSchedule={() => {}}
@@ -488,6 +518,30 @@ const SCREENS: Record<string, () => React.ReactElement> = {
     />
   ),
   plus: () => <PlusView {...plusProps} />,
+  'year-2': () => <YearReviewView review={SAMPLE_YEAR} startAt={1} error={false} person={(p, n) => ({ name: n || 'Jemand', avatarUrl: p === '+491' ? PHOTO : null })} onClose={() => {}} onShare={() => {}} onPlus={() => {}} onRetry={() => {}} />,
+  'year-3': () => <YearReviewView review={SAMPLE_YEAR} startAt={3} error={false} person={(p, n) => ({ name: n || 'Jemand', avatarUrl: p === '+491' ? PHOTO : null })} onClose={() => {}} onShare={() => {}} onPlus={() => {}} onRetry={() => {}} />,
+  'year-free-2': () => <YearReviewView review={{ year: 2026, minutes: 3840, talks: 142, people: 23, full: false }} startAt={1} error={false} person={(p, n) => ({ name: n || 'Jemand', avatarUrl: null })} onClose={() => {}} onShare={() => {}} onPlus={() => {}} onRetry={() => {}} />,
+  'circle-rituals': () => (
+    <View style={{ height: 3000, transform: [{ translateY: -1150 }] }}>
+      <CircleView
+        circle={SAMPLE_CIRCLE_DETAIL}
+        myPhone="+490"
+        person={(phone, name) => ({ name: name || 'Jemand', avatarUrl: phone === '+491' ? PHOTO : null })}
+        busy={false}
+        onBack={() => {}}
+        onMore={() => {}}
+        onRoom={() => {}}
+        onCall={() => {}}
+        onInvite={() => {}}
+        onShareLink={() => {}}
+        onSendDrafts={() => {}}
+        onSaveRituals={() => {}}
+      />
+    </View>
+  ),
+  'nudge-sheet': () => <NudgeSheet name="Anna Berg" busy={false} onSend={() => {}} onClose={() => {}} />,
+  year: () => <YearReviewView review={SAMPLE_YEAR} error={false} person={(p, n) => ({ name: n || 'Jemand', avatarUrl: p === '+491' ? PHOTO : null })} onClose={() => {}} onShare={() => {}} onPlus={() => {}} onRetry={() => {}} />,
+  'year-free': () => <YearReviewView review={{ year: 2026, minutes: 3840, talks: 142, people: 23, full: false }} error={false} person={(p, n) => ({ name: n || 'Jemand', avatarUrl: null })} onClose={() => {}} onShare={() => {}} onPlus={() => {}} onRetry={() => {}} />,
   // The lower half (no scrolling in screen previews)
   'plus-bottom': () => (
     <View style={{ height: 2600, transform: [{ translateY: -1150 }] }}>
@@ -670,7 +724,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onInvite={() => {}}
       onShareLink={() => {}}
       onSendDrafts={() => {}}
-      onSaveRitual={() => {}}
+      onSaveRituals={() => {}}
     />
   ),
   room: () => (
@@ -820,6 +874,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       error={false}
       onRetry={() => {}}
       onBack={() => {}}
+      onOpenYear={() => {}}
       onOpenAlbum={() => {}}
       person={(phone) => ({ name: phone === '+491' ? 'Anna Berg' : phone === '+492' ? 'Ben Koch' : 'Mama', avatarUrl: phone === '+491' ? PHOTO : null })}
       onChangeVisibility={() => {}}

@@ -190,7 +190,7 @@ export default function StatusScreen() {
     () =>
       received.map((n) => {
         const contact = contacts.find((c) => c.phone === n.from);
-        return { from: n.from, name: contact?.name || n.name || 'Jemand', avatarUrl: contact?.avatarUrl ?? null };
+        return { from: n.from, name: contact?.name || n.name || 'Jemand', avatarUrl: contact?.avatarUrl ?? null, message: n.message ?? null };
       }),
     [received, contacts]
   );
