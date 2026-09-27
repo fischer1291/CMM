@@ -6,7 +6,8 @@
     "build": "node build.js",
     "video": "node video.js",
     "hero": "node hero.js",
-    "music": "node music.js"
+    "music": "node music.js",
+    "transcribe": "tools/transcribe/transcribe.sh"
   },
   "dependencies": {
     "qrcode": "^1.5.4"

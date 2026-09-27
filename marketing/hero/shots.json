@@ -38,7 +38,7 @@
       "seconds": 4,
       "source": "app",
       "what": "ECHTE App: Status-Ring antippen, Ring leuchtet",
-      "caption": "Wanna yap? zeigt dir, wer gerade Zeit hat."
+      "caption": "Wanna yap? zeigt dir, wer aus deinen Leuten gerade Zeit hat."
     },
     {
       "id": "06",
@@ -70,61 +70,70 @@
     }
   ],
   "voice": {
-    "note": "from/to: Sekunden in hero/audio/voiceover.*; offset: Sekunden nach Beginn des Shots. Shot 08 (Yap Moment) ist samt Satz rausgenommen.",
+    "note": "from/to: Sekunden in hero/audio/voiceover.* (aus dem Wort-Transkript, 0,15 s vor dem ersten und 0,2 s nach dem letzten Wort); offset: Sekunden nach dem Schnitt. text: was gesprochen wird.",
     "cues": [
       {
         "shot": "01",
         "from": 0.0,
-        "to": 2.2,
-        "offset": 0.5
+        "to": 2.3,
+        "offset": 0.2,
+        "text": "Wir schreiben hundert Nachrichten …"
       },
       {
         "shot": "02",
-        "from": 2.2,
-        "to": 4.2,
-        "offset": 0.2
+        "from": 2.25,
+        "to": 4.22,
+        "offset": 0.2,
+        "text": "… und telefonieren nie."
       },
       {
         "shot": "03",
-        "from": 4.3,
-        "to": 6.1,
-        "offset": 0.4
+        "from": 4.38,
+        "to": 5.9,
+        "offset": 0.2,
+        "text": "Nicht, weil wir nicht wollen."
       },
       {
         "shot": "04",
-        "from": 6.1,
-        "to": 8.4,
-        "offset": 0.4
+        "from": 5.93,
+        "to": 8.39,
+        "offset": 0.2,
+        "text": "Sondern weil das Timing nie passt."
       },
       {
         "shot": "05",
-        "from": 8.5,
-        "to": 12.3,
-        "offset": 0.1
+        "from": 8.61,
+        "to": 12.38,
+        "offset": 0.05,
+        "text": "Wanna yap? zeigt dir, wer aus deinen Leuten gerade Zeit hat."
       },
       {
         "shot": "06",
-        "from": 12.3,
-        "to": 14.5,
-        "offset": 0.4
+        "from": 12.45,
+        "to": 14.42,
+        "offset": 0.2,
+        "text": "Ein Tipp – und ihr erwischt euch."
       },
       {
         "shot": "09",
-        "from": 18.9,
-        "to": 21.9,
-        "offset": 0.2
+        "from": 18.96,
+        "to": 22.05,
+        "offset": 0.2,
+        "text": "Rituale mit deinen Menschen. Ganz von allein."
       },
       {
         "shot": "10",
-        "from": 21.9,
-        "to": 24.8,
-        "offset": 0.0
+        "from": 22.1,
+        "to": 24.89,
+        "offset": 0.05,
+        "text": "Kein Feed. Keine Likes. Keine Fremden."
       },
       {
         "shot": "end",
-        "from": 24.8,
-        "to": 27.5,
-        "offset": 0.6
+        "from": 25.05,
+        "to": 27.48,
+        "offset": 0.2,
+        "text": "Wanna yap? Ruf an, wenn’s passt."
       }
     ]
   },
