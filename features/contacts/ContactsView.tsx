@@ -35,6 +35,8 @@ type Props = {
   /** The call list, with the number of unseen missed calls */
   onOpenCalls: () => void;
   missedCalls: number;
+  /** Invite reward card above the list (features/plus/ReferralCard) */
+  referral?: React.ReactNode;
 };
 
 function subtitleOf(contact: Contact): { text: string; color: string } {
@@ -123,6 +125,7 @@ export function ContactsView({
   nudged,
   onOpenCalls,
   missedCalls,
+  referral,
 }: Props) {
   const sections = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -177,6 +180,7 @@ export function ContactsView({
           accessibilityLabel="Kontakte durchsuchen"
         />
       </View>
+      {referral && !query && contacts.some((c) => !c.registered) ? <View style={styles.referral}>{referral}</View> : null}
     </View>
   );
 
@@ -250,6 +254,7 @@ const styles = StyleSheet.create({
   },
   badge: { minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.danger },
   badgeText: { fontSize: 11, lineHeight: 14, fontWeight: '700' },
+  referral: { marginTop: spacing.lg },
   list: { paddingHorizontal: spacing.xl, paddingBottom: TAB_BAR_SPACE },
   search: {
     flexDirection: 'row',

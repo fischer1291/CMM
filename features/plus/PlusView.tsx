@@ -3,7 +3,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import type { Limits, Plan } from '../../services/planApi';
-import { PLUS_FEATURES } from '../../services/planApi';
+import { PLUS_FEATURES, showReferral } from '../../services/planApi';
+import { ReferralCard } from './ReferralCard';
 import type { Offer } from '../../services/purchases';
 import { AppText, Button, colors, GlassCard, glow, PageHeader, radius, Screen, SectionHeader, spacing } from '../../ui';
 import { LogoMark } from '../../ui/components/LogoMark';
@@ -23,6 +24,8 @@ type Props = {
   onToggleInterest: (id: string) => void;
   onSendInterest: () => void;
   interestSent: boolean;
+  /** Invite friends instead of paying (invite reward) */
+  onInvite?: () => void;
   onBack: () => void;
   onOpenLegal: (which: 'terms' | 'privacy') => void;
 };
@@ -71,7 +74,7 @@ function Compare({ free, plus }: { free: Limits; plus: Limits }) {
 
 /** Wanna yap+: what it adds, and either the store or "Interesse zeigen". */
 export function PlusView(props: Props) {
-  const { plan, offers, selected, onSelect, busy, onBuy, onRestore, onManage, interest, onToggleInterest, onSendInterest, interestSent, onBack, onOpenLegal } = props;
+  const { plan, offers, selected, onSelect, busy, onBuy, onRestore, onManage, interest, onToggleInterest, onSendInterest, interestSent, onBack, onOpenLegal, onInvite } = props;
   const isPlus = plan?.plan === 'plus';
   const storeLive = offers.length > 0;
   const yearly = offers.find((o) => o.period === 'year');
@@ -200,6 +203,7 @@ export function PlusView(props: Props) {
           </>
         )}
         {!plan ? <ActivityIndicator color={colors.cyan} /> : null}
+        {showReferral(plan) ? <ReferralCard referral={plan.referral} onPress={onInvite} compact /> : null}
       </View>
       <AppText variant="caption" color={colors.textMuted} center style={{ marginTop: spacing.xl }}>
         Anrufen, erreichbar sein, Kreise, Moments und der Yap Moment bleiben immer kostenlos.

@@ -71,6 +71,7 @@ export default function PlusScreen() {
         }
       }}
       onManage={() => Linking.openURL('https://apps.apple.com/account/subscriptions')}
+      onInvite={() => router.push('/(tabs)/contacts')}
       interest={interest}
       onToggleInterest={(id) =>
         setInterest((prev) => {

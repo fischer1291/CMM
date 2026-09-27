@@ -10,6 +10,9 @@ import { useMissedCalls } from '../../hooks/useMissedCalls';
 import { inviteText } from '../../content/links';
 import { recordInvites } from '../../services/socialApi';
 import { ContactsView } from '../../features/contacts/ContactsView';
+import { ReferralCard } from '../../features/plus/ReferralCard';
+import { usePlan } from '../../contexts/PlanContext';
+import { showReferral } from '../../services/planApi';
 
 
 export default function ContactsScreen() {
@@ -20,6 +23,7 @@ export default function ContactsScreen() {
   const { nudge, nudged } = useNudges();
   const composer = useNudgeComposer(nudge);
   const missed = useMissedCalls();
+  const { plan } = usePlan();
   const [query, setQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -55,6 +59,7 @@ export default function ContactsScreen() {
         onOpenCalls={() => router.push('/calls')}
         missedCalls={missed.count}
         nudged={nudged}
+        referral={showReferral(plan) ? <ReferralCard referral={plan.referral} compact /> : null}
       />
       {composer.sheet}
     </>

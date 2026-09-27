@@ -26,8 +26,10 @@ import { LaunchScreen } from '../components/LaunchScreen';
 import { NotificationRouter } from '../components/NotificationRouter';
 import { fetchPreviewState } from '../dev/previewControl';
 import { setupNotifications } from '../services/notifications';
+import { installErrorReporting } from '../services/diagnostics';
 import { colors } from '../ui/theme';
 
+installErrorReporting();
 setupNotifications();
 // The native splash stays until the animated launch screen takes over
 SplashScreen.preventAutoHideAsync().catch(() => {});
