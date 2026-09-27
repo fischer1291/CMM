@@ -5,7 +5,8 @@
 //
 // hero/shots.json per shot: seconds, caption, optional `clip` (use another
 // file name), `fallback` (used while the clip is missing, path from marketing/)
-// and `ambience` (volume of the clip's own sound, default 0.25). Clips that are
+// and `ambience` (volume of the clip's own sound; default from the top-level
+// `ambience`, else 0.25; 0 = only voice and music). Clips that are
 // too short hold their last frame. Missing clips without fallback become
 // labelled placeholders, so the cut also works as an animatic.
 //
@@ -94,7 +95,7 @@ function segment(size, shot, source, png, out) {
   const withSound = source.file && source.kind === 'clip' && hasAudio(source.file);
   const audio = withSound ? [] : ['-f', 'lavfi', '-i', `anullsrc=r=${RATE}:cl=stereo`];
   const audioIn = withSound ? '0:a' : '2:a';
-  const volume = shot.ambience ?? 0.25;
+  const volume = shot.ambience ?? config.ambience ?? 0.25;
   ffmpeg([
     ...video, '-i', png, ...audio,
     '-filter_complex',
@@ -133,13 +134,14 @@ function voiceTrack(voice) {
   });
   ffmpeg([
     ...files.flatMap((f) => ['-i', f]),
-    '-filter_complex', `${delays.join(';')};${cues.map((_, i) => `[v${i}]`).join('')}amix=inputs=${cues.length}:normalize=0,apad,atrim=duration=${total}[a]`,
+    // Gentle compression keeps every phrase clearly above the music
+    '-filter_complex', `${delays.join(';')};${cues.map((_, i) => `[v${i}]`).join('')}amix=inputs=${cues.length}:normalize=0,acompressor=threshold=0.08:ratio=3:attack=5:release=120,volume=${config.voiceVolume ?? 1.6},apad,atrim=duration=${total}[a]`,
     '-map', '[a]', '-ar', String(RATE), '-ac', '2', out,
   ]);
   return out;
 }
 
-/** Voice on top, the music ducked under it, the clips' own sound below. */
+/** Voice on top, the music ducked under it, the clips' own sound below; -16 LUFS like social platforms expect. */
 function mix(cut, out) {
   const voice = firstExisting(path.join(HERO, 'audio/voiceover'));
   const music = firstExisting(path.join(HERO, 'audio/music'));
@@ -155,11 +157,11 @@ function mix(cut, out) {
     inputs.push('-i', music);
     const m = voice ? 2 : 1;
     parts.push(`[${m}:a]aresample=${RATE},aformat=channel_layouts=stereo,volume=${config.musicVolume ?? 0.5},apad,atrim=duration=${total}[mraw]`);
-    parts.push(voice ? '[mraw][key]sidechaincompress=threshold=0.04:ratio=8:attack=20:release=500[music]' : '[mraw]anull[music]');
+    parts.push(voice ? '[mraw][key]sidechaincompress=threshold=0.015:ratio=14:attack=15:release=600[music]' : '[mraw]anull[music]');
     beds.push('[music]');
   }
   if (voice) beds.push('[voice]');
-  parts.push(`${beds.join('')}amix=inputs=${beds.length}:duration=first:normalize=0,afade=t=out:st=${total - 1.5}:d=1.5,alimiter=limit=0.95[a]`);
+  parts.push(`${beds.join('')}amix=inputs=${beds.length}:duration=first:normalize=0,afade=t=out:st=${total - 1.5}:d=1.5,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=${RATE},alimiter=limit=0.84:level=false[a]`);
   parts.push('[0:v]fade=t=in:st=0:d=0.6[v]');
   ffmpeg([...inputs, '-filter_complex', parts.join(';'), '-map', '[v]', '-map', '[a]', '-t', String(total),
     '-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', out]);
