@@ -54,6 +54,8 @@ type Props = {
   daily?: React.ComponentProps<typeof DailyMomentCard> | null;
   /** "Nicht jetzt" on the nudge card */
   onDismissNudges: () => void;
+  /** None of your contacts has the app yet: invite instead of waiting */
+  lonely?: { onInvite: () => void; referral?: React.ReactNode } | null;
   /** Explain notifications before the system asks */
   showNotificationPrompt?: boolean;
   onAllowNotifications?: () => void;
@@ -177,6 +179,7 @@ export function StatusView({
   onOpenSchedule,
   onOpenProfile,
   onDismissNudges,
+  lonely,
   circlesStrip,
   daily,
   showNotificationPrompt,
@@ -290,6 +293,18 @@ export function StatusView({
             </Pressable>
           ))}
         </ScrollView>
+      ) : lonely ? (
+        <View style={styles.lonely}>
+          <GlassCard glow={colors.cyan}>
+            <AppText variant="bodyStrong">Deine Leute sind noch nicht hier</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Wanna yap? wird erst mit deinen Menschen lebendig. Lade die ein, mit denen du öfter reden willst: Sobald
+              sie dabei sind, seid ihr direkt verbunden.
+            </AppText>
+            <Button title="Freunde einladen" icon="person-add" onPress={lonely.onInvite} style={styles.lonelyButton} />
+          </GlassCard>
+          {lonely.referral}
+        </View>
       ) : (
         <GlassCard>
           <AppText variant="bodyStrong">Gerade ist niemand erreichbar</AppText>
@@ -332,6 +347,8 @@ export function StatusView({
 }
 
 const styles = StyleSheet.create({
+  lonely: { gap: spacing.md },
+  lonelyButton: { marginTop: spacing.md },
   header: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg },
   orb: { alignItems: 'center', marginTop: spacing.xxl },
   hint: { marginTop: spacing.lg, maxWidth: 300 },

@@ -7,6 +7,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useContacts } from '../../contexts/ContactsContext';
 import { useNewCall } from '../../contexts/NewCallContext';
 import { StatusView } from '../../features/status/StatusView';
+import { ReferralCard } from '../../features/plus/ReferralCard';
+import { usePlan } from '../../contexts/PlanContext';
+import { showReferral } from '../../services/planApi';
 import { useCountdown } from '../../hooks/useCountdown';
 import { useNudges } from '../../hooks/useNudges';
 import { useDailyMoment } from '../../hooks/useDailyMoment';
@@ -46,7 +49,10 @@ type OwnStatus = { available: boolean; until: string | null; source: string | nu
 export default function StatusScreen() {
   const router = useRouter();
   const { userPhone, userProfile, reloadProfile } = useAuth();
-  const { contacts } = useContacts();
+  const { contacts, loading: contactsLoading, permissionDenied } = useContacts();
+  const { plan } = usePlan();
+  // Loaded (or no access) and nobody has the app yet; empty before the first load
+  const lonely = !contactsLoading && (permissionDenied || contacts.length > 0) && !contacts.some((c) => c.registered);
   const { startVideoCall } = useNewCall();
   const { received, dismiss: dismissNudges, reload: reloadNudges } = useNudges();
   const { daily, join: joinDaily } = useDailyMoment();
@@ -227,6 +233,14 @@ export default function StatusScreen() {
         onOpenSchedule={() => router.push('/schedule')}
         onOpenProfile={() => router.push('/(tabs)/settings')}
         onDismissNudges={() => dismissNudges()}
+        lonely={
+          lonely
+            ? {
+                onInvite: () => router.push('/(tabs)/contacts'),
+                referral: showReferral(plan) ? <ReferralCard referral={plan.referral} /> : null,
+              }
+            : null
+        }
         circlesStrip={
           <CirclesStrip
             circles={circles}

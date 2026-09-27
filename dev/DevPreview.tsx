@@ -12,6 +12,7 @@ import { VerifyView } from '../features/auth/VerifyView';
 import { ContactsView } from '../features/contacts/ContactsView';
 import { CallsView } from '../features/calls/CallsView';
 import { PlusView } from '../features/plus/PlusView';
+import { ReferralCard } from '../features/plus/ReferralCard';
 import { YearReviewView } from '../features/plus/YearReviewView';
 import { NudgeSheet } from '../components/NudgeSheet';
 import type { Plan } from '../services/planApi';
@@ -582,6 +583,35 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       person={(e) => ({ name: e.otherName || e.otherPhone, avatarUrl: e.otherAvatarUrl })}
       onOpen={() => {}}
       onCallBack={() => {}}
+    />
+  ),
+  'status-lonely': () => (
+    <StatusView
+      {...statusProps}
+      available={false}
+      availableContacts={[]}
+      nudges={[]}
+      lonely={{ onInvite: () => {}, referral: <ReferralCard referral={{ step: 3, rewardDays: 30, maxRewards: 6, joined: 1, earned: 0, toNext: 2 }} /> }}
+    />
+  ),
+  'contacts-referral': () => (
+    <ContactsView
+      contacts={CONTACTS}
+      query=""
+      onQueryChange={() => {}}
+      loading={false}
+      refreshing={false}
+      onRefresh={() => {}}
+      permissionDenied={false}
+      onRequestPermission={() => {}}
+      onCall={() => {}}
+      onInvite={() => {}}
+      onOpen={() => {}}
+      onNudge={() => {}}
+      nudged={() => false}
+      onOpenCalls={() => {}}
+      missedCalls={0}
+      referral={<ReferralCard referral={{ step: 3, rewardDays: 30, maxRewards: 6, joined: 0, earned: 0, toNext: 3 }} compact />}
     />
   ),
   'status-missed': () => <StatusView {...statusProps} available={false} availableContacts={[]} nudges={[{ from: '+491', name: 'Anna Berg', avatarUrl: PHOTO }]} missedCalls={2} onOpenCalls={() => {}} />,

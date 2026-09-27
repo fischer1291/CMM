@@ -27,7 +27,24 @@ export type Plan = {
   usage: { circlesFounded: number };
   products: string[];
   interest: { at: string; features: string[] } | null;
+  /** Invite rewards (backend lib/referral.js); missing on older servers */
+  referral?: Referral;
 };
+
+export type Referral = {
+  /** Every `step` people who join through your invites give `rewardDays` of Plus */
+  step: number;
+  rewardDays: number;
+  maxRewards: number;
+  joined: number;
+  earned: number;
+  /** People still needed for the next reward; null when all are earned */
+  toNext: number | null;
+};
+
+/** Worth showing the invite reward: not all earned, and no store subscription. */
+export const showReferral = (plan: Plan | null): plan is Plan & { referral: Referral } =>
+  !!plan?.referral && plan.referral.toNext != null && plan.plus?.source !== 'store';
 
 export const PLUS_FEATURES: { id: string; icon: string; title: string; text: string }[] = [
   { id: 'memories', icon: 'images', title: 'Erinnerungen für immer', text: 'Alle eure Moments, nicht nur die letzten 30 Tage' },

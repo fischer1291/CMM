@@ -31,6 +31,7 @@ import CallStateManager from '../services/CallStateManager';
 import { apiFetch, apiPostJson } from '../utils/api';
 import { AGORA_APP_ID } from '../config/env';
 import { uploadMomentImage } from '../services/moments';
+import { noteTalk } from '../services/reviewPrompt';
 
 // Client-side cap, below the backend's 1 MB data URI limit
 const MAX_MOMENT_IMAGE_LENGTH = 600_000;
@@ -185,6 +186,8 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing, startWit
   const [isConnecting, setIsConnecting] = useState(true);
   const [networkQuality, setNetworkQuality] = useState<'excellent' | 'good' | 'poor' | 'bad' | 'unknown'>('unknown');
   const [callStartTime, setCallStartTime] = useState<number | null>(null);
+  // Same start, readable from cleanup (which may run from an older render)
+  const callStartRef = useRef<number | null>(null);
   const [callDuration, setCallDuration] = useState<string>('00:00');
   const [capturedScreenshot, setCapturedScreenshot] = useState<string | null>(null);
   const momentFallbackRef = useRef<string | null>(null);
@@ -298,7 +301,8 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing, startWit
           setRemoteUid(uid);
           markAnswered();
           // The call duration counts from when both are in the call
-          setCallStartTime((prev) => prev ?? Date.now());
+          callStartRef.current ??= Date.now();
+          setCallStartTime((prev) => prev ?? callStartRef.current);
         },
         onUserOffline: (_connection, uid, reason) => {
           setRemoteUid(null);
@@ -585,6 +589,8 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing, startWit
     endedRef.current = true;
     console.log('🧹 Starting call cleanup, notifyRemote:', notifyRemote);
     stopRingback();
+    // A real conversation: maybe the moment to ask for a rating
+    if (callStartRef.current) noteTalk((Date.now() - callStartRef.current) / 1000).catch(() => {});
 
     // Notify the other user first: it needs the call state that ending clears
     if (notifyRemote) {
