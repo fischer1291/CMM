@@ -22,6 +22,13 @@ const CONFIG = {
   /** One place decides where "download" goes (netlify.toml: /download), so
    *  printed QR codes and posts keep working when TestFlight becomes the App Store. */
   downloadUrl: process.env.DOWNLOAD_URL || '/download',
+  /** "waitlist" until release day (sign-up form), then "live" (App Store buttons).
+   *  Set LANDING_MODE=live in Netlify's environment and redeploy on launch day. */
+  mode: process.env.LANDING_MODE === 'live' ? 'live' : 'waitlist',
+  /** The backend that keeps the waitlist (CMM-backend-new, routes/waitlist.js). */
+  apiUrl: (process.env.PUBLIC_API_URL || 'https://api.wannayap.app').replace(/\/$/, ''),
+  /** Show "Oder im App Store vorbestellen" next to the waitlist once pre-order is live. */
+  preorder: process.env.PREORDER === '1',
 };
 /** QR target on print material: the landing page, tagged so scans show up separately. */
 const QR_URL = `${CONFIG.siteUrl}/?utm_source=flyer&utm_medium=print`;

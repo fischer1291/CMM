@@ -1,7 +1,7 @@
 # Marketing
 
 Landing Page und Werbemittel für Wanna yap?. Strategie, Texte und Launchplan:
-[PLAYBOOK.md](PLAYBOOK.md).
+[PLAYBOOK.md](PLAYBOOK.md). Warteliste und Release-Tag: [WAITLIST.md](WAITLIST.md).
 
 ```bash
 cd marketing

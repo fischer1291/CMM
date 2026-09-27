@@ -1,17 +1,39 @@
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { usePlan } from '../../contexts/PlanContext';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Linking, Share } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProfileView } from '../../features/profile/ProfileView';
 import { inviteText } from '../../content/links';
 import { deleteAccount, exportAccountData } from '../../services/account';
 import { pickAvatarImage, uploadAvatar } from '../../services/avatar';
+import { redeemWaitlistCode, waitlistRedeemed } from '../../services/waitlistApi';
 
 
 export default function ProfileScreen() {
-  const { isPlus } = usePlan();
+  const { isPlus, refresh: refreshPlan } = usePlan();
+  const [showWaitlist, setShowWaitlist] = useState(false);
+  useEffect(() => {
+    waitlistRedeemed().then((done) => setShowWaitlist(!done));
+  }, []);
+
+  const redeemWaitlist = async (code: string): Promise<string | null> => {
+    try {
+      const result = await redeemWaitlistCode(code);
+      setShowWaitlist(false);
+      if (result.plusDays) refreshPlan().catch(() => {});
+      Alert.alert(
+        'Von Anfang an 🚀',
+        result.plusDays
+          ? `Danke, dass du dabei warst! Das Abzeichen ist in deinem Sammelalbum, und weil ${result.referrals} Freunde über deinen Link gekommen sind, hast du ${result.plusDays} Tage Wanna yap+.`
+          : 'Danke, dass du von Anfang an dabei bist! Das Abzeichen ist jetzt in deinem Sammelalbum.'
+      );
+      return null;
+    } catch (err) {
+      return (err as Error).message;
+    }
+  };
   const router = useRouter();
   const { userPhone, userProfile, updateUserProfile, signOut } = useAuth();
   const [uploading, setUploading] = useState(false);
@@ -97,6 +119,7 @@ export default function ProfileScreen() {
       onOpenAppIcon={() => router.push('/appicon')}
       isPlus={isPlus}
       onOpenSupport={() => router.push('/support')}
+      onRedeemWaitlist={showWaitlist ? redeemWaitlist : null}
       onOpenSchedule={() => router.push('/schedule')}
       onInvite={() => Share.share({ message: inviteText(userProfile?.name?.split(' ')[0]) })}
       onExportData={exportData}

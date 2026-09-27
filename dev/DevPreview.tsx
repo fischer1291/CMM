@@ -524,6 +524,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpenImprint={() => {}}
       onOpenCircles={() => {}}
       onOpenBlocked={() => {}}
+      onRedeemWaitlist={async (code) => (code.replace(/[^A-Z0-9]/g, '') === 'ABCD2345' ? null : 'Diesen Code kennen wir nicht. Prüf ihn in deiner Mail, er sieht so aus: ABCD-1234.')}
       onSignOut={() => {}}
       onDeleteAccount={() => {}}
       version="1.0.0"
