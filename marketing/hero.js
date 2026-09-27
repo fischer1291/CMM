@@ -1,10 +1,12 @@
-// Cuts the hero film from the clips in hero/clips/<format>/<id>.mp4 (see
-// HERO-VIDEO.md), with captions, sound and the end card, and checks the result.
+// Cuts the hero film and its short cuts from the clips in
+// hero/clips/<format>/<id>.mp4 (see HERO-VIDEO.md), with captions, sound and
+// the end card, and checks the result.
 //
 //   cd marketing && npm run video -- endcard && npm run music && npm run hero
+//   npm run hero -- 15s-problem          # only this film (names: src/films.js)
 //
 // hero/shots.json per shot: seconds, caption, optional `clip` (use another
-// file name), `fallback` (used while the clip is missing, path from marketing/)
+// file name), `start` (seconds into the clip), `fallback` (used while the clip is missing, path from marketing/)
 // and `ambience` (volume of the clip's own sound; default from the top-level
 // `ambience`, else 0.25; 0 = only voice and music). Clips that are too short
 // hold their last frame. Missing clips without fallback become labelled
@@ -19,41 +21,29 @@
 // After rendering, a QC report checks the audio for gaps, the lengths, the
 // loudness and, per shot, that caption and speech sit inside the shot. Any
 // failure makes the script exit with an error.
-// Output: dist/video/hero-<format>.mp4 for every format with at least one clip.
+// Output: dist/video/<film>-<format>.mp4 for every format with at least one clip.
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const puppeteer = require('puppeteer-core');
 
+const { FPS, HERO, config, selected } = require('./src/films');
+
 const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const FFMPEG = process.env.FFMPEG || 'ffmpeg';
-const FPS = 30;
 const RATE = 48000;
-const END_SECONDS = 5;
 const TARGET_LUFS = -16;
 // Captions come up just before the voice
 const CAPTION_LEAD = 0.1;
-const HERO = path.join(__dirname, 'hero');
 const OUT = path.join(__dirname, 'dist/video');
 const TMP = path.join(OUT, '.hero');
 const FORMATS = { '9x16': { w: 1080, h: 1920 }, '16x9': { w: 1920, h: 1080 } };
 
-const config = JSON.parse(fs.readFileSync(path.join(HERO, 'shots.json'), 'utf8'));
-const { shots } = config;
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const firstExisting = (base) => ['wav', 'mp3', 'm4a'].map((ext) => `${base}.${ext}`).find((f) => fs.existsSync(f)) || null;
 const fmtS = (s) => s.toFixed(2).padStart(5);
 
-/** Where each shot starts in the film (seconds); "end" is the end card. */
-const starts = {};
-let total = 0;
-for (const shot of shots) {
-  starts[shot.id] = total;
-  total += shot.seconds;
-}
-starts.end = total;
-total += END_SECONDS;
-const lengthOf = (id) => (id === 'end' ? END_SECONDS : shots.find((s) => s.id === id).seconds);
+const lengthOf = (film, id) => (id === 'end' ? film.endSeconds : film.shots.find((s) => s.id === id).seconds);
 
 function ffmpeg(args) {
   const res = spawnSync(FFMPEG, ['-y', '-loglevel', 'error', ...args], { stdio: 'inherit' });
@@ -93,16 +83,17 @@ function speechBounds(file) {
  * shot. (Splitting one input into many trimmed branches stalls ffmpeg.)
  * Returns the file and, per cue, when the speech runs in the film.
  */
-function voiceTrack(voice) {
-  const cues = config.voice?.cues?.length ? config.voice.cues : [{ shot: shots[0].id, from: 0, to: null, offset: 0 }];
+function voiceTrack(film, voice) {
+  const { starts, total } = film;
+  const cues = film.cues.length ? film.cues : [{ shot: film.shots[0].id, from: 0, to: null, offset: 0 }];
   const placed = cues.map((c, i) => {
-    const file = path.join(TMP, `cue-${i}.wav`);
+    const file = path.join(TMP, `${film.name}-cue-${i}.wav`);
     ffmpeg(['-i', voice, '-ss', String(c.from), ...(c.to == null ? [] : ['-to', String(c.to)]), '-ar', String(RATE), '-ac', '2', file]);
     const at = (starts[c.shot] ?? 0) + (c.offset ?? 0.2);
     const { lead, speech } = speechBounds(file);
     return { ...c, file, at, speechFrom: at + lead, speechTo: at + lead + speech };
   });
-  const out = path.join(TMP, 'voice.wav');
+  const out = path.join(TMP, `${film.name}-voice.wav`);
   const delays = placed.map((c, i) => {
     const ms = Math.round(c.at * 1000);
     return `[${i}:a]adelay=${ms}|${ms}[v${i}]`;
@@ -148,7 +139,7 @@ async function renderOverlay(page, size, shot, placeholder, png) {
 function segment(size, shot, source, png, captionAt, video, audio) {
   const d = shot.seconds;
   const fit = `scale=${size.w}:${size.h}:force_original_aspect_ratio=increase,crop=${size.w}:${size.h},fps=${FPS},setsar=1`;
-  const input = source.file ? ['-i', source.file] : ['-f', 'lavfi', '-i', `color=c=#13131E:s=${size.w}x${size.h}:r=${FPS}`];
+  const input = source.file ? [...(shot.start ? ['-ss', String(shot.start)] : []), '-i', source.file] : ['-f', 'lavfi', '-i', `color=c=#13131E:s=${size.w}x${size.h}:r=${FPS}`];
   const placeholder = source.kind === 'placeholder';
   ffmpeg([
     ...input, '-i', png,
@@ -161,23 +152,24 @@ function segment(size, shot, source, png, captionAt, video, audio) {
   const withSound = source.kind === 'clip' && volume > 0 && hasAudio(source.file);
   const samples = Math.round(d * RATE);
   ffmpeg([
-    ...(withSound ? ['-i', source.file] : ['-f', 'lavfi', '-i', `anullsrc=r=${RATE}:cl=stereo`]),
+    ...(withSound ? [...(shot.start ? ['-ss', String(shot.start)] : []), '-i', source.file] : ['-f', 'lavfi', '-i', `anullsrc=r=${RATE}:cl=stereo`]),
     '-af', `aresample=${RATE},aformat=channel_layouts=stereo,volume=${withSound ? volume : 0},apad,atrim=end_sample=${samples}`,
     '-ar', String(RATE), '-ac', '2', audio,
   ]);
 }
 
-function endSegment(fmt, size, video, audio) {
+function endSegment(fmt, size, seconds, video, audio) {
   const endcard = path.join(OUT, `endcard-${fmt}.mp4`);
   if (!fs.existsSync(endcard)) throw new Error(`${path.relative(__dirname, endcard)} fehlt: erst "npm run video -- endcard"`);
-  ffmpeg(['-i', endcard, '-vf', `scale=${size.w}:${size.h},fps=${FPS},setsar=1,format=yuv420p`, '-frames:v', String(END_SECONDS * FPS), '-an', '-c:v', 'libx264', '-crf', '17', video]);
-  ffmpeg(['-f', 'lavfi', '-i', `anullsrc=r=${RATE}:cl=stereo`, '-af', `atrim=end_sample=${END_SECONDS * RATE}`, '-ar', String(RATE), '-ac', '2', audio]);
+  ffmpeg(['-i', endcard, '-vf', `scale=${size.w}:${size.h},fps=${FPS},setsar=1,format=yuv420p`, '-frames:v', String(Math.round(seconds * FPS)), '-an', '-c:v', 'libx264', '-crf', '17', video]);
+  ffmpeg(['-f', 'lavfi', '-i', `anullsrc=r=${RATE}:cl=stereo`, '-af', `atrim=end_sample=${Math.round(seconds * RATE)}`, '-ar', String(RATE), '-ac', '2', audio]);
 }
 
 // --- Sound ---------------------------------------------------------------------
 
 /** Clips' sound, voice on top, music ducked under the voice: one PCM file. */
-function mixAudio(bed, voice, music, out) {
+function mixAudio(film, bed, voice, music, out) {
+  const { total } = film;
   const inputs = ['-i', bed];
   const parts = [];
   const beds = ['[0:a]'];
@@ -210,7 +202,8 @@ function loudness(file) {
 
 // --- QC ------------------------------------------------------------------------
 
-function qc(file, placed, captions) {
+function qc(film, file, placed, captions) {
+  const { shots, starts, total } = film;
   const problems = [];
   const lines = [];
   // 1. The audio has no holes: every packet follows the previous one
@@ -218,12 +211,12 @@ function qc(file, placed, captions) {
   let maxStep = 0;
   for (let i = 1; i < pts.length; i++) maxStep = Math.max(maxStep, pts[i] - pts[i - 1]);
   const audioSeconds = (pts.length * 1024) / RATE;
-  lines.push(`Ton lückenlos: ${maxStep < 0.03 ? 'ja' : `NEIN (Sprung ${maxStep.toFixed(2)} s)`} · ${audioSeconds.toFixed(2)} s Ton für ${total} s Film`);
+  lines.push(`Ton lückenlos: ${maxStep < 0.03 ? 'ja' : `NEIN (Sprung ${maxStep.toFixed(2)} s)`} · ${audioSeconds.toFixed(2)} s Ton für ${total.toFixed(2)} s Film`);
   if (maxStep >= 0.03) problems.push('Lücke in der Tonspur');
-  if (Math.abs(audioSeconds - total) > 0.1) problems.push(`Tonlänge ${audioSeconds.toFixed(2)} s statt ${total} s`);
+  if (Math.abs(audioSeconds - total) > 0.1) problems.push(`Tonlänge ${audioSeconds.toFixed(2)} s statt ${total.toFixed(2)} s`);
   // 2. Lengths
   const videoSeconds = parseFloat(probe(['-select_streams', 'v', '-show_entries', 'stream=duration', '-of', 'csv=p=0', file]));
-  if (Math.abs(videoSeconds - total) > 0.1) problems.push(`Bildlänge ${videoSeconds} s statt ${total} s`);
+  if (Math.abs(videoSeconds - total) > 0.1) problems.push(`Bildlänge ${videoSeconds} s statt ${total.toFixed(2)} s`);
   // 3. Loudness
   const { lufs, peak } = loudness(file);
   lines.push(`Lautheit: ${lufs.toFixed(1)} LUFS (Ziel ${TARGET_LUFS}), Spitze ${peak.toFixed(1)} dBFS`);
@@ -233,7 +226,7 @@ function qc(file, placed, captions) {
   lines.push('', 'Shot   Bild            Untertitel ab   Stimme');
   for (const id of [...shots.map((s) => s.id), 'end']) {
     const from = starts[id];
-    const to = from + lengthOf(id);
+    const to = from + lengthOf(film, id);
     const cue = placed.find((c) => c.shot === id);
     const cap = captions[id];
     let status = 'ok';
@@ -252,15 +245,16 @@ function qc(file, placed, captions) {
 
 // --- Build ---------------------------------------------------------------------
 
-async function build(browser, fmt, size) {
+async function build(browser, film, fmt, size) {
+  const { shots, starts, total } = film;
   const sources = Object.fromEntries(shots.map((s) => [s.id, clipFor(fmt, s)]));
   if (!shots.some((s) => sources[s.id].kind === 'clip')) {
     console.log(`– ${fmt}: keine Clips in hero/clips/${fmt}/, übersprungen`);
     return true;
   }
   const voiceFile = firstExisting(path.join(HERO, 'audio/voiceover'));
-  const music = firstExisting(path.join(HERO, 'audio/music'));
-  const voice = voiceFile ? voiceTrack(voiceFile) : { file: null, placed: [] };
+  const music = firstExisting(path.join(HERO, 'audio', film.music));
+  const voice = voiceFile ? voiceTrack(film, voiceFile) : { file: null, placed: [] };
 
   // Captions come up with their phrase (shots without a phrase: from the cut)
   const captions = {};
@@ -275,64 +269,67 @@ async function build(browser, fmt, size) {
   const videos = [];
   const audios = [];
   for (const shot of shots) {
-    const png = path.join(TMP, `${fmt}-${shot.id}.png`);
+    const png = path.join(TMP, `${film.name}-${fmt}-${shot.id}.png`);
     await renderOverlay(page, size, shot, sources[shot.id].kind === 'placeholder', png);
-    const v = path.join(TMP, `${fmt}-${shot.id}.mp4`);
-    const a = path.join(TMP, `${fmt}-${shot.id}.wav`);
+    const v = path.join(TMP, `${film.name}-${fmt}-${shot.id}.mp4`);
+    const a = path.join(TMP, `${film.name}-${fmt}-${shot.id}.wav`);
     segment(size, shot, sources[shot.id], png, captions[shot.id] ?? 0, v, a);
     videos.push(v);
     audios.push(a);
   }
   await page.close();
-  const endV = path.join(TMP, `${fmt}-end.mp4`);
-  const endA = path.join(TMP, `${fmt}-end.wav`);
-  endSegment(fmt, size, endV, endA);
+  const endV = path.join(TMP, `${film.name}-${fmt}-end.mp4`);
+  const endA = path.join(TMP, `${film.name}-${fmt}-end.wav`);
+  endSegment(fmt, size, film.endSeconds, endV, endA);
   videos.push(endV);
   audios.push(endA);
 
   // Picture: concatenated as is. Sound: joined sample-exactly as PCM.
-  const list = path.join(TMP, `${fmt}-list.txt`);
+  const list = path.join(TMP, `${film.name}-${fmt}-list.txt`);
   fs.writeFileSync(list, videos.map((f) => `file '${f}'`).join('\n'));
-  const cut = path.join(TMP, `${fmt}-cut.mp4`);
+  const cut = path.join(TMP, `${film.name}-${fmt}-cut.mp4`);
   ffmpeg(['-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', cut]);
-  const bed = path.join(TMP, `${fmt}-bed.wav`);
+  const bed = path.join(TMP, `${film.name}-${fmt}-bed.wav`);
   ffmpeg([...audios.flatMap((f) => ['-i', f]), '-filter_complex', `${audios.map((_, i) => `[${i}:a]`).join('')}concat=n=${audios.length}:v=0:a=1[a]`, '-map', '[a]', bed]);
 
-  const mixed = path.join(TMP, `${fmt}-mix.wav`);
-  mixAudio(bed, voice.file, music, mixed);
+  const mixed = path.join(TMP, `${film.name}-${fmt}-mix.wav`);
+  mixAudio(film, bed, voice.file, music, mixed);
   const gain = TARGET_LUFS - loudness(mixed).lufs;
 
-  const out = path.join(OUT, `hero-${fmt}.mp4`);
+  const out = path.join(OUT, `${film.name}-${fmt}.mp4`);
   ffmpeg([
     '-i', cut, '-i', mixed,
     '-filter_complex',
-    `[0:v]fade=t=in:st=0:d=0.6,fade=t=out:st=${total - 0.6}:d=0.6[v];` +
+    `[0:v]${film.fadeIn ? `fade=t=in:st=0:d=${film.fadeIn},` : ''}fade=t=out:st=${total - 0.6}:d=0.6[v];` +
       `[1:a]volume=${gain.toFixed(2)}dB,alimiter=limit=0.84:level=false,atrim=end_sample=${Math.round(total * RATE)},asetpts=N/SR/TB[a]`,
     '-map', '[v]', '-map', '[a]', '-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '192k', '-ar', String(RATE), '-movflags', '+faststart', out,
   ]);
 
-  const check = qc(out, voice.placed, captions);
+  const check = qc(film, out, voice.placed, captions);
   const note = (kind) => shots.filter((s) => sources[s.id].kind === kind).map((s) => s.id);
   const extras = [
     note('fallback').length ? `Ersatz für Shot ${note('fallback').join(', ')}` : null,
     note('placeholder').length ? `Platzhalter für Shot ${note('placeholder').join(', ')}` : null,
     voiceFile ? null : 'ohne Stimme',
-    music ? null : 'ohne Musik',
+    music ? null : `ohne Musik (hero/audio/${film.music}.wav fehlt: npm run music)`,
   ].filter(Boolean);
-  console.log(`${check.ok ? '✓' : '✗'} ${path.relative(__dirname, out)} (${total} s)${extras.length ? ` · ${extras.join(' · ')}` : ''}`);
+  console.log(`${check.ok ? '✓' : '✗'} ${path.relative(__dirname, out)} (${total.toFixed(2)} s)${extras.length ? ` · ${extras.join(' · ')}` : ''}`);
   console.log(check.report.replace(/^/gm, '  '));
   if (!check.ok) console.log(`\n  Probleme: ${check.problems.join('; ')}`);
   return check.ok;
 }
 
 async function main() {
+  const todo = selected();
   fs.rmSync(TMP, { recursive: true, force: true });
   fs.mkdirSync(TMP, { recursive: true });
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: true });
   let ok = true;
   try {
-    for (const [fmt, size] of Object.entries(FORMATS)) ok = (await build(browser, fmt, size)) && ok;
+    for (const film of todo) {
+      for (const [fmt, size] of Object.entries(FORMATS)) ok = (await build(browser, film, fmt, size)) && ok;
+    }
     // Kept after a failure (or with KEEP=1), for debugging
     if (ok && !process.env.KEEP) fs.rmSync(TMP, { recursive: true, force: true });
   } finally {

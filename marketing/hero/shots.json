@@ -138,5 +138,96 @@
     ]
   },
   "ambience": 0,
-  "voiceVolume": 2.2
+  "voiceVolume": 2.2,
+  "cuts": [
+    {
+      "name": "15s-problem",
+      "hook": "Problem zuerst: „Wir schreiben hundert Nachrichten … und telefonieren nie.“",
+      "shots": [
+        {
+          "id": "01",
+          "seconds": 2.667,
+          "offset": 0
+        },
+        {
+          "id": "02",
+          "seconds": 2.333,
+          "offset": 0
+        },
+        {
+          "id": "05",
+          "seconds": 4,
+          "offset": 0.05,
+          "start": 0.867
+        },
+        {
+          "id": "06",
+          "seconds": 2.333,
+          "offset": 0.05
+        },
+        {
+          "id": "end",
+          "seconds": 4,
+          "offset": 0.05
+        }
+      ]
+    },
+    {
+      "name": "15s-app",
+      "hook": "Produkt zuerst: die echte App in der ersten Sekunde",
+      "shots": [
+        {
+          "id": "05",
+          "seconds": 4,
+          "offset": 0,
+          "start": 0.867
+        },
+        {
+          "id": "06",
+          "seconds": 2.667
+        },
+        {
+          "id": "07",
+          "seconds": 1.333
+        },
+        {
+          "id": "10",
+          "seconds": 3.333,
+          "offset": 0.05
+        },
+        {
+          "id": "end",
+          "seconds": 4,
+          "offset": 0.05
+        }
+      ]
+    },
+    {
+      "name": "15s-kein-feed",
+      "hook": "Haltung zuerst: „Kein Feed. Keine Likes. Keine Fremden.“",
+      "shots": [
+        {
+          "id": "10",
+          "seconds": 3.333,
+          "offset": 0
+        },
+        {
+          "id": "05",
+          "seconds": 4,
+          "offset": 0.05,
+          "start": 0.867
+        },
+        {
+          "id": "09",
+          "seconds": 3.333,
+          "offset": 0.1
+        },
+        {
+          "id": "end",
+          "seconds": 4,
+          "offset": 0.05
+        }
+      ]
+    }
+  ]
 }

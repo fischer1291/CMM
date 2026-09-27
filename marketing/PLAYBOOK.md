@@ -141,6 +141,7 @@ sich bezahlte Reichweite.
 | `../video/ad-3-kein-feed.mp4` | 1080×1920, 11 s | Anzeige/Reel: Kein Feed, keine Likes, nur deine Menschen |
 | `../video/endcard-*.mp4` | 9:16 und 16:9, 5 s | Ans Ende jedes eigenen Videos (UGC, Gründer-Clips) |
 | `../video/hero-*.mp4` | 16:9 und 9:16, 45 s | Hero-Video, siehe HERO-VIDEO.md |
+| `../video/hero-15s-*-9x16.mp4` | 1080×1920, ca. 15 s | Hero-Kurzversionen mit drei Einstiegen (Problem, App, „Kein Feed“) zum Hook-Test |
 
 Texte und Farben änderst du in `src/kit.js`, danach `npm run build`. Videos: `src/ads.js`, danach `npm run video`.
 
