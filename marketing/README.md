@@ -41,7 +41,8 @@ Sobald es einen öffentlichen TestFlight- oder App-Store-Link gibt, mit
 npm run video                 # alle animierten Anzeigen + Endkarten nach dist/video/
 npm run video -- ad-2         # nur eine
 MUSIC=track.mp3 npm run video # mit Musik (lizenziert!)
-npm run hero                  # Hero-Video aus hero/clips/, fehlende Shots als Platzhalter
+npm run hero                  # Hero-Video und 15-s-Versionen aus hero/clips/, fehlende Shots als Platzhalter
+npm run hero -- 15s-app       # nur ein Film (Namen unter "cuts" in hero/shots.json)
 ```
 
 Braucht ffmpeg (`brew install ffmpeg`) und Google Chrome. Anleitung für die

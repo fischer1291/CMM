@@ -49,6 +49,15 @@ Nach Änderungen an der Shotliste deshalb beides neu: `npm run music && npm run 
    `dist/video/hero-16x9.mp4` und `hero-9x16.mp4`. Fehlende Clips erscheinen als
    beschriftete Platzhalter, so kannst du das Timing schon vorher prüfen.
 
+**Kurzversionen (ca. 15 s):** Unter `cuts` in `hero/shots.json` stehen Schnitte aus denselben
+Shots und Sprechsätzen, jeweils mit einem anderen Einstieg zum Testen der Hooks:
+`15s-problem` (Problem zuerst), `15s-app` (echte App in der ersten Sekunde) und `15s-kein-feed`
+(„Kein Feed. Keine Likes. Keine Fremden.“). Pro Shot lassen sich Länge (`seconds`), Einsatz der
+Stimme (`offset`) und Einstieg in den Clip (`start`) festlegen. Die Kurzversionen starten ohne
+Schwarzblende und bekommen ihre eigene, auf den Schnitt getimte Musik.
+`npm run music && npm run hero -- 15s-app` baut nur einen davon, ohne Namen entstehen alle
+als `dist/video/hero-<name>-9x16.mp4`.
+
 ## Werkzeuge und Kosten
 
 - **Video:** Google Veo (in Gemini/Flow oder per API), Kling, Runway oder Sora. Für
