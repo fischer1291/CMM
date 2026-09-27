@@ -1,15 +1,31 @@
 {
-  "title": "Wanna yap? – Hero (45 s)",
+  "title": "Wanna yap? – Hero (44 s)",
+  "musicVolume": 0.5,
   "shots": [
-    { "id": "01", "seconds": 4, "source": "ai", "what": "Gesicht im Handylicht, Daumen scrollt einen Chat", "caption": "Wir schreiben hundert Nachrichten …" },
-    { "id": "02", "seconds": 4, "source": "ai", "what": "Lena im neuen WG-Zimmer, Umzugskartons, tippt, seufzt", "caption": "… und telefonieren nie." },
-    { "id": "03", "seconds": 4, "source": "ai", "what": "Jonas nachts in der Hamburger S-Bahn, gelangweilt am Handy", "caption": "Nicht, weil wir nicht wollen." },
-    { "id": "04", "seconds": 4, "source": "ai", "what": "Verpasst: Handy vibriert auf dem Bett, niemand da", "caption": "Sondern weil das Timing nie passt." },
+    { "id": "01", "clip": "03", "seconds": 4, "source": "ai", "ambience": 0.2, "what": "Gesicht im Handylicht, Daumen scrollt einen Chat", "caption": "Wir schreiben hundert Nachrichten …" },
+    { "id": "02", "clip": "01", "seconds": 4, "source": "ai", "ambience": 0.2, "what": "Lena im neuen WG-Zimmer, Umzugskartons, tippt, seufzt", "caption": "… und telefonieren nie." },
+    { "id": "03", "clip": "02", "seconds": 4, "source": "ai", "ambience": 0.2, "what": "Jonas nachts in der Hamburger S-Bahn, gelangweilt am Handy", "caption": "Nicht, weil wir nicht wollen." },
+    { "id": "04", "seconds": 4, "source": "ai", "ambience": 0.5, "what": "Verpasst: Handy vibriert auf dem Bett, niemand da", "caption": "Sondern weil das Timing nie passt." },
     { "id": "05", "seconds": 4, "source": "app", "what": "ECHTE App: Status-Ring antippen, Ring leuchtet", "caption": "Wanna yap? zeigt dir, wer gerade Zeit hat." },
-    { "id": "06", "seconds": 4, "source": "ai", "what": "Jonas’ Gesicht leuchtet cyan auf, er lächelt, tippt", "caption": "Ein Tipp – und ihr erwischt euch." },
-    { "id": "07", "seconds": 5, "source": "ai", "what": "Lena lacht auf dem Bett, mitten im Gespräch", "caption": "" },
-    { "id": "08", "seconds": 4, "source": "ai", "what": "Oma, WG-Balkon, Bushaltestelle: alle schauen gleichzeitig aufs Handy", "caption": "Jeden Tag der Yap Moment: 10 Minuten, alle haben Zeit." },
-    { "id": "09", "seconds": 4, "source": "ai", "what": "Sonntagsrunde: Großeltern winken ins Tablet, Kuchen", "caption": "Rituale mit deinen Menschen. Ganz von allein." },
-    { "id": "10", "seconds": 3, "source": "ai", "what": "Lena legt das Handy weg, lächelt, lässt sich zurückfallen", "caption": "Kein Feed. Keine Likes. Keine Fremden." }
-  ]
+    { "id": "06", "seconds": 4, "source": "ai", "ambience": 0.2, "what": "Jonas’ Gesicht leuchtet cyan auf, er lächelt, tippt", "caption": "Ein Tipp – und ihr erwischt euch." },
+    { "id": "07", "seconds": 4, "source": "ai", "ambience": 0.8, "what": "Lena lacht auf dem Bett, mitten im Gespräch", "caption": "" },
+    { "id": "08", "seconds": 4, "source": "ai", "fallback": "dist/video/insert-yap-moment.mp4", "what": "Oma, WG-Balkon, Bushaltestelle: alle schauen gleichzeitig aufs Handy", "caption": "Jeden Tag der Yap Moment: 10 Minuten, alle haben Zeit." },
+    { "id": "09", "seconds": 4, "source": "ai", "ambience": 0.2, "what": "Sonntagsrunde: Großeltern winken ins Tablet, Kuchen", "caption": "Rituale mit deinen Menschen. Ganz von allein." },
+    { "id": "10", "seconds": 3, "source": "ai", "ambience": 0.4, "what": "Lena legt das Handy weg, lächelt, lässt sich zurückfallen", "caption": "Kein Feed. Keine Likes. Keine Fremden." }
+  ],
+  "voice": {
+    "note": "from/to: Sekunden in hero/audio/voiceover.*; offset: Sekunden nach Beginn des Shots",
+    "cues": [
+      { "shot": "01", "from": 0.0, "to": 2.2, "offset": 0.5 },
+      { "shot": "02", "from": 2.2, "to": 4.2, "offset": 0.2 },
+      { "shot": "03", "from": 4.3, "to": 6.1, "offset": 0.4 },
+      { "shot": "04", "from": 6.1, "to": 8.4, "offset": 0.4 },
+      { "shot": "05", "from": 8.5, "to": 12.3, "offset": 0.1 },
+      { "shot": "06", "from": 12.3, "to": 14.5, "offset": 0.4 },
+      { "shot": "08", "from": 14.6, "to": 18.9, "offset": 0.0 },
+      { "shot": "09", "from": 18.9, "to": 21.9, "offset": 0.2 },
+      { "shot": "10", "from": 21.9, "to": 24.8, "offset": 0.0 },
+      { "shot": "end", "from": 24.8, "to": 27.5, "offset": 0.6 }
+    ]
+  }
 }

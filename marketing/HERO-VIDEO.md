@@ -25,6 +25,14 @@ echte Aufnahmen aus der App (siehe „Store-Preview“ unten).
    antippen). Siehe „Echte App-Aufnahmen“.
 6. **Ton:** `hero/audio/voiceover.mp3` (Sprechertext unten) und
    `hero/audio/music.mp3`. Die Musik wird unter der Stimme automatisch leiser.
+**Feinschliff in `hero/shots.json`:**
+- `clip`: anderen Dateinamen für einen Shot verwenden (z. B. `"clip": "03"`).
+- `ambience`: Lautstärke des Clip-eigenen Tons (Standard 0,25; beim Lachen in 07 höher).
+- `fallback`: Ersatz, solange der Clip fehlt (Shot 08 nutzt die animierte Yap-Moment-Einblendung).
+- `voice.cues`: welcher Abschnitt der Sprachaufnahme (`from`/`to` in Sekunden) bei welchem Shot beginnt
+  (`offset`). So passt jeder Satz zu seinem Bild und Untertitel.
+- Zu kurze Clips halten ihr letztes Bild. Formate ohne einen einzigen Clip werden übersprungen.
+
 7. **Schneiden:** `npm run video -- endcard && npm run hero` ergibt
    `dist/video/hero-16x9.mp4` und `hero-9x16.mp4`. Fehlende Clips erscheinen als
    beschriftete Platzhalter, so kannst du das Timing schon vorher prüfen.

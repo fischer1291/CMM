@@ -126,6 +126,17 @@ module.exports = function ads({ logoSvg, shortUrl }) {
     </div>
     ${endCard(8.5)}`);
 
+  /* ---------- Hero insert: Yap Moment without headline (4 s) ----------
+     Stand-in for shot 08 until there is a filmed/AI clip (hero/shots.json).
+     The lower third stays free for the hero's caption. */
+  add('insert-yap-moment', 4, `
+    <div class="glowblob" style="width:760px;height:760px;left:160px;top:420px;animation:pulse 3s 0s infinite both"></div>
+    <div class="safe clock grad-text" style="top:300px;left:0;right:0;text-align:center;font-family:var(--mono);font-weight:700;font-size:230px;letter-spacing:-.04em;line-height:1;animation:fadeIn .3s 0s both, tick 9s 0s steps(9, end) both"></div>
+    <div style="position:absolute;left:90px;right:90px;top:640px;display:flex;flex-direction:column;gap:24px">
+      <div class="push" style="animation:drop .5s .2s cubic-bezier(.2,.8,.2,1) both"><div class="ic">${ICON.flash}</div><div><b>Yap Moment ist da</b><span>10 Minuten, alle haben Zeit</span></div><time>jetzt</time></div>
+      ${joins.map(([l, t, s], i) => `<div class="push" style="animation:drop .5s ${0.9 + i * 0.7}s cubic-bezier(.2,.8,.2,1) both"><div class="ic" style="border-radius:50%;font-size:42px;font-weight:700">${l}</div><div><b>${t}</b><span>${s}</span></div><time>jetzt</time></div>`).join('')}
+    </div>`);
+
   /* ---------- End card alone, for the hero film and edits (5 s) ---------- */
   add('endcard-9x16', 5, endCard(0));
   add('endcard-16x9', 5, endCard(0, { w: 1920, h: 1080 }), { w: 1920, h: 1080 });
