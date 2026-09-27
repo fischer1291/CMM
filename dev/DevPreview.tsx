@@ -291,6 +291,34 @@ const statusProps = {
   onDismissNudges: () => {},
 };
 
+/** Hero film shot 05: Lena switches herself available, her people show up. */
+function StatusDemo() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const timers = [setTimeout(() => setStep(1), 1200), setTimeout(() => setStep(2), 2300)];
+    return () => timers.forEach(clearTimeout);
+  }, []);
+  return (
+    <StatusView
+      {...statusProps}
+      name="Lena"
+      available={step >= 1}
+      sessionProgress={step >= 1 ? 1 : null}
+      sessionCaption={step >= 1 ? '30:00 übrig' : null}
+      availableContacts={
+        step >= 2
+          ? [
+              { phone: '+491', name: 'Jonas', avatarUrl: null },
+              { phone: '+492', name: 'Mila', avatarUrl: null },
+              { phone: '+493', name: 'Oma Gisela', avatarUrl: null },
+            ]
+          : []
+      }
+      nudges={[]}
+    />
+  );
+}
+
 const BADGE = (id: string, title: string, earned: boolean, progress = 1, icon = 'star', tierName: string | null = null) => ({ id, title, description: '', earned, progress, icon, tierName });
 const TIERS = ['Bronze', 'Silber', 'Gold'];
 const AB = (id: string, category: string, icon: string, title: string, description: string, tier: number, tiers: number, progress: number, secret = false): AlbumBadge => ({
@@ -713,6 +741,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       nudges={[{ from: '+491', name: 'Anna Berg', avatarUrl: PHOTO }]}
     />
   ),
+  'status-demo': () => <StatusDemo />,
   'status-off': () => (
     <StatusView {...statusProps} available={false} availableContacts={[]} nudges={[]} week={null} scheduleLabel={null} />
   ),
