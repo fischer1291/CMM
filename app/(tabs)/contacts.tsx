@@ -5,6 +5,7 @@ import { Contact, useContacts } from '../../contexts/ContactsContext';
 import { useNewCall } from '../../contexts/NewCallContext';
 import { useRouter } from 'expo-router';
 import { useNudges } from '../../hooks/useNudges';
+import { useNudgeComposer } from '../../hooks/useNudgeComposer';
 import { useMissedCalls } from '../../hooks/useMissedCalls';
 import { inviteText } from '../../content/links';
 import { recordInvites } from '../../services/socialApi';
@@ -17,6 +18,7 @@ export default function ContactsScreen() {
   const { startVideoCall } = useNewCall();
   const router = useRouter();
   const { nudge, nudged } = useNudges();
+  const composer = useNudgeComposer(nudge);
   const missed = useMissedCalls();
   const [query, setQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -36,22 +38,25 @@ export default function ContactsScreen() {
   };
 
   return (
-    <ContactsView
-      contacts={contacts}
-      query={query}
-      onQueryChange={setQuery}
-      loading={loading}
-      refreshing={refreshing}
-      onRefresh={onRefresh}
-      permissionDenied={permissionDenied}
-      onRequestPermission={() => refresh({ askPermission: true })}
-      onCall={(phone) => userPhone && startVideoCall(phone, userPhone)}
-      onInvite={invite}
-      onOpen={(contact) => router.push({ pathname: '/friend', params: { phone: contact.phone } })}
-      onNudge={(contact) => nudge(contact.phone, contact.name)}
-      onOpenCalls={() => router.push('/calls')}
-      missedCalls={missed.count}
-      nudged={nudged}
-    />
+    <>
+      <ContactsView
+        contacts={contacts}
+        query={query}
+        onQueryChange={setQuery}
+        loading={loading}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        permissionDenied={permissionDenied}
+        onRequestPermission={() => refresh({ askPermission: true })}
+        onCall={(phone) => userPhone && startVideoCall(phone, userPhone)}
+        onInvite={invite}
+        onOpen={(contact) => router.push({ pathname: '/friend', params: { phone: contact.phone } })}
+        onNudge={(contact) => composer.start(contact.phone, contact.name)}
+        onOpenCalls={() => router.push('/calls')}
+        missedCalls={missed.count}
+        nudged={nudged}
+      />
+      {composer.sheet}
+    </>
   );
 }

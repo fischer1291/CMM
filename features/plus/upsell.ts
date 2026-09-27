@@ -9,6 +9,14 @@ type Router = { push: (href: any) => void };
 export function explainLimit(error: any, router: Router): boolean {
   const code = error?.code;
   const more = { text: 'Mehr zu Plus', onPress: () => router.push('/plus') };
+  if (code === 'plan_limit' && error?.limit === 'rituals') {
+    Alert.alert(
+      'Ein Ritual pro Kreis',
+      `Gratis hat jeder Kreis ${error?.value ?? 1} Ritual. Mit Wanna yap+ der Person, die den Kreis gegründet hat, sind es bis zu ${error?.plus ?? 3}.`,
+      [{ text: 'OK', style: 'cancel' }, more]
+    );
+    return true;
+  }
   if (code === 'plan_limit') {
     Alert.alert(
       'Du hast schon alle deine Kreise',

@@ -21,6 +21,7 @@ import {
   Screen,
   SectionHeader,
   spacing,
+  TextField,
   TimeStepper,
   WarmthRing,
 } from '../../ui';
@@ -39,12 +40,14 @@ type Props = {
   onInvite: () => void;
   onShareLink: () => void;
   onSendDrafts: () => void;
-  onSaveRitual: (ritual: Ritual) => void;
+  /** All rituals; the first is the circle's main one */
+  onSaveRituals: (rituals: Ritual[]) => void;
 };
 
 const ritualLabel = (r: Ritual) => (r.enabled ? `${WEEKDAYS_LONG[r.day]}s ${clock(r.start)}` : 'Kein fester Termin');
+const NEW_RITUAL: Ritual = { enabled: true, day: 0, start: 18 * 60, label: null };
 
-function RitualSheet({ ritual, onSave, onClose }: { ritual: Ritual; onSave: (r: Ritual) => void; onClose: () => void }) {
+function RitualSheet({ ritual, onSave, onEnd, onClose }: { ritual: Ritual; onSave: (r: Ritual) => void; onEnd?: () => void; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<Ritual>({ ...ritual, enabled: true });
   return (
@@ -55,6 +58,7 @@ function RitualSheet({ ritual, onSave, onClose }: { ritual: Ritual; onSave: (r: 
         <AppText variant="caption" color={colors.textSecondary}>
           Ein fester Termin jede Woche. Dann öffnet sich eure Runde, und alle bekommen Bescheid.
         </AppText>
+        <TextField value={draft.label ?? ''} onChangeText={(label: string) => setDraft((r) => ({ ...r, label }))} placeholder="Name, z. B. Sonntagsrunde (optional)" maxLength={30} />
         <View style={styles.days}>
           {WEEK_ORDER.map((d) => (
             <Pressable
@@ -73,15 +77,29 @@ function RitualSheet({ ritual, onSave, onClose }: { ritual: Ritual; onSave: (r: 
         </View>
         <TimeStepper label="Um" value={draft.start} wrap onChange={(start) => setDraft((r) => ({ ...r, start }))} />
         <Button title={`${WEEKDAYS_LONG[draft.day]}s ${clock(draft.start)} speichern`} onPress={() => onSave(draft)} />
-        {ritual.enabled ? <Button title="Ritual beenden" variant="ghost" onPress={() => onSave({ ...ritual, enabled: false })} /> : null}
+        {onEnd ? <Button title="Ritual beenden" variant="ghost" onPress={onEnd} /> : null}
       </View>
     </Modal>
   );
 }
 
 /** One circle: warmth, room, members, invites, ritual, album. */
-export function CircleView({ circle, myPhone, person, busy, onBack, onMore, onRoom, onCall, onInvite, onShareLink, onSendDrafts, onSaveRitual }: Props) {
-  const [editingRitual, setEditingRitual] = useState(false);
+export function CircleView({ circle, myPhone, person, busy, onBack, onMore, onRoom, onCall, onInvite, onShareLink, onSendDrafts, onSaveRituals }: Props) {
+  // Index into the list being edited, or "new"
+  const [editingRitual, setEditingRitual] = useState<number | 'new' | null>(null);
+  const rituals: Ritual[] = circle?.rituals?.length ? circle.rituals : circle ? [circle.ritual] : [];
+  const active = rituals.filter((r) => r.enabled);
+  const saveAt = (index: number | 'new', r: Ritual) => {
+    const list = [...rituals];
+    if (index === 'new') list.push(r);
+    else list[index] = r;
+    onSaveRituals(list);
+  };
+  const endAt = (index: number) => {
+    // The first one stays as "no fixed time" for older apps; extra ones go
+    const list = index === 0 ? [{ ...rituals[0], enabled: false }, ...rituals.slice(1)] : rituals.filter((_, i) => i !== index);
+    onSaveRituals(list);
+  };
 
   if (!circle) {
     return (
@@ -232,21 +250,33 @@ export function CircleView({ circle, myPhone, person, busy, onBack, onMore, onRo
       )}
       <Button title="Einladungslink teilen" icon="link" variant="secondary" onPress={onShareLink} style={{ marginTop: spacing.md }} />
 
-      <SectionHeader title="Ritual" />
-      <Pressable onPress={() => setEditingRitual(true)} accessibilityRole="button">
-        <GlassCard>
-          <View style={styles.inline}>
-            <Ionicons name="repeat" size={20} color={circle.ritual.enabled ? colors.pink : colors.textMuted} />
-            <View style={{ flex: 1 }}>
-              <AppText variant="bodyStrong">{ritualLabel(circle.ritual)}</AppText>
-              <AppText variant="caption" color={colors.textSecondary}>
-                {circle.ritual.enabled ? 'Dann öffnet sich eure Runde, und alle bekommen Bescheid.' : 'Z. B. jeden Sonntag 18 Uhr eure Runde'}
-              </AppText>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </View>
-        </GlassCard>
-      </Pressable>
+      <SectionHeader title={active.length > 1 ? 'Rituale' : 'Ritual'} />
+      <View style={{ gap: spacing.sm }}>
+        {(active.length ? rituals.map((r, i) => ({ r, i })).filter(({ r }) => r.enabled) : [{ r: rituals[0], i: 0 }]).map(({ r, i }) => (
+          <Pressable key={r.id ?? i} onPress={() => setEditingRitual(i)} accessibilityRole="button">
+            <GlassCard>
+              <View style={styles.inline}>
+                <Ionicons name="repeat" size={20} color={r.enabled ? colors.pink : colors.textMuted} />
+                <View style={{ flex: 1 }}>
+                  <AppText variant="bodyStrong">{r.enabled && r.label ? `${r.label} · ${ritualLabel(r)}` : ritualLabel(r)}</AppText>
+                  <AppText variant="caption" color={colors.textSecondary}>
+                    {r.enabled ? 'Dann öffnet sich eure Runde, und alle bekommen Bescheid.' : 'Z. B. jeden Sonntag 18 Uhr eure Runde'}
+                  </AppText>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </View>
+            </GlassCard>
+          </Pressable>
+        ))}
+        {active.length > 0 && rituals.length < 3 ? (
+          <Pressable onPress={() => setEditingRitual('new')} accessibilityRole="button" style={styles.addRitual}>
+            <Ionicons name="add" size={18} color={colors.textSecondary} />
+            <AppText variant="caption" color={colors.textSecondary}>
+              Weiteres Ritual
+            </AppText>
+          </Pressable>
+        ) : null}
+      </View>
 
       {circle.badges && circle.badges.length > 0 ? (
         <>
@@ -268,14 +298,24 @@ export function CircleView({ circle, myPhone, person, busy, onBack, onMore, onRo
         </>
       )}
 
-      {editingRitual && (
+      {editingRitual !== null && (
         <RitualSheet
-          ritual={circle.ritual}
-          onClose={() => setEditingRitual(false)}
+          ritual={editingRitual === 'new' ? NEW_RITUAL : rituals[editingRitual]}
+          onClose={() => setEditingRitual(null)}
           onSave={(r) => {
-            setEditingRitual(false);
-            onSaveRitual(r);
+            const at = editingRitual;
+            setEditingRitual(null);
+            saveAt(at, r);
           }}
+          onEnd={
+            editingRitual !== 'new' && rituals[editingRitual]?.enabled
+              ? () => {
+                  const at = editingRitual;
+                  setEditingRitual(null);
+                  endAt(at);
+                }
+              : undefined
+          }
         />
       )}
     </Screen>
@@ -283,6 +323,7 @@ export function CircleView({ circle, myPhone, person, busy, onBack, onMore, onRo
 }
 
 const styles = StyleSheet.create({
+  addRitual: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: spacing.md, borderRadius: radius.md, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.borderStrong },
   hero: { alignItems: 'center', marginBottom: spacing.xl },
   roomWrap: { borderRadius: radius.lg },
   roomBorder: { borderRadius: radius.lg, padding: 1.5 },

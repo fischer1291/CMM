@@ -35,6 +35,7 @@ type Props = {
   onRetry: () => void;
   onBack: () => void;
   onOpenAlbum: () => void;
+  onOpenYear: () => void;
   person: (phone: string) => Person;
   onChangeVisibility: (visibility: Visibility) => void;
   onPickPeople: () => void;
@@ -108,6 +109,7 @@ export function StatsView({
   onRetry,
   onBack,
   onOpenAlbum,
+  onOpenYear,
   person,
   onChangeVisibility,
   onPickPeople,
@@ -154,6 +156,21 @@ export function StatsView({
         </AppText>
         <WeekChart weeks={stats.weeks} />
       </GlassCard>
+
+      <Pressable onPress={onOpenYear} accessibilityRole="button" style={{ marginTop: spacing.md }}>
+        <GlassCard glow={colors.pink}>
+          <View style={styles.albumRow}>
+            <Ionicons name="sparkles" size={20} color={colors.pink} style={{ marginRight: spacing.md }} />
+            <View style={{ flex: 1 }}>
+              <AppText variant="bodyStrong">Dein Jahr {new Date().getFullYear()} bisher</AppText>
+              <AppText variant="caption" color={colors.textSecondary}>
+                Dein Jahr in Gesprächen, zum Durchwischen
+              </AppText>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </View>
+        </GlassCard>
+      </Pressable>
 
       <View style={styles.tiles}>
         <GlassCard style={styles.tile}>

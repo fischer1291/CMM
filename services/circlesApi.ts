@@ -8,7 +8,7 @@ import { apiFetch, apiPostJson } from '../utils/api';
 export type CircleMember = { phone: string; name: string; avatarUrl: string; isAvailable: boolean; availableUntil: string | null };
 export type Warmth = { minutes: number; talkedCount: number; memberCount: number; goalReached: boolean };
 export type RoomInfo = { id: string; channel: string; participants: string[]; /** Free circles: when the round ends */ endsAt?: string | null };
-export type Ritual = { enabled: boolean; day: number; start: number };
+export type Ritual = { enabled: boolean; day: number; start: number; /** "main" or the extra ritual's id */ id?: string; label?: string | null };
 
 export type CircleSummary = {
   id: string;
@@ -20,6 +20,8 @@ export type CircleSummary = {
   warmth: Warmth;
   room: RoomInfo | null;
   ritual: Ritual;
+  /** All rituals, the first is `ritual` (newer backends) */
+  rituals?: Ritual[];
 };
 
 export type CircleDetail = CircleSummary & {
@@ -41,7 +43,8 @@ export type CircleInvite = {
 
 async function ok<T = any>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.success === false) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { code: data.error });
+  // Plan limits carry limit/value/plus for the note (features/plus/upsell.ts)
+  if (!res.ok || data.success === false) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { code: data.error, limit: data.limit, value: data.value, plus: data.plus });
   return data;
 }
 const send = (path: string, method: string, body?: unknown) =>
@@ -80,7 +83,7 @@ export async function previewCircleCode(code: string): Promise<{ name: string; e
   return (await ok(await apiFetch(`/circles/code/${encodeURIComponent(code)}`, {}, 10000))).circle;
 }
 
-export async function updateCircle(id: string, patch: { name?: string; emoji?: string; ritual?: Ritual }): Promise<CircleDetail> {
+export async function updateCircle(id: string, patch: { name?: string; emoji?: string; ritual?: Ritual; rituals?: Ritual[] }): Promise<CircleDetail> {
   return (await ok<{ circle: CircleDetail }>(await send(`/circles/${id}`, 'PATCH', patch))).circle;
 }
 

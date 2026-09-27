@@ -19,7 +19,7 @@ import { NextUpCard } from '../album/AlbumView';
 import type { Album } from '../../services/badgesApi';
 
 export type AvailableContact = { phone: string; name: string; avatarUrl: string | null };
-export type ReceivedNudge = { from: string; name: string; avatarUrl: string | null };
+export type ReceivedNudge = { from: string; name: string; avatarUrl: string | null; message?: string | null };
 
 type Props = {
   name: string;
@@ -107,7 +107,7 @@ function NudgeCard({
             {who} {others > 0 ? 'würden' : 'würde'} gern mit dir sprechen 👋
           </AppText>
           <AppText variant="caption" color={colors.textSecondary}>
-            {available ? 'Du bist erreichbar: ruf doch einfach an.' : 'Kein Druck. Wenn es dir passt, schalte dich erreichbar.'}
+            {first.message ? `„${first.message}“` : available ? 'Du bist erreichbar: ruf doch einfach an.' : 'Kein Druck. Wenn es dir passt, schalte dich erreichbar.'}
           </AppText>
         </View>
         {/* Part of the row, so the card's rounded corner never cuts it */}

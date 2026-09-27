@@ -77,6 +77,7 @@ export default function StatsScreen() {
         onRetry={load}
         onBack={() => router.back()}
         onOpenAlbum={() => router.push('/album')}
+        onOpenYear={() => router.push('/year')}
         person={person}
         onChangeVisibility={changeVisibility}
         onPickPeople={() => setPicking(true)}

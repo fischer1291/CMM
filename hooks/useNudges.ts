@@ -52,10 +52,10 @@ export function useNudges() {
     }));
   };
 
-  const nudge = useCallback(async (phone: string, name: string) => {
+  const nudge = useCallback(async (phone: string, name: string, message?: string | null) => {
     const firstName = name.split(' ')[0];
     try {
-      const result = await sendNudge(phone);
+      const result = await sendNudge(phone, message);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       remember(phone, result.nextAllowedAt);
       return true;

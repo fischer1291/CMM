@@ -5,6 +5,7 @@ import { useContacts } from '../contexts/ContactsContext';
 import { useNewCall } from '../contexts/NewCallContext';
 import { FriendView } from '../features/contacts/FriendView';
 import { useNudges } from '../hooks/useNudges';
+import { useNudgeComposer } from '../hooks/useNudgeComposer';
 import { useSafetyMenu } from '../hooks/useSafetyMenu';
 import { fetchFriendship, Friendship } from '../services/badgesApi';
 import { fetchSharedStats, nextNudgeLabel, SharedStats } from '../services/gamificationApi';
@@ -17,6 +18,7 @@ export default function FriendScreen() {
   const { contacts } = useContacts();
   const { startVideoCall } = useNewCall();
   const { nudge, nudged, nextNudge } = useNudges();
+  const composer = useNudgeComposer(nudge);
   const safety = useSafetyMenu();
   const [shared, setShared] = useState<SharedStats | null>(null);
   const [friendship, setFriendship] = useState<Friendship | null>(null);
@@ -39,21 +41,24 @@ export default function FriendScreen() {
   const seen = formatLastSeen(contact?.lastOnline ?? null);
 
   return (
-    <FriendView
-      name={name}
-      avatarUrl={contact?.avatarUrl ?? null}
-      available={available}
-      statusText={available ? 'Jetzt erreichbar' : seen ? `Zuletzt erreichbar ${seen}` : 'Gerade offline'}
-      together={friendship?.together ?? null}
-      friendshipBadges={friendship?.badges ?? []}
-      showcase={friendship?.showcase ?? []}
-      shared={shared}
-      nudged={nudged(phone)}
-      nextNudgeLabel={nextNudge(phone) ? nextNudgeLabel(nextNudge(phone)!) : null}
-      onBack={() => router.back()}
-      onCall={({ video }) => userPhone && startVideoCall(phone, userPhone, { video })}
-      onNudge={() => nudge(phone, name)}
-      onMore={() => safety.open({ phone, name }, () => router.back())}
-    />
+    <>
+      <FriendView
+        name={name}
+        avatarUrl={contact?.avatarUrl ?? null}
+        available={available}
+        statusText={available ? 'Jetzt erreichbar' : seen ? `Zuletzt erreichbar ${seen}` : 'Gerade offline'}
+        together={friendship?.together ?? null}
+        friendshipBadges={friendship?.badges ?? []}
+        showcase={friendship?.showcase ?? []}
+        shared={shared}
+        nudged={nudged(phone)}
+        nextNudgeLabel={nextNudge(phone) ? nextNudgeLabel(nextNudge(phone)!) : null}
+        onBack={() => router.back()}
+        onCall={({ video }) => userPhone && startVideoCall(phone, userPhone, { video })}
+        onNudge={() => composer.start(phone, name)}
+        onMore={() => safety.open({ phone, name }, () => router.back())}
+      />
+      {composer.sheet}
+    </>
   );
 }

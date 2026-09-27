@@ -165,12 +165,13 @@ export default function CircleScreen() {
             Alert.alert('Nicht gesendet', 'Bitte versuche es erneut.');
           }
         }}
-        onSaveRitual={async (ritual) => {
+        onSaveRituals={async (rituals) => {
           if (!circle) return;
           try {
-            setCircle(await updateCircle(circle.id, { ritual }));
-          } catch {
-            Alert.alert('Nicht gespeichert', 'Das Ritual konnte nicht gespeichert werden.');
+            // Older backends only know the single ritual
+            setCircle(await updateCircle(circle.id, circle.rituals ? { rituals } : { ritual: rituals[0] }));
+          } catch (error) {
+            if (!explainLimit(error, router)) Alert.alert('Nicht gespeichert', 'Das Ritual konnte nicht gespeichert werden.');
           }
         }}
       />

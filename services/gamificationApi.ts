@@ -44,7 +44,7 @@ export type SharedStats = {
 };
 
 export type Nudges = {
-  received: { from: string; name: string; at: string }[];
+  received: { from: string; name: string; at: string; /** Wanna yap+: an own line */ message?: string | null }[];
   /** People I can't nudge again yet, and from when I can */
   sent: { to: string; nextAllowedAt: string }[];
 };
@@ -112,8 +112,8 @@ export async function fetchSharedStats(phone: string): Promise<{ name: string; s
 }
 
 /** Returns when the next nudge to this person is possible. */
-export async function sendNudge(phone: string): Promise<{ nextAllowedAt: string | null }> {
-  return json(await apiPostJson('/nudge', { phone }, 10000));
+export async function sendNudge(phone: string, message?: string | null): Promise<{ nextAllowedAt: string | null }> {
+  return json(await apiPostJson('/nudge', message ? { phone, message } : { phone }, 10000));
 }
 
 /** "Nicht jetzt": hide nudges (from one person, or all). The sender isn't told. */

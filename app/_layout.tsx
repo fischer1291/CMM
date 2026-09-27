@@ -100,6 +100,8 @@ function InnerLayout() {
           <Stack.Screen name="support" />
           <Stack.Screen name="calls" />
           <Stack.Screen name="plus" />
+          <Stack.Screen name="appicon" />
+          <Stack.Screen name="year" options={{ presentation: 'fullScreenModal' }} />
           <Stack.Screen name="schedule" />
           <Stack.Screen name="friend" />
           <Stack.Screen name="notifications" />
