@@ -20,6 +20,9 @@ Internet für die Google Fonts.
 | `src/kit.js` | Social-Media-, App-Store- und Druckmotive |
 | `dist/landing/` | Fertige Landing Page, deploybar als eigene Netlify-Site |
 | `dist/kit/` | Gerenderte PNGs und der Flyer als PDF |
+| `src/ads.js` | Animierte Werbevideos (Reels/TikTok/Stories) und die Endkarte |
+| `dist/video/` | Gerenderte MP4s (`npm run video`) und das Hero-Video (`npm run hero`) |
+| `hero/` | Shotliste des Hero-Videos; KI-Clips und Ton kommen nach `hero/clips/` und `hero/audio/` (nicht im Git) |
 
 ## Landing Page deployen
 
@@ -31,3 +34,15 @@ Internet für die Google Fonts.
 
 Sobald es einen öffentlichen TestFlight- oder App-Store-Link gibt, mit
 `DOWNLOAD_URL=…` bauen: Die Buttons führen dann direkt zum Download statt zur Warteliste.
+
+## Videos
+
+```bash
+npm run video                 # alle animierten Anzeigen + Endkarten nach dist/video/
+npm run video -- ad-2         # nur eine
+MUSIC=track.mp3 npm run video # mit Musik (lizenziert!)
+npm run hero                  # Hero-Video aus hero/clips/, fehlende Shots als Platzhalter
+```
+
+Braucht ffmpeg (`brew install ffmpeg`) und Google Chrome. Anleitung für die
+KI-Szenen, Prompts und Sprechertext: [HERO-VIDEO.md](HERO-VIDEO.md).

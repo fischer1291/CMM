@@ -136,8 +136,13 @@ sich bezahlte Reichweite.
 | `appstore/appstore-1…6.png` | 1290×2796 | App-Store-Screenshots 6,9″ |
 | `print/flyer-a6.pdf` / `.png` | A6 | Flyer mit QR-Code (ohne Beschnittzugabe) |
 | `web/og-image.png` | 1200×630 | Linkvorschau (WhatsApp, iMessage, LinkedIn) |
+| `../video/ad-1-bald-telefonieren.mp4` | 1080×1920, 13 s | Anzeige/Reel: Hook „Wie oft hast du das geschrieben?“ |
+| `../video/ad-2-yap-moment.mp4` | 1080×1920, 13 s | Anzeige/Reel: Yap Moment mit Countdown |
+| `../video/ad-3-kein-feed.mp4` | 1080×1920, 11 s | Anzeige/Reel: Kein Feed, keine Likes, nur deine Menschen |
+| `../video/endcard-*.mp4` | 9:16 und 16:9, 5 s | Ans Ende jedes eigenen Videos (UGC, Gründer-Clips) |
+| `../video/hero-*.mp4` | 16:9 und 9:16, 45 s | Hero-Video, siehe HERO-VIDEO.md |
 
-Texte und Farben änderst du in `src/kit.js`, danach `npm run build`.
+Texte und Farben änderst du in `src/kit.js`, danach `npm run build`. Videos: `src/ads.js`, danach `npm run video`.
 
 ---
 

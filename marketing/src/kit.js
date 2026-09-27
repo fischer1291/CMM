@@ -176,3 +176,5 @@ module.exports = function kit({ logoSvg, qrSvg, shortUrl }) {
 
   return assets;
 };
+
+module.exports.page = page;
