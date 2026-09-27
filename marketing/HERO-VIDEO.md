@@ -32,8 +32,18 @@ echte Aufnahmen aus der App (siehe „Store-Preview“ unten).
   Ton auf -16 LUFS normalisiert (üblich für TikTok, Instagram, YouTube).
 - `fallback`: Ersatz, solange der Clip fehlt (Shot 08 nutzt die animierte Yap-Moment-Einblendung).
 - `voice.cues`: welcher Abschnitt der Sprachaufnahme (`from`/`to` in Sekunden) bei welchem Shot beginnt
-  (`offset`). So passt jeder Satz zu seinem Bild und Untertitel.
+  (`offset`). Die Grenzen nicht nach Gehör raten, sondern aus dem Wort-Transkript nehmen:
+  `npm run transcribe -- hero/audio/voiceover.wav` (lokale Spracherkennung von macOS, fragt beim ersten
+  Mal nach Zugriff). Richtwert: `from` 0,15 s vor dem ersten Wort, `to` 0,2 s nach dem letzten.
+- Untertitel erscheinen automatisch mit dem Einsatz ihres Satzes, nicht schon mit dem Schnitt.
 - Zu kurze Clips halten ihr letztes Bild. Formate ohne einen einzigen Clip werden übersprungen.
+
+**Qualitätsbericht:** `npm run hero` prüft nach jedem Schnitt automatisch, dass die Tonspur keine
+Lücken hat, Bild und Ton gleich lang sind, die Lautheit bei -16 LUFS liegt (Spitze unter -1 dBFS) und
+pro Shot Untertitel und Stimme innerhalb des Shots liegen. Schlägt etwas fehl, bricht das Skript mit
+einer Liste der Probleme ab. `npm run music` richtet die Musik an denselben Schnittzeiten aus
+(Aufbruch beim ersten App-Shot, Beats auf den Schnitten, Schlussakkord exakt auf der Endkarte).
+Nach Änderungen an der Shotliste deshalb beides neu: `npm run music && npm run hero`.
 
 7. **Schneiden:** `npm run video -- endcard && npm run hero` ergibt
    `dist/video/hero-16x9.mp4` und `hero-9x16.mp4`. Fehlende Clips erscheinen als

@@ -3,20 +3,36 @@
 //
 //   cd marketing && npm run music        # writes hero/audio/music.wav
 //
-// Warm lo-fi/ambient in D major, 90 bpm (one bar = 2.667 s), timed to the cut:
-//   bars 1–6  (0–16 s)   the problem: soft pad in B minor, a few plucked notes
-//   bars 7–13 (16–34.7 s) the app appears: major, arpeggio, bass, soft drums
-//   bar 14–   (34.7 s–)   end card: one open D major chord rings out
+// Warm lo-fi/ambient in D major, timed to the cut in hero/shots.json:
+//   until the first app shot (16 s)  the problem: soft pad in B minor, plucks
+//   from there, in whole bars         the app appears: major, arpeggio, bass,
+//                                     soft drums; every 4 s cut lands on a kick
+//   a short breath, then exactly on   end card: one open D major chord rings out
+//   the cut to the end card
+// The tempo (about 90 bpm) is chosen so the first app shot starts on a bar.
 const fs = require('fs');
 const path = require('path');
 
 const SR = 44100;
-const BPM = 90;
-const BEAT = 60 / BPM;
-const BAR = 4 * BEAT;
-const SECONDS = 40;
-const N = SR * SECONDS;
 const OUT = path.join(__dirname, 'hero/audio/music.wav');
+
+// Cut points from the shot list
+const { shots } = JSON.parse(fs.readFileSync(path.join(__dirname, 'hero/shots.json'), 'utf8'));
+let t0 = 0;
+const shotStart = {};
+for (const s of shots) {
+  shotStart[s.id] = t0;
+  t0 += s.seconds;
+}
+const LIFT_AT = shotStart[(shots.find((s) => s.source === 'app') || shots[Math.floor(shots.length / 3)]).id];
+const END_CARD_AT = t0;
+const SECONDS = END_CARD_AT + 5;
+const N = Math.round(SR * SECONDS);
+
+// About 90 bpm, adjusted so the lift falls on a bar line
+const BAR = LIFT_AT / Math.max(1, Math.round(LIFT_AT / (4 * 60 / 90)));
+const BEAT = BAR / 4;
+const BPM = Math.round((60 / BEAT) * 10) / 10;
 
 const midi = (m) => 440 * 2 ** ((m - 69) / 12);
 // Deterministic "random" so every build sounds the same
@@ -35,11 +51,17 @@ const C = {
   Gadd9: [31, 55, 59, 62, 69],
   Dmaj9: [38, 50, 57, 66, 73, 76],
 };
-const INTRO = ['Bm7', 'Gmaj7', 'Bm7', 'Gmaj7', 'Em7', 'Asus'];
-const GROOVE = ['D', 'AC', 'Bm7', 'Gmaj7', 'D', 'A', 'Gadd9'];
+const INTRO_CHORDS = ['Bm7', 'Gmaj7', 'Bm7', 'Gmaj7', 'Em7', 'Asus'];
+const GROOVE_CHORDS = ['D', 'AC', 'Bm7', 'Gmaj7', 'D', 'A', 'Gadd9'];
+const introBars = Math.round(LIFT_AT / BAR);
+const grooveBars = Math.floor((END_CARD_AT - LIFT_AT) / BAR + 0.01);
+// The intro ends on the suspended A that leads into the lift
+const INTRO = Array.from({ length: introBars }, (_, i) => (i === introBars - 1 ? 'Asus' : INTRO_CHORDS[i % (INTRO_CHORDS.length - 1)]));
+const GROOVE = Array.from({ length: grooveBars }, (_, i) => GROOVE_CHORDS[i % GROOVE_CHORDS.length]);
 const bars = [...INTRO, ...GROOVE, 'Dmaj9'];
-const GROOVE_START = INTRO.length * BAR; // 16 s
-const OUTRO_START = (INTRO.length + GROOVE.length) * BAR; // 34.67 s
+const GROOVE_START = LIFT_AT;
+// The final chord hits the cut to the end card, not the bar grid
+const OUTRO_START = END_CARD_AT;
 
 const L = new Float32Array(N);
 const R = new Float32Array(N);
@@ -150,7 +172,8 @@ function noiseHit(start, gain, { decay, bright, pan = 0.5, send = 0 }) {
 // --- Arrangement -------------------------------------------------------------
 
 bars.forEach((name, b) => {
-  const t = b * BAR;
+  const outroBar = b === bars.length - 1;
+  const t = outroBar ? OUTRO_START : b * BAR;
   const [root, ...voices] = C[name];
   const outro = name === 'Dmaj9';
   const intro = b < INTRO.length;
@@ -264,4 +287,4 @@ header.write('data', 36);
 header.writeUInt32LE(data.length, 40);
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, Buffer.concat([header, data]));
-console.log(`✓ ${path.relative(__dirname, OUT)} (${SECONDS} s, ${BPM} bpm, groove from ${GROOVE_START.toFixed(1)} s, outro from ${OUTRO_START.toFixed(1)} s)`);
+console.log(`✓ ${path.relative(__dirname, OUT)} (${SECONDS} s, ${BPM} bpm, groove from ${GROOVE_START.toFixed(2)} s, final chord at ${OUTRO_START.toFixed(2)} s)`);
