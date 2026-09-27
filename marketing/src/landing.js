@@ -32,6 +32,15 @@ const NOPE = [
   ['Kein Druck', 'Keine Lesebestätigung, kein „zuletzt online“. Du bist erreichbar, wenn du willst, und sonst eben nicht.'],
 ];
 
+// Same wording as the backend stores as proof of consent (lib/waitlist.js CONSENT_TEXT)
+const CONSENT_TEXT =
+  'Ich möchte per E-Mail erfahren, wenn Wanna yap? startet, und bis dahin höchstens ein paar Neuigkeiten bekommen. Abmelden geht jederzeit über den Link in jeder Mail.';
+
+const WAITLIST_FAQ = [
+  ['Wann kommt die App?', 'Wir sind im Endspurt. Trag dich auf die Warteliste ein, dann bekommst du den Link am Launch-Tag als eine der Ersten.'],
+  ['Was bringt mir die Warteliste?', 'Am Launch-Tag den Link direkt ins Postfach, das Abzeichen „Von Anfang an“ in der App, und wenn drei Freunde über deinen Link dazukommen, einen Monat Wanna yap+ geschenkt.'],
+];
+
 const FAQ = [
   ['Was kostet Wanna yap?', 'Nichts. Die App ist kostenlos und ohne Werbung.'],
   ['Brauchen meine Freunde die App auch?', 'Ja, damit ihr euren Status gegenseitig seht. Du lädst sie mit einem Link ein. Wer über deinen Link kommt, ist nach der Anmeldung direkt mit dir verbunden.'],
@@ -41,8 +50,24 @@ const FAQ = [
   ['Was passiert mit meinen Daten?', 'Wir speichern nur, was die App zum Funktionieren braucht. Du kannst deine Daten jederzeit exportieren und dein Konto in der App löschen. Details stehen in der Datenschutzerklärung.'],
 ];
 
-module.exports = function landing({ logoSvg, siteUrl, legalUrl, downloadUrl, ogImage }) {
-  const heroCta = `<a class="cta" href="${downloadUrl}">${ICON.phone}<span>Im App Store laden</span></a>`;
+module.exports = function landing({ logoSvg, siteUrl, legalUrl, downloadUrl, ogImage, mode = 'live', apiUrl = 'https://api.wannayap.app', preorder = false }) {
+  const waiting = mode === 'waitlist';
+  const storeCta = `<a class="cta" href="${downloadUrl}">${ICON.phone}<span>Im App Store laden</span></a>`;
+  const preorderLink = preorder ? `<a class="ghost" href="${downloadUrl}">Im App Store vorbestellen</a>` : '';
+  /** Waitlist sign-up (the script at the end sends it to the backend). */
+  const waitForm = (id) => `
+    <form class="wl" data-waitlist novalidate>
+      <div class="wl-row">
+        <label class="sr" for="email-${id}">E-Mail-Adresse</label>
+        <input id="email-${id}" name="email" type="email" inputmode="email" autocomplete="email" placeholder="deine@mail.de" required>
+        <button class="cta" type="submit">${ICON.flash}<span>Auf die Warteliste</span></button>
+      </div>
+      <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <p class="wl-note">${CONSENT_TEXT} <a href="${legalUrl}/datenschutz">Datenschutz</a></p>
+      <p class="wl-msg" role="status" aria-live="polite"></p>
+    </form>`;
+  const heroCta = waiting ? `${waitForm('hero')}${preorderLink ? `<div class="actions" style="margin-top:14px">${preorderLink}</div>` : ''}` : storeCta;
+  const faq = waiting ? [...WAITLIST_FAQ, ...FAQ] : FAQ;
 
   return `<!doctype html>
 <html lang="de">
@@ -191,6 +216,42 @@ footer nav { display: flex; gap: 22px; }
 footer a { text-decoration: none; color: var(--text-2); }
 footer a:hover { color: var(--text); }
 
+/* Waitlist */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.wl { max-width: 560px; }
+.wl-row { display: flex; gap: 10px; padding: 6px; border-radius: 999px; background: var(--surface-strong); border: 1px solid var(--border-strong); }
+.wl-row input { flex: 1; min-width: 0; height: 52px; padding: 0 18px; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 17px; outline: none; }
+.wl-row input::placeholder { color: var(--text-3); }
+.wl-row:focus-within { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,229,255,0.15); }
+.wl .cta { height: 52px; padding: 0 22px; font-size: 16px; white-space: nowrap; }
+.wl .cta[disabled] { opacity: .6; cursor: progress; transform: none; }
+.wl-note { margin-top: 12px; font-size: 12.5px; line-height: 1.5; color: var(--text-3); max-width: 58ch; }
+.wl-note a { color: var(--text-2); }
+.wl-msg { margin-top: 10px; font-size: 15px; color: var(--pink); min-height: 1px; }
+.wl-done { padding: 22px 24px; border-radius: 24px; background: var(--surface); border: 1px solid var(--border-strong); max-width: 560px; }
+.wl-done h3 { font-size: 24px; margin-bottom: 6px; }
+.wl-done p { color: var(--text-2); font-size: 16px; }
+.perks { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 12px; }
+.perks li { display: flex; gap: 12px; align-items: baseline; color: var(--text-2); font-size: 16px; }
+.perks b { color: var(--text); }
+dialog.wl-dialog { width: min(520px, calc(100vw - 32px)); padding: 0; border: 0; border-radius: 32px; background: transparent; color: var(--text); }
+dialog.wl-dialog::backdrop { background: rgba(5,5,10,0.78); backdrop-filter: blur(6px); }
+.wl-card { position: relative; padding: 2px; border-radius: 32px; background: var(--brand); box-shadow: 0 0 80px rgba(255,46,147,0.3); }
+.wl-card > div { border-radius: 30px; background: #11111b; padding: 34px 28px 28px; display: flex; flex-direction: column; gap: 16px; }
+.wl-card h2 { font-size: 36px; }
+.wl-card p { color: var(--text-2); }
+.wl-close { position: absolute; top: 14px; right: 16px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--surface-strong); color: var(--text); font-size: 20px; cursor: pointer; }
+.dots { display: flex; gap: 6px; }
+.dots i { flex: 1; height: 8px; border-radius: 4px; background: var(--surface-strong); }
+.dots i.on { background: var(--pink); box-shadow: 0 0 12px rgba(255,46,147,0.6); }
+.linkbox { display: flex; gap: 8px; }
+.linkbox input { flex: 1; min-width: 0; height: 48px; padding: 0 14px; border-radius: 14px; border: 1px solid var(--border-strong); background: var(--bg); color: var(--text); font: inherit; font-family: var(--mono); font-size: 14px; }
+.btn2 { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 18px; border-radius: 14px; border: 1px solid var(--border-strong); background: var(--surface-strong); color: var(--text); font: inherit; font-weight: 600; font-size: 15px; cursor: pointer; text-decoration: none; }
+.btn2:hover { background: var(--surface); }
+.share-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.share-row .btn2 { flex: 1; }
+
 @media (max-width: 960px) {
   .hero .wrap, .feature, .join-inner { grid-template-columns: 1fr; }
   .feature:nth-child(even) .copy { order: 0; }
@@ -208,6 +269,9 @@ footer a:hover { color: var(--text); }
   .stage .p1 { right: 0; } .stage .p2 { left: 0; }
   .feature .phone { --pw: 280px !important; }
   .cta { height: 56px; padding: 0 24px; font-size: 17px; }
+  .wl-row { flex-direction: column; border-radius: 24px; padding: 8px; }
+  .wl-row input { height: 50px; }
+  .wl .cta { justify-content: center; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -223,7 +287,7 @@ footer a:hover { color: var(--text); }
       <a href="#so-gehts">So geht’s</a>
       <a href="#features">Features</a>
       <a href="#faq">FAQ</a>
-      <a class="mini" href="${downloadUrl}">Laden</a>
+      ${waiting ? '<a class="mini" href="#warteliste">Warteliste</a>' : `<a class="mini" href="${downloadUrl}">Laden</a>`}
     </nav>
   </div>
 </header>
@@ -235,8 +299,8 @@ footer a:hover { color: var(--text); }
         <p class="eyebrow">Die App für echte Gespräche</p>
         <h1 style="margin-top:20px">Ruf an,<span class="line2 grad-text">wenn’s passt.</span></h1>
         <p class="lead">Sieh, wer aus deinen Leuten <b>gerade Zeit hat</b>, und ruf einfach an. Kein Anruf ins Leere, kein „Lass mal bald telefonieren“.</p>
-        <div class="actions">${heroCta}<a class="ghost" href="#so-gehts">So funktioniert’s</a></div>
-        <p class="note">Kostenlos</p>
+        ${waiting ? `<div style="margin-top:36px">${heroCta}</div>` : `<div class="actions">${heroCta}<a class="ghost" href="#so-gehts">So funktioniert’s</a></div>`}
+        <p class="note">${waiting ? 'Kostenlos · Bald fürs iPhone' : 'Kostenlos'}</p>
       </div>
       <div class="stage" aria-hidden="true">
         ${screens.moment({ pw: 300, extraClass: 'back' })}
@@ -288,22 +352,36 @@ footer a:hover { color: var(--text); }
     </div>
   </section>
 
-  <section class="join wrap" id="download">
+  ${waiting ? `<section class="join wrap" id="warteliste">
     <div class="join-card"><div class="join-inner">
       <div>
         <p class="eyebrow">Bald im App Store</p>
+        <h2 style="margin-top:18px">Sei von Anfang an dabei.</h2>
+        <p class="sub">Trag dich ein, und du bekommst den Link am Launch-Tag direkt ins Postfach. Bring deine Leute mit: Zusammen macht die App am meisten Sinn.</p>
+        <ul class="perks">
+          <li><span>🚀</span><span><b>Abzeichen „Von Anfang an“</b> in der App, nur für die Warteliste</span></li>
+          <li><span>🎁</span><span><b>1 Monat Wanna yap+ geschenkt</b>, wenn drei Freunde über deinen Link dazukommen</span></li>
+          <li><span>📬</span><span><b>Der Link zum Start</b>, bevor wir laut werden</span></li>
+        </ul>
+      </div>
+      <div>${waitForm('join')}${preorderLink ? `<div style="margin-top:14px">${preorderLink}</div>` : ''}</div>
+    </div></div>
+  </section>` : `<section class="join wrap" id="download">
+    <div class="join-card"><div class="join-inner">
+      <div>
+        <p class="eyebrow">Jetzt im App Store</p>
         <h2 style="margin-top:18px">Bereit, wenn du es bist.</h2>
         <p class="sub">Lad dir Wanna yap? und sieh sofort, wer aus deinen Leuten gerade Zeit hat. Bring am besten gleich deine Leute mit: Zusammen macht die App am meisten Sinn.</p>
       </div>
       <div style="display:flex;align-items:center;justify-content:center">
-        <a class="cta" href="${downloadUrl}">${ICON.phone}<span>Im App Store laden</span></a>
+        ${storeCta}
       </div>
     </div></div>
-  </section>
+  </section>`}
 
   <section class="faq wrap" id="faq">
     <h2>Fragen?</h2>
-    ${FAQ.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join('')}
+    ${faq.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join('')}
   </section>
 </main>
 
@@ -314,6 +392,144 @@ footer a:hover { color: var(--text); }
     <span>Gemacht für echte Gespräche.</span>
   </div>
 </footer>
+${waiting ? waitlistScript({ apiUrl, siteUrl }) : ''}
 </body>
 </html>`;
 };
+
+/**
+ * Waitlist in the browser: sign-up, the confirmation link (?bestaetigen=),
+ * the unsubscribe link (?abmelden=), and the share card with the personal
+ * referral link. Remembers ?ref= and utm_* for the sign-up, and the own code
+ * for the next visit (localStorage, only on this device).
+ */
+function waitlistScript({ apiUrl, siteUrl }) {
+  return `<dialog class="wl-dialog" id="wl-dialog"><div class="wl-card"><div id="wl-body"></div></div><button class="wl-close" type="button" aria-label="Schließen" onclick="this.closest('dialog').close()">×</button></dialog>
+<script>
+(() => {
+  const API = ${JSON.stringify(apiUrl)};
+  const SITE = ${JSON.stringify(siteUrl)};
+  const q = new URLSearchParams(location.search);
+  const store = {
+    get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+    del: (k) => { try { localStorage.removeItem(k); } catch {} },
+  };
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const post = (path, body) => fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+  // Where they came from, for the sign-up
+  if (q.get('ref')) store.set('wy_ref', q.get('ref').slice(0, 16));
+  if (q.get('utm_source')) store.set('wy_src', q.get('utm_source').slice(0, 40));
+  if (q.get('utm_campaign')) store.set('wy_camp', q.get('utm_campaign').slice(0, 40));
+  // Tokens don't belong in the address bar (or in a shared screenshot)
+  const cleanUrl = () => history.replaceState(null, '', location.pathname + location.hash);
+
+  const dialog = document.getElementById('wl-dialog');
+  const show = (html) => {
+    document.getElementById('wl-body').innerHTML = html;
+    if (!dialog.open) dialog.showModal();
+  };
+
+  function shareCard(st, fresh) {
+    const link = SITE + '/?ref=' + encodeURIComponent(st.code);
+    const left = Math.max(0, st.goal - st.referrals);
+    const text = 'Ich bin auf der Warteliste von Wanna yap?, der App, die zeigt, wann deine Leute Zeit zum Telefonieren haben. Komm mit: ' + link;
+    const dots = Array.from({ length: st.goal }, (_, i) => '<i class="' + (i < st.referrals ? 'on' : '') + '"></i>').join('');
+    return (fresh ? '<p class="eyebrow">Bestätigt</p><h2>Du bist dabei! 🎉</h2>' : '<p class="eyebrow">Deine Warteliste</p><h2>Schön, dass du da bist.</h2>') +
+      '<p>Platz <b>#' + st.position + '</b> von ' + st.total + '. Am Launch-Tag bekommst du den Link per Mail.</p>' +
+      '<div class="dots" aria-label="' + st.referrals + ' von ' + st.goal + ' Freunden">' + dots + '</div>' +
+      '<p>' + (left ? 'Noch <b>' + left + '</b> ' + (left === 1 ? 'Freund' : 'Freunde') + ' über deinen Link, dann gehört dir <b>1 Monat Wanna yap+</b>.' : 'Geschafft: <b>1 Monat Wanna yap+</b> gehört dir zum Start.') + '</p>' +
+      '<div class="linkbox"><input readonly value="' + esc(link) + '" aria-label="Dein Einladungslink"><button class="btn2" type="button" data-copy="' + esc(link) + '">Kopieren</button></div>' +
+      '<div class="share-row"><a class="btn2" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent(text) + '">WhatsApp</a>' +
+      (navigator.share ? '<button class="btn2" type="button" data-share>Teilen …</button>' : '') + '</div>' +
+      '<p style="font-size:13px">Dein Code: <b style="font-family:var(--mono);color:var(--text)">' + esc(st.code) + '</b>. Du bekommst ihn zum Start auch per Mail und löst ihn in der App ein.</p>';
+  }
+
+  document.addEventListener('click', async (e) => {
+    if (e.target.closest('[data-close]')) dialog.close();
+    const copy = e.target.closest('[data-copy]');
+    if (copy) {
+      try { await navigator.clipboard.writeText(copy.dataset.copy); copy.textContent = 'Kopiert ✓'; } catch { copy.previousElementSibling.select(); }
+    }
+    if (e.target.closest('[data-share]')) {
+      const link = dialog.querySelector('.linkbox input').value;
+      navigator.share({ title: 'Wanna yap?', text: 'Komm mit auf die Warteliste von Wanna yap?', url: link }).catch(() => {});
+    }
+  });
+
+  // Sign-up
+  document.querySelectorAll('form[data-waitlist]').forEach((form) => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = form.querySelector('.wl-msg');
+      const button = form.querySelector('button');
+      const email = form.email.value.trim();
+      msg.textContent = '';
+      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(email)) {
+        msg.textContent = 'Bitte gib eine gültige E-Mail-Adresse ein.';
+        form.email.focus();
+        return;
+      }
+      button.disabled = true;
+      try {
+        const res = await post('/waitlist', {
+          email,
+          website: form.website.value,
+          ref: store.get('wy_ref'),
+          source: store.get('wy_src'),
+          campaign: store.get('wy_camp'),
+        });
+        if (res.ok) {
+          form.outerHTML = '<div class="wl-done"><h3>Fast geschafft! 📬</h3><p>Wir haben dir eine Mail an <b>' + esc(email) + '</b> geschickt. Bestätige deine Adresse, dann bist du auf der Liste. Keine Mail da? Schau im Spam-Ordner nach.</p></div>';
+          return;
+        }
+        const data = await res.json().catch(() => ({}));
+        msg.textContent = data.error === 'invalid_email' ? 'Bitte gib eine gültige E-Mail-Adresse ein.'
+          : res.status === 429 ? 'Zu viele Versuche. Probier es in einer Stunde noch mal.'
+          : 'Gerade klappt es nicht. Versuch es gleich noch einmal.';
+      } catch {
+        msg.textContent = 'Keine Verbindung. Versuch es gleich noch einmal.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+
+  // Confirmation link from the mail
+  const confirmToken = q.get('bestaetigen');
+  const leaveToken = q.get('abmelden');
+  if (confirmToken) {
+    cleanUrl();
+    post('/waitlist/confirm', { token: confirmToken })
+      .then(async (res) => {
+        if (!res.ok) throw new Error();
+        const st = await res.json();
+        store.set('wy_code', st.code);
+        show(shareCard(st, true));
+      })
+      .catch(() => show('<h2>Der Link ist abgelaufen</h2><p>Bestätigungslinks gelten 7 Tage. Trag dich einfach noch einmal ein, dann schicken wir dir einen neuen.</p><a class="btn2" href="#warteliste" data-close>Zur Warteliste</a>'));
+  } else if (leaveToken) {
+    cleanUrl();
+    post('/waitlist/unsubscribe', { token: leaveToken })
+      .finally(() => {
+        store.del('wy_code');
+        show('<h2>Du bist abgemeldet</h2><p>Wir haben deine Adresse gelöscht und schreiben dir nicht mehr. Wenn du es dir anders überlegst, kannst du dich jederzeit wieder eintragen.</p>');
+      });
+  } else if (store.get('wy_code')) {
+    // Coming back: the share card instead of the form
+    fetch(API + '/waitlist/status/' + encodeURIComponent(store.get('wy_code')))
+      .then(async (res) => {
+        if (res.status === 404) { store.del('wy_code'); return; }
+        if (!res.ok) return;
+        const st = await res.json();
+        document.querySelectorAll('form[data-waitlist]').forEach((form) => {
+          form.outerHTML = '<div class="wl-done"><h3>Du bist dabei ✓</h3><p>Platz #' + st.position + ', ' + st.referrals + ' von ' + st.goal + ' Freunden sind über deinen Link gekommen.</p><p style="margin-top:12px"><button class="btn2" type="button" data-open-share>Freunde einladen</button></p></div>';
+        });
+        document.addEventListener('click', (e) => { if (e.target.closest('[data-open-share]')) show(shareCard(st, false)); });
+      })
+      .catch(() => {});
+  }
+})();
+</script>`;
+}

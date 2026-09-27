@@ -32,6 +32,8 @@ type Props = {
   onOpenImprint: () => void;
   onOpenCircles: () => void;
   onOpenBlocked: () => void;
+  /** Code from the waitlist launch mail; returns an error to show, or null. Hidden once redeemed. */
+  onRedeemWaitlist?: ((code: string) => Promise<string | null>) | null;
   onSignOut: () => void;
   onDeleteAccount: () => void;
   version: string;
@@ -63,6 +65,26 @@ export function ProfileView(props: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(props.name);
   const [saving, setSaving] = useState(false);
+  const [redeeming, setRedeeming] = useState(false);
+  const [code, setCode] = useState('');
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [codeBusy, setCodeBusy] = useState(false);
+
+  const redeem = async () => {
+    if (!props.onRedeemWaitlist || code.trim().length < 8) return;
+    setCodeBusy(true);
+    setCodeError(null);
+    try {
+      const error = await props.onRedeemWaitlist(code.trim());
+      if (error) setCodeError(error);
+      else {
+        setRedeeming(false);
+        setCode('');
+      }
+    } finally {
+      setCodeBusy(false);
+    }
+  };
 
   const openEditor = () => {
     setDraft(props.name);
@@ -138,6 +160,9 @@ export function ProfileView(props: Props) {
       <RowGroup
         rows={[
           { icon: 'gift-outline', label: 'Freunde einladen', onPress: props.onInvite },
+          ...(props.onRedeemWaitlist
+            ? [{ icon: 'rocket-outline' as const, label: 'Warteliste-Code einlösen', onPress: () => { setCodeError(null); setRedeeming(true); } }]
+            : []),
           { icon: 'help-buoy-outline', label: 'Hilfe & Feedback', onPress: props.onOpenSupport },
         ]}
       />
@@ -172,6 +197,35 @@ export function ProfileView(props: Props) {
             <TextField value={draft} onChangeText={setDraft} autoFocus maxLength={50} returnKeyType="done" onSubmitEditing={save} />
             <Button title="Speichern" onPress={save} loading={saving} disabled={!draft.trim()} />
             <Button title="Abbrechen" variant="ghost" onPress={() => setEditing(false)} />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <Modal visible={redeeming} transparent animationType="fade" onRequestClose={() => setRedeeming(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalBackdrop}>
+          <View style={styles.modal}>
+            <AppText variant="h2">Warteliste-Code</AppText>
+            <AppText variant="caption" color={colors.textSecondary}>
+              Den Code findest du in unserer Launch-Mail. Er bringt dir das Abzeichen „Von Anfang an“, und wer drei Freunde mitgebracht hat, bekommt dazu einen Monat Wanna yap+.
+            </AppText>
+            <TextField
+              value={code}
+              onChangeText={setCode}
+              placeholder="ABCD-1234"
+              autoFocus
+              autoCapitalize="characters"
+              autoCorrect={false}
+              maxLength={12}
+              returnKeyType="done"
+              onSubmitEditing={redeem}
+            />
+            {codeError ? (
+              <AppText variant="caption" color={colors.danger}>
+                {codeError}
+              </AppText>
+            ) : null}
+            <Button title="Einlösen" onPress={redeem} loading={codeBusy} disabled={code.trim().length < 8} />
+            <Button title="Abbrechen" variant="ghost" onPress={() => setRedeeming(false)} />
           </View>
         </KeyboardAvoidingView>
       </Modal>

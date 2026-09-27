@@ -8,7 +8,7 @@
 type Operator = { name: string; street: string; city: string; email: string };
 export const OPERATOR = null as Operator | null;
 
-export const PRIVACY_UPDATED = '25. September 2026';
+export const PRIVACY_UPDATED = '28. September 2026';
 
 export type LegalSection = { title: string; paragraphs: string[] };
 
@@ -86,6 +86,17 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
       'Die App übermittelt bei jeder Anfrage ihre Version, Plattform und Betriebssystem-Version, damit wir Fehler eingrenzen und veraltete Versionen erkennen können.',
       'Schreibst du uns über „Hilfe & Feedback“, speichern wir deine Nachrichten, die Kategorie und die App-Version, bis du dein Konto löschst.',
       'Für Support und Moderation hat ein kleiner Kreis berechtigter Personen Zugriff auf ein geschütztes Admin-Werkzeug (Anmeldung mit Zwei-Faktor). Nummern sind dort maskiert; jeder Zugriff auf Daten einer Person wird protokolliert (1 Jahr). Bei Verstößen gegen die Regeln kann ein Konto gesperrt werden; bei einer dauerhaften Sperre speichern wir einen Prüfwert (Hash) der Nummer, damit sie sich nicht erneut registrieren kann.',
+    ],
+  },
+  {
+    title: 'Warteliste auf wannayap.app',
+    paragraphs: [
+      'Trägst du dich auf der Website in die Warteliste ein, speichern wir deine E-Mail-Adresse, um dir zu schreiben, sobald die App startet, und dir bis dahin höchstens ein paar Neuigkeiten zu schicken. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO).',
+      'Wir nutzen das Double-Opt-in-Verfahren: Erst wenn du den Link in unserer Bestätigungsmail anklickst, stehst du auf der Liste. Als Nachweis deiner Einwilligung speichern wir den Zeitpunkt der Anmeldung und der Bestätigung, die dabei verwendete IP-Adresse und den Wortlaut der Einwilligung. Bestätigst du nicht, löschen wir den Eintrag nach 7 Tagen.',
+      'Kommst du über den Einladungslink einer anderen Person, speichern wir, über wessen Link du gekommen bist, damit sie für Empfehlungen belohnt werden kann. Sie erfährt nur die Anzahl, nicht wer sich eingetragen hat. Kommst du über einen Link aus einer Kampagne, speichern wir deren Kennzeichen (z. B. „tiktok“), um zu sehen, welche Werbung funktioniert.',
+      'Auf deinem Gerät merkt sich die Website im lokalen Speicher deines Browsers deinen Wartelisten-Code und einen Einladungslink, über den du gekommen bist. Das ist für die von dir gewünschte Funktion nötig (§ 25 Abs. 2 TDDDG) und verlässt dein Gerät nicht.',
+      'Die Mails versenden wir über einen E-Mail-Dienstleister, der sie in unserem Auftrag verarbeitet (Art. 28 DSGVO). Du kannst deine Einwilligung jederzeit widerrufen, über den Abmelde-Link in jeder Mail oder per Mail an uns. Dann löschen wir deine Adresse sofort. Andernfalls löschen wir die Warteliste spätestens 12 Monate nach dem Start der App.',
+      'Löst du deinen Wartelisten-Code in der App ein, verknüpfen wir den Eintrag mit deinem Konto, um dir das Abzeichen und gegebenenfalls die geschenkten Plus-Tage zu geben.',
     ],
   },
   {
