@@ -1,0 +1,15 @@
+{
+  "title": "Wanna yap? – Hero (45 s)",
+  "shots": [
+    { "id": "01", "seconds": 4, "source": "ai", "what": "Gesicht im Handylicht, Daumen scrollt einen Chat", "caption": "Wir schreiben hundert Nachrichten …" },
+    { "id": "02", "seconds": 4, "source": "ai", "what": "Lena im neuen WG-Zimmer, Umzugskartons, tippt, seufzt", "caption": "… und telefonieren nie." },
+    { "id": "03", "seconds": 4, "source": "ai", "what": "Jonas nachts in der Hamburger S-Bahn, gelangweilt am Handy", "caption": "Nicht, weil wir nicht wollen." },
+    { "id": "04", "seconds": 4, "source": "ai", "what": "Verpasst: Handy vibriert auf dem Bett, niemand da", "caption": "Sondern weil das Timing nie passt." },
+    { "id": "05", "seconds": 4, "source": "app", "what": "ECHTE App: Status-Ring antippen, Ring leuchtet", "caption": "Wanna yap? zeigt dir, wer gerade Zeit hat." },
+    { "id": "06", "seconds": 4, "source": "ai", "what": "Jonas’ Gesicht leuchtet cyan auf, er lächelt, tippt", "caption": "Ein Tipp – und ihr erwischt euch." },
+    { "id": "07", "seconds": 5, "source": "ai", "what": "Lena lacht auf dem Bett, mitten im Gespräch", "caption": "" },
+    { "id": "08", "seconds": 4, "source": "ai", "what": "Oma, WG-Balkon, Bushaltestelle: alle schauen gleichzeitig aufs Handy", "caption": "Jeden Tag der Yap Moment: 10 Minuten, alle haben Zeit." },
+    { "id": "09", "seconds": 4, "source": "ai", "what": "Sonntagsrunde: Großeltern winken ins Tablet, Kuchen", "caption": "Rituale mit deinen Menschen. Ganz von allein." },
+    { "id": "10", "seconds": 3, "source": "ai", "what": "Lena legt das Handy weg, lächelt, lässt sich zurückfallen", "caption": "Kein Feed. Keine Likes. Keine Fremden." }
+  ]
+}

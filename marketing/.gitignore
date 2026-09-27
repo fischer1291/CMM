@@ -1,2 +1,5 @@
 node_modules/
 dist/.html/
+# Generated and licensed media stay out of git (AI clips, voice, music)
+hero/clips/
+hero/audio/

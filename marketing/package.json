@@ -3,9 +3,14 @@
   "private": true,
   "description": "Landing page and marketing assets for Wanna yap?",
   "scripts": {
-    "build": "node build.js"
+    "build": "node build.js",
+    "video": "node video.js",
+    "hero": "node hero.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.12.0"
   }
 }
