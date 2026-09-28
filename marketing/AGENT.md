@@ -128,8 +128,14 @@ TikTok `is_aigc`).
    `TIKTOK_CLIENT_SECRET` eintragen.
 4. In der Konsole unter Kanäle **Mit TikTok verbinden**.
 5. Bis TikTok die App geprüft hat („Audit“), sind direkte Posts nur privat sichtbar. Bis
-   dahin im Modus **Entwurf** lassen: Das Video landet in der TikTok-App, du veröffentlichst
-   es dort mit zwei Tipps und hakst es in der Konsole ab. Nach dem Audit auf **Direkt**.
+   dahin im Modus **Entwurf** lassen: Das Video landet in der TikTok-App, du fügst dort den
+   Text ein (bei KI-Videos „KI-generierter Inhalt“ einschalten), veröffentlichst und hakst es
+   in der Konsole ab; die Karte zeigt die Schritte. Nach dem Audit auf **Direkt**.
+6. **Sandbox:** Solange die App bei TikTok in Prüfung ist, geht es nur mit den Sandbox-Schlüsseln
+   (eigener Client Key und Secret im Reiter Sandbox) und nur für Konten, die dort als
+   Target User eingetragen sind. Nach der Freigabe die Produktions-Schlüssel auf Render
+   eintragen und in der Konsole TikTok trennen und neu verbinden: Sandbox-Anmeldungen gelten
+   in der Produktion nicht.
 
 ## Nächste Stufe
 
