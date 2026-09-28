@@ -16,3 +16,11 @@ Das App-Store-Icon wird als RGB-PNG ohne Alpha-Kanal geschrieben
 (`rgbpng.js`), weil App Store Connect Icons mit Alpha-Kanal ablehnt.
 Geänderte native Assets (App-Icon, Splash-Logo) sind erst nach einem neuen
 nativen Build sichtbar.
+
+## Abo-Bilder für App Store Connect
+
+`iap.js` rendert die Werbebilder der beiden Wanna yap+-Abos (1024×1024, RGB)
+nach `marketing/static/iap/<produkt-id>.png`. Die Review-Screenshots
+(`review-<produkt-id>.png`) sind die Galerie-Abschnitte `plus-review-year` und
+`plus-review-month`, aufgenommen wie die Store-Screens mit
+`marketing/tools/app-screens.js`.
