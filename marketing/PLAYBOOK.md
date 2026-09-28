@@ -302,8 +302,8 @@ echte Simulator-Screenshots (gleiche Vorlage, `src/kit.js` → `store(...)`).
   Data Privacy Framework). Die Datenschutzerklärung braucht einen Abschnitt zur
   Warteliste (Zweck, Rechtsgrundlage Einwilligung, Speicherdauer, Widerruf).
   Für Newsletter-Mails ist Double-Opt-in Pflicht, z. B. über Brevo oder Mailchimp.
-- **Impressum:** Die Betreiberangaben in `content/legal.ts` (OPERATOR) müssen vor dem
-  öffentlichen Launch ausgefüllt sein, die Landing Page verlinkt dorthin.
+- **Impressum:** Die Betreiberangaben stehen in `content/legal.ts` (OPERATOR), die Landing
+  Page, die App und die Mails verlinken dorthin.
 - **Creator-Kooperationen:** Werbung immer kennzeichnen lassen.
 - **Flyer-Druck:** Das PDF hat keine Beschnittzugabe. Für Druckereien 2–3 mm
   Beschnitt anfragen, die meisten Online-Druckereien skalieren das auf Wunsch.

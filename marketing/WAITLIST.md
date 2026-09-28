@@ -16,8 +16,8 @@ die Zahlen stehen in der Admin-Konsole unter **Warteliste**.
 
 ## Einmal einrichten (vor der ersten Werbung)
 
-1. **Impressum ausfüllen:** `content/legal.ts` → `OPERATOR`. Ohne Anbieterangaben
-   keine Werbung und keine Werbe-Mails (§ 5 DDG).
+1. **Impressum:** `content/legal.ts` → `OPERATOR` ist ausgefüllt. Die E-Mail-Adresse
+   dort muss Post empfangen können (§ 5 DDG).
 2. **E-Mail-Anbieter** mit Sitz in der EU anlegen, z. B. Brevo, Mailjet oder Amazon SES
    in Frankfurt. Mit dem Anbieter einen Auftragsverarbeitungsvertrag abschließen.
 3. **Domain verifizieren:** Die DNS-Einträge (SPF, DKIM, DMARC), die der Anbieter

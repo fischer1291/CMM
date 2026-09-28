@@ -438,8 +438,8 @@ function visitScript({ apiUrl, siteUrl }) {
 /**
  * Waitlist in the browser: sign-up, the confirmation link (?bestaetigen=),
  * the unsubscribe link (?abmelden=), and the share card with the personal
- * referral link. Remembers ?ref= and utm_* for the sign-up, and the own code
- * for the next visit (localStorage, only on this device).
+ * referral link. Remembers ?ref= and the own code for the next visit
+ * (localStorage, only on this device); utm_* only count for this visit.
  */
 function waitlistScript({ apiUrl, siteUrl }) {
   return `<dialog class="wl-dialog" id="wl-dialog"><div class="wl-card"><div id="wl-body"></div></div><button class="wl-close" type="button" aria-label="Schließen" onclick="this.closest('dialog').close()">×</button></dialog>
@@ -458,8 +458,10 @@ function waitlistScript({ apiUrl, siteUrl }) {
 
   // Where they came from, for the sign-up
   if (q.get('ref')) store.set('wy_ref', q.get('ref').slice(0, 16));
-  if (q.get('utm_source')) store.set('wy_src', q.get('utm_source').slice(0, 40));
-  if (q.get('utm_campaign')) store.set('wy_camp', q.get('utm_campaign').slice(0, 40));
+  // The campaign only for a sign-up on this visit: not stored on the device
+  const utm = { source: q.get('utm_source')?.slice(0, 40) || null, campaign: q.get('utm_campaign')?.slice(0, 40) || null };
+  store.del('wy_src');
+  store.del('wy_camp');
   // Tokens don't belong in the address bar (or in a shared screenshot)
   const cleanUrl = () => history.replaceState(null, '', location.pathname + location.hash);
 
@@ -515,8 +517,8 @@ function waitlistScript({ apiUrl, siteUrl }) {
           email,
           website: form.website.value,
           ref: store.get('wy_ref'),
-          source: store.get('wy_src') || window.wyVisitSource,
-          campaign: store.get('wy_camp'),
+          source: utm.source || window.wyVisitSource,
+          campaign: utm.campaign,
         });
         if (res.ok) {
           form.outerHTML = '<div class="wl-done"><h3>Fast geschafft! 📬</h3><p>Wir haben dir eine Mail an <b>' + esc(email) + '</b> geschickt. Bestätige deine Adresse, dann bist du auf der Liste. Keine Mail da? Schau im Spam-Ordner nach.</p></div>';
