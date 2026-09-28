@@ -94,9 +94,36 @@ Instagram und TikTok machen Links in Beschreibungen nicht klickbar. Die Links pr
 (`utm_campaign` = Kampagnenname) sind für Story-Link-Sticker und später für Anzeigen
 gedacht. Für normale Posts bleibt der Bio-Link.
 
+## Automatisch posten
+
+Freigegebene Videos gehen im nächsten freien Zeitfenster (12:00 und 18:00 Uhr, ein Video
+pro Fenster, `POST_SLOTS` auf Render) auf jeden verbundenen Kanal. Verbunden wird in der
+Konsole unter **Freigabe → Kanäle**; ohne Verbindung bleibt es beim Herunterladen und
+Abhaken. KI-Videos werden automatisch gekennzeichnet (Instagram `is_ai_generated`,
+TikTok `is_aigc`).
+
+**Instagram** (Instagram API mit Instagram-Login)
+1. Instagram-Konto auf **Professionell (Business)** umstellen.
+2. [developers.facebook.com](https://developers.facebook.com) → App erstellen → Typ
+   **Business** → Produkt **Instagram** → „API-Einrichtung mit Instagram-Login“.
+3. Dort das Instagram-Konto hinzufügen (es bekommt eine Rolle in der App) und
+   **Token generieren**, mit den Berechtigungen `instagram_business_basic` und
+   `instagram_business_content_publish`.
+4. Den Token in der Konsole unter Kanäle → Instagram einfügen. Das Backend erneuert ihn
+   selbst, bevor er nach 60 Tagen abläuft.
+
+**TikTok** (Content Posting API)
+1. [developers.tiktok.com](https://developers.tiktok.com) → App anlegen, Produkte
+   **Login Kit** und **Content Posting API** (Direct Post aktivieren), Scopes
+   `user.info.basic`, `video.upload`, `video.publish`.
+2. Redirect-URI: `https://api.wannayap.app/marketing/tiktok/callback`.
+3. Client Key und Client Secret auf Render als `TIKTOK_CLIENT_KEY` und
+   `TIKTOK_CLIENT_SECRET` eintragen.
+4. In der Konsole unter Kanäle **Mit TikTok verbinden**.
+5. Bis TikTok die App geprüft hat („Audit“), sind direkte Posts nur privat sichtbar. Bis
+   dahin im Modus **Entwurf** lassen: Das Video landet in der TikTok-App, du veröffentlichst
+   es dort mit zwei Tipps und hakst es in der Konsole ab. Nach dem Audit auf **Direkt**.
+
 ## Nächste Stufe
 
-Automatisch posten nach der Freigabe (Instagram Graph API mit `is_ai_generated`, TikTok
-Content Posting API) und bewerben (Meta Marketing API, TikTok Business API) im selben
-Budget. Dafür braucht es Entwickler-Apps bei Meta und TikTok; TikTok muss die App vorher
-prüfen (bis dahin nur private Posts bzw. Entwürfe in der TikTok-App).
+Bezahlte Reichweite (Meta Marketing API, TikTok Business API) im selben Budget.
