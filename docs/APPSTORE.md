@@ -95,10 +95,9 @@ Die Handy-Inhalte sind echte Screens der App: die Komponenten-Galerie
 (`dev/DevPreview.tsx`) mit Beispieldaten, im Web-Build gerendert. Apple rechnet die
 6,9″-Bilder für die kleineren iPhones selbst herunter.
 
-**iPad:** `app.config.js` hat `supportsTablet: true`. Solange das so ist, verlangt App Store
-Connect zusätzlich iPad-Screenshots (13″, 2064 × 2752). Ohne iPad-Version
-(`supportsTablet: false`, vor dem Build) entfällt das; auf dem iPad läuft die App dann im
-iPhone-Modus.
+**iPad:** Version 1.0 gibt es nur fürs iPhone (`supportsTablet: false`,
+`TARGETED_DEVICE_FAMILY = 1` im Xcode-Projekt). iPad-Screenshots braucht es deshalb nicht;
+auf dem iPad läuft die App im iPhone-Format.
 
 **Neu erzeugen**, wenn sich Screens ändern:
 
