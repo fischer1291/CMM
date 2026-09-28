@@ -3,7 +3,8 @@ const IS_DEV = process.env.APP_VARIANT === 'development';
 export default {
   expo: {
     name: IS_DEV ? 'Wanna yap? (Dev)' : 'Wanna yap?',
-    slug: 'wanna-yap',
+    // Must match the EAS project (extra.eas.projectId); the name users see is `name`
+    slug: 'kontaktliste-app',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
