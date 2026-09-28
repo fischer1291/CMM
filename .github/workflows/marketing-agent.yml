@@ -1,15 +1,24 @@
-# Daily marketing agent (marketing/agent/daily.js): new ad videos land in the
-# admin console (tab Freigabe) every morning. Setup: marketing/AGENT.md.
+# Marketing agent (marketing/AGENT.md): every morning new app videos, on
+# Tuesdays and Fridays a hero video with Veo; all of it waits for approval in
+# the admin console (tab Freigabe). Every paid call is reserved against the
+# daily and weekly budget in the backend first.
 name: Marketing-Agent
 
 on:
   schedule:
-    # 04:07 UTC = 06:07 in summer, 05:07 in winter (Berlin)
+    # 04:07 UTC = 06:07 in summer, 05:07 in winter (Berlin): app videos
     - cron: '7 4 * * *'
+    # Tuesday and Friday half an hour later: hero video
+    - cron: '37 4 * * 2,5'
   workflow_dispatch:
     inputs:
+      mode:
+        description: Was soll entstehen?
+        type: choice
+        options: [app, hero, figuren]
+        default: app
       count:
-        description: Wie viele Videos (1–4)
+        description: Wie viele App-Videos (1–4)
         default: '2'
 
 permissions:
@@ -22,7 +31,7 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,13 +43,21 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-noto-color-emoji
       - run: npm ci
         working-directory: marketing
-      - run: node agent/daily.js
+      - name: Agent
         working-directory: marketing
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           MARKETING_AGENT_KEY: ${{ secrets.MARKETING_AGENT_KEY }}
           AD_COUNT: ${{ inputs.count || '2' }}
           CHROME: /usr/bin/google-chrome
+          MODE: ${{ inputs.mode || (github.event.schedule == '37 4 * * 2,5' && 'hero') || 'app' }}
+        run: |
+          case "$MODE" in
+            hero) node agent/hero.js ;;
+            figuren) node agent/references.js ;;
+            *) node agent/daily.js ;;
+          esac
       # The rendered videos and the model's texts, for a look without the console
       - uses: actions/upload-artifact@v4
         if: always()

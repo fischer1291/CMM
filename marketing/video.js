@@ -20,8 +20,7 @@ const FPS = Number(process.env.FPS || 30);
 const SITE = (process.env.SITE_URL || 'https://wannayap.app').replace(/^https?:\/\//, '');
 const OUT = process.env.VIDEO_OUT || path.join(__dirname, 'dist/video');
 
-function encoder(file, seconds) {
-  const music = process.env.MUSIC;
+function encoder(file, seconds, music = process.env.MUSIC) {
   const args = ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-i', '-'];
   if (music) args.push('-i', music);
   args.push('-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart');
@@ -35,7 +34,8 @@ function encoder(file, seconds) {
   return { stdin: child.stdin, done };
 }
 
-async function render(browser, ad, outDir = OUT) {
+/** One ad to MP4; `music` (a sound file) is laid under it and faded out at the end. */
+async function render(browser, ad, outDir = OUT, { music } = {}) {
   const page = await browser.newPage();
   await page.setViewport({ width: ad.w, height: ad.h, deviceScaleFactor: 1 });
   await page.setContent(ad.html, { waitUntil: 'networkidle0' });
@@ -47,7 +47,7 @@ async function render(browser, ad, outDir = OUT) {
 
   fs.mkdirSync(outDir, { recursive: true });
   const file = path.join(outDir, `${ad.name}.mp4`);
-  const { stdin, done } = encoder(file, ad.seconds);
+  const { stdin, done } = encoder(file, ad.seconds, music);
   const frames = Math.round(ad.seconds * FPS);
   for (let i = 0; i < frames; i++) {
     const ms = (i * 1000) / FPS;
