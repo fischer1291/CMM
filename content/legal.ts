@@ -1,12 +1,20 @@
 /**
  * Legal texts shown in the app and on the web (/datenschutz, /impressum).
  *
- * OPERATOR must hold the real details of whoever runs the app before a
- * public release (§ 5 DDG, Art. 13 GDPR). Until then the screens say that
- * the details are missing instead of showing made-up ones.
+ * OPERATOR holds the details of whoever runs the app (§ 5 DDG, Art. 13
+ * GDPR): the address must be one where legal documents can be served.
  */
-type Operator = { name: string; street: string; city: string; email: string };
-export const OPERATOR = null as Operator | null;
+type Operator = { name: string; careOf?: string; street: string; city: string; country: string; email: string };
+export const OPERATOR = {
+  name: 'Leroy Fischer',
+  careOf: 'c/o flexdienst – #22251',
+  street: 'Kurt-Schumacher-Straße 74',
+  city: '67663 Kaiserslautern',
+  country: 'Deutschland',
+  email: 'hallo@wannayap.app',
+} as Operator | null;
+
+const addressLines = (o: Operator) => [o.name, ...(o.careOf ? [o.careOf] : []), o.street, o.city, o.country];
 
 export const PRIVACY_UPDATED = '28. September 2026';
 
@@ -14,7 +22,7 @@ export type LegalSection = { title: string; paragraphs: string[] };
 
 const operatorLines = () =>
   OPERATOR
-    ? [`${OPERATOR.name}, ${OPERATOR.street}, ${OPERATOR.city}`, `E-Mail: ${OPERATOR.email}`]
+    ? [addressLines(OPERATOR).join(', '), `E-Mail: ${OPERATOR.email}`]
     : ['Die Angaben zum Verantwortlichen werden vor der Veröffentlichung ergänzt.'];
 
 export const PRIVACY_SECTIONS: LegalSection[] = [
@@ -91,7 +99,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     title: 'Besuchszählung auf wannayap.app',
     paragraphs: [
-      'Öffnest du die Startseite von wannayap.app, zählen wir den Besuch. Die Seite schickt dafür nur an unseren Server, über welchen Kampagnen-Link (z. B. „tiktok“) oder von welcher Plattform (z. B. Instagram oder Google) du gekommen bist. Gespeichert wird nur ein Zähler pro Tag, Herkunft und Kampagne: ohne IP-Adresse, ohne Cookies und ohne etwas auf deinem Gerät abzulegen. Ein Besuch lässt sich damit keiner Person zuordnen. Wir nutzen die Zahlen, um zu sehen, welche Werbung funktioniert (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO).',
+      'Öffnest du die Startseite von wannayap.app, zählen wir den Besuch. Die Seite schickt dafür nur an unseren Server, über welchen Kampagnen-Link (z. B. „tiktok“) oder von welcher Plattform (z. B. Instagram oder Google) du gekommen bist. Gespeichert wird nur ein Zähler pro Tag, Herkunft und Kampagne: ohne IP-Adresse, ohne Cookies und ohne etwas auf deinem Gerät abzulegen; die Kampagne gilt nur für diesen Besuch. Ein Besuch lässt sich damit keiner Person zuordnen. Wir nutzen die Zahlen, um zu sehen, welche Werbung funktioniert (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO).',
     ],
   },
   {
@@ -135,7 +143,7 @@ export const IMPRINT_SECTIONS: LegalSection[] = [
   {
     title: 'Angaben gemäß § 5 DDG',
     paragraphs: OPERATOR
-      ? [OPERATOR.name, OPERATOR.street, OPERATOR.city]
+      ? addressLines(OPERATOR)
       : ['Die Anbieterangaben werden vor der Veröffentlichung ergänzt.'],
   },
   {
@@ -143,7 +151,11 @@ export const IMPRINT_SECTIONS: LegalSection[] = [
     paragraphs: OPERATOR ? [`E-Mail: ${OPERATOR.email}`] : ['–'],
   },
   {
-    title: 'Verantwortlich für den Inhalt',
+    title: 'Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV',
     paragraphs: OPERATOR ? [`${OPERATOR.name}, Anschrift wie oben`] : ['–'],
+  },
+  {
+    title: 'Verbraucherstreitbeilegung',
+    paragraphs: ['Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.'],
   },
 ];
