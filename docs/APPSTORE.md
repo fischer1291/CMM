@@ -74,9 +74,12 @@ Kostenlos fürs iPhone. Wanna yap? macht am meisten Spaß mit deinen Leuten: Lad
 | Copyright | `2026 Leroy Fischer` |
 | Preis | Kostenlos |
 
-## Screenshots (iPhone 6,9″, 1320 × 2868)
+## Screenshots (iPhone 6,9″ und 6,5″)
 
 Sieben Stück, in dieser Reihenfolge hochladen. Die ersten drei sieht man in der Suche.
+Jedes Bild gibt es in zwei Größen: ohne Zusatz 1320 × 2868 (6,9″), mit `-1284x2778` im
+Namen 1284 × 2778 (6,5″). Hochladen, was App Store Connect im Feld verlangt; eine der
+beiden Größen reicht, die kleineren iPhones rechnet Apple selbst herunter.
 
 | Nr. | Datei | Überschrift |
 |---|---|---|

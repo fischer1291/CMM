@@ -151,28 +151,40 @@ module.exports = function kit({ logoSvg, qrSvg, shortUrl }) {
       <p style="font-family:var(--mono);font-size:30px;color:var(--text-2)">${shortUrl}</p>
     </div>`);
 
-  /* ---------- App Store screenshots 6.9" (1320×2868) ----------
+  /* ---------- App Store screenshots 6.9" (1320×2868) and 6.5" (1284×2778) ----------
    * Real screens of the app (tools/app-screens.js → static/appstore/), in a
    * phone with the iOS status bar the web render doesn't have. */
   const STATUS_BAR = 150; // 50 pt at @3x, scaled with the phone below
+  // 6.9" (1320×2868) and 6.5" (1284×2778): App Store Connect asks for one of them
+  const STORE_SIZES = [
+    { w: 1320, h: 2868, suffix: '' },
+    { w: 1284, h: 2778, suffix: '-1284x2778' },
+  ];
   const store = (n, eyebrow, title, screen, opts = {}) => {
     const file = path.join(__dirname, '../static/appstore', `${screen}.png`);
     if (!fs.existsSync(file)) return;
-    const pw = 1040; // phone width incl. bezel
+    const pw = 1040; // phone width incl. bezel, laid out at 1320 wide
     const sw = pw - 36;
     const scale = sw / 1320;
-    add('appstore', `appstore-${n}-${screen}`, 1320, 2868, `
-    <div class="glowblob" style="width:1000px;height:1000px;left:160px;top:1200px;opacity:.28"></div>
-    <div style="position:absolute;inset:150px 100px auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:34px">
-      <p class="eyebrow" style="font-size:40px;${opts.pink ? 'color:var(--pink)' : ''}">${eyebrow}</p>
-      <h1 style="font-size:122px">${title}</h1>
-    </div>
-    <div class="storephone" style="left:${(1320 - pw) / 2}px;top:700px;width:${pw}px;height:${Math.round(sw * (2868 / 1320)) + 36}px">
-      <div class="storescreen" style="height:${Math.round(sw * (2868 / 1320))}px">
-        <div class="sbar" style="height:${Math.round(STATUS_BAR * scale)}px"><span>9:41</span><i class="island"></i><span class="icons">${SIGNAL}</span></div>
-        <img src="file://${file}" style="width:${sw}px">
+    for (const size of STORE_SIZES) {
+      // Laid out at 1320 wide and scaled, so both sizes look the same
+      const k = size.w / 1320;
+      const h = size.h / k;
+      add('appstore', `appstore-${n}-${screen}${size.suffix}`, size.w, size.h, `
+    <div style="position:absolute;left:0;top:0;width:1320px;height:${h}px;transform:scale(${k});transform-origin:0 0">
+      <div class="glowblob" style="width:1000px;height:1000px;left:160px;top:1200px;opacity:.28"></div>
+      <div style="position:absolute;inset:150px 100px auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:34px">
+        <p class="eyebrow" style="font-size:40px;${opts.pink ? 'color:var(--pink)' : ''}">${eyebrow}</p>
+        <h1 style="font-size:122px">${title}</h1>
+      </div>
+      <div class="storephone" style="left:${(1320 - pw) / 2}px;top:700px;width:${pw}px;height:${Math.round(sw * (2868 / 1320)) + 36}px">
+        <div class="storescreen" style="height:${Math.round(sw * (2868 / 1320))}px">
+          <div class="sbar" style="height:${Math.round(STATUS_BAR * scale)}px"><span>9:41</span><i class="island"></i><span class="icons">${SIGNAL}</span></div>
+          <img src="file://${file}" style="width:${sw}px">
+        </div>
       </div>
     </div>`, STORE_CSS);
+    }
   };
   store(1, 'Ruf an, wenn’s passt', 'Sieh, wer <span class="grad-text">gerade Zeit</span> hat.', 'status-on');
   store(2, 'Deine Leute', 'Ein Tipp, und <span class="grad-text">ihr redet.</span>', 'contacts');
