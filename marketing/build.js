@@ -77,21 +77,33 @@ async function main() {
     .replace('<svg ', '<svg width="100%" height="100%" ');
   const assets = kit({ logoSvg, qrSvg, shortUrl: SHORT_URL });
 
-  for (const a of assets) {
-    const outDir = path.join(DIST, 'kit', a.dir);
-    fs.mkdirSync(outDir, { recursive: true });
-    const htmlPath = path.join(TMP, `${a.name}.html`);
-    fs.writeFileSync(htmlPath, a.html);
-    const png = path.join(outDir, `${a.name}.png`);
-    await chrome([`--window-size=${a.w},${a.h}`, `--screenshot=${png}`, `file://${htmlPath}`], png);
-    if (a.pdf) {
-      // Print from the 300 dpi render: Chrome's PDF output drops blur and mask effects.
-      const printPath = path.join(TMP, `${a.name}.print.html`);
-      fs.writeFileSync(printPath, `<!doctype html><style>@page{size:${a.pdf.width} ${a.pdf.height};margin:0}html,body{margin:0}img{display:block;width:${a.pdf.width};height:${a.pdf.height}}</style><img src="file://${png}">`);
-      const pdf = path.join(outDir, `${a.name}.pdf`);
-      await chrome(['--no-pdf-header-footer', `--print-to-pdf=${pdf}`, `file://${printPath}`], pdf);
+  // PNGs through puppeteer: an exact viewport (Chrome's --window-size can leave a
+  // strip at the bottom) and waiting for fonts and images
+  const browser = await require('./video').launch();
+  try {
+    for (const a of assets) {
+      const outDir = path.join(DIST, 'kit', a.dir);
+      fs.mkdirSync(outDir, { recursive: true });
+      const htmlPath = path.join(TMP, `${a.name}.html`);
+      fs.writeFileSync(htmlPath, a.html);
+      const png = path.join(outDir, `${a.name}.png`);
+      const page = await browser.newPage();
+      await page.setViewport({ width: a.w, height: a.h });
+      await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle0', timeout: 60000 });
+      await page.evaluate(() => document.fonts.ready);
+      await page.screenshot({ path: png });
+      await page.close();
+      if (a.pdf) {
+        // Print from the 300 dpi render: Chrome's PDF output drops blur and mask effects.
+        const printPath = path.join(TMP, `${a.name}.print.html`);
+        fs.writeFileSync(printPath, `<!doctype html><style>@page{size:${a.pdf.width} ${a.pdf.height};margin:0}html,body{margin:0}img{display:block;width:${a.pdf.width};height:${a.pdf.height}}</style><img src="file://${png}">`);
+        const pdf = path.join(outDir, `${a.name}.pdf`);
+        await chrome(['--no-pdf-header-footer', `--print-to-pdf=${pdf}`, `file://${printPath}`], pdf);
+      }
+      console.log('✓', path.relative(DIST, png));
     }
-    console.log('✓', path.relative(DIST, png));
+  } finally {
+    await browser.close();
   }
 
   // The landing page references its OG image next to index.html.
@@ -112,7 +124,9 @@ function chrome(args, output) {
   const child = spawn(CHROME, [
     '--headless=new', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=1',
     '--no-first-run', '--no-default-browser-check', `--user-data-dir=${profile}`,
-    '--virtual-time-budget=6000', '--run-all-compositor-stages-before-draw', ...args,
+    '--virtual-time-budget=6000', '--run-all-compositor-stages-before-draw',
+    // Extra flags, e.g. --no-sandbox in containers (like video.js)
+    ...(process.env.CHROME_ARGS || '').split(' ').filter(Boolean), ...args,
   ], { stdio: 'ignore' });
   let exited = false;
   child.on('exit', () => { exited = true; });

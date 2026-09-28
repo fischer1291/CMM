@@ -23,6 +23,16 @@ p{margin:0}
 .glowblob{position:absolute;border-radius:50%;background:var(--brand);filter:blur(140px);opacity:.35}
 ${css}</style></head><body><div class="art">${body}</div></body></html>`;
 
+// The phone around a real app screen in the App Store screenshots
+const STORE_CSS = `.storephone{position:absolute;border-radius:150px;background:#05050A;border:3px solid rgba(255,255,255,.14);padding:18px;box-shadow:0 60px 160px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.6) inset}
+.storescreen{position:relative;border-radius:132px;overflow:hidden;background:#0B0B12}
+.sbar{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:0 92px 0 108px;background:#0B0B12;color:#fff;font-weight:600;font-size:40px;letter-spacing:-.01em}
+.sbar .island{position:absolute;left:50%;top:26px;width:290px;height:86px;margin-left:-145px;border-radius:50px;background:#000}
+.sbar .icons svg{height:34px;width:auto;display:block}
+.storescreen img{display:block}`;
+// Signal, Wi-Fi, battery
+const SIGNAL = `<svg viewBox="0 0 140 34" fill="#fff"><rect x="0" y="22" width="8" height="12" rx="2"/><rect x="12" y="15" width="8" height="19" rx="2"/><rect x="24" y="8" width="8" height="26" rx="2"/><rect x="36" y="0" width="8" height="34" rx="2"/><path d="M68 9c7 0 13.5 2.7 18.3 7.2l-3.6 3.7A21 21 0 0 0 68 14a21 21 0 0 0-14.7 5.9l-3.6-3.7C54.5 11.7 61 9 68 9zm0 10.5c4 0 7.7 1.5 10.5 4.1L75 27.2a10 10 0 0 0-14 0l-3.5-3.6c2.8-2.6 6.5-4.1 10.5-4.1zM68 30l4.2 4.2h-8.4z" transform="translate(0,-1)"/><rect x="98" y="4" width="36" height="26" rx="7" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="3"/><rect x="102" y="8" width="28" height="18" rx="4"/><rect x="136" y="12" width="4" height="10" rx="2" fill-opacity=".45"/></svg>`;
+
 module.exports = function kit({ logoSvg, qrSvg, shortUrl }) {
   const brandRow = (size = 34) => `<div class="brand" style="font-size:${size}px"><span style="width:${size * 1.5}px;height:${size * 1.5}px;display:block">${logoSvg}</span>Wanna yap?</div>`;
   const assets = [];
@@ -141,20 +151,48 @@ module.exports = function kit({ logoSvg, qrSvg, shortUrl }) {
       <p style="font-family:var(--mono);font-size:30px;color:var(--text-2)">${shortUrl}</p>
     </div>`);
 
-  /* ---------- App Store screenshots 6.9" (1290×2796) ---------- */
-  const store = (n, eyebrow, title, screen, opts = {}) => add('appstore', `appstore-${n}-${screen}`, 1290, 2796, `
-    <div class="glowblob" style="width:900px;height:900px;left:195px;top:1100px;opacity:.3"></div>
-    <div style="position:absolute;inset:170px 110px auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:36px">
-      <p class="eyebrow" style="font-size:40px;${opts.pink ? 'color:var(--pink)' : ''}">${eyebrow}</p>
-      <h1 style="font-size:126px">${title}</h1>
-    </div>
-    <div style="position:absolute;left:50%;top:880px;transform:translateX(-50%)">${screens[screen]({ pw: 960 })}</div>`);
-  store(1, 'Ruf an, wenn’s passt', 'Sieh, wer <span class="grad-text">gerade Zeit</span> hat.', 'status');
-  store(2, '⚡ Yap Moment', 'Jeden Tag 10 Minuten, <span class="grad-text">alle haben Zeit.</span>', 'moment', { pink: true });
-  store(3, 'Kreise & Rituale', 'Die Familienrunde, <span class="grad-text">die von allein passiert.</span>', 'circle');
-  store(4, 'Echte Gespräche', 'Video und Audio, <span class="grad-text">einfach so.</span>', 'call');
-  store(5, 'Talk first', 'Erst reden, <span class="grad-text">dann gucken.</span>', 'moments', { pink: true });
-  store(6, 'Nur für dich', 'Zeit mit deinen Menschen, <span class="grad-text">privat.</span>', 'stats');
+  /* ---------- App Store screenshots 6.9" (1320×2868) and 6.5" (1284×2778) ----------
+   * Real screens of the app (tools/app-screens.js → static/appstore/), in a
+   * phone with the iOS status bar the web render doesn't have. */
+  const STATUS_BAR = 150; // 50 pt at @3x, scaled with the phone below
+  // 6.9" (1320×2868) and 6.5" (1284×2778): App Store Connect asks for one of them
+  const STORE_SIZES = [
+    { w: 1320, h: 2868, suffix: '' },
+    { w: 1284, h: 2778, suffix: '-1284x2778' },
+  ];
+  const store = (n, eyebrow, title, screen, opts = {}) => {
+    const file = path.join(__dirname, '../static/appstore', `${screen}.png`);
+    if (!fs.existsSync(file)) return;
+    const pw = 1040; // phone width incl. bezel, laid out at 1320 wide
+    const sw = pw - 36;
+    const scale = sw / 1320;
+    for (const size of STORE_SIZES) {
+      // Laid out at 1320 wide and scaled, so both sizes look the same
+      const k = size.w / 1320;
+      const h = size.h / k;
+      add('appstore', `appstore-${n}-${screen}${size.suffix}`, size.w, size.h, `
+    <div style="position:absolute;left:0;top:0;width:1320px;height:${h}px;transform:scale(${k});transform-origin:0 0">
+      <div class="glowblob" style="width:1000px;height:1000px;left:160px;top:1200px;opacity:.28"></div>
+      <div style="position:absolute;inset:150px 100px auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:34px">
+        <p class="eyebrow" style="font-size:40px;${opts.pink ? 'color:var(--pink)' : ''}">${eyebrow}</p>
+        <h1 style="font-size:122px">${title}</h1>
+      </div>
+      <div class="storephone" style="left:${(1320 - pw) / 2}px;top:700px;width:${pw}px;height:${Math.round(sw * (2868 / 1320)) + 36}px">
+        <div class="storescreen" style="height:${Math.round(sw * (2868 / 1320))}px">
+          <div class="sbar" style="height:${Math.round(STATUS_BAR * scale)}px"><span>9:41</span><i class="island"></i><span class="icons">${SIGNAL}</span></div>
+          <img src="file://${file}" style="width:${sw}px">
+        </div>
+      </div>
+    </div>`, STORE_CSS);
+    }
+  };
+  store(1, 'Ruf an, wenn’s passt', 'Sieh, wer <span class="grad-text">gerade Zeit</span> hat.', 'status-on');
+  store(2, 'Deine Leute', 'Ein Tipp, und <span class="grad-text">ihr redet.</span>', 'contacts');
+  store(3, '⚡ Yap Moment', 'Jeden Tag 10 Minuten, <span class="grad-text">alle haben Zeit.</span>', 'status-daily-open', { pink: true });
+  store(4, 'Echte Gespräche', 'Video und Audio, <span class="grad-text">einfach so.</span>', 'call-connected');
+  store(5, 'Kreise & Rituale', 'Eure Runde <span class="grad-text">passiert von allein.</span>', 'circle');
+  store(6, 'Talk first', 'Erst reden, <span class="grad-text">dann gucken.</span>', 'moments', { pink: true });
+  store(7, 'Nur für dich', 'Zeit mit deinen Menschen, <span class="grad-text">privat.</span>', 'stats');
 
   /* ---------- Flyer A6 (105×148 mm) with QR ---------- */
   const flyerCss = '@page{size:105mm 148mm;margin:0}';

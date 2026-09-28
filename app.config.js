@@ -11,7 +11,7 @@ export default {
     userInterfaceStyle: 'dark',
     newArchEnabled: true,
     ios: {
-      supportsTablet: true,
+      supportsTablet: false,
       bundleIdentifier: IS_DEV
         ? 'com.schly21.kontaktlisteapp.dev'
         : 'com.schly21.kontaktlisteapp',
