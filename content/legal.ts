@@ -89,6 +89,12 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     ],
   },
   {
+    title: 'Besuchszählung auf wannayap.app',
+    paragraphs: [
+      'Öffnest du die Startseite von wannayap.app, zählen wir den Besuch. Die Seite schickt dafür nur an unseren Server, über welchen Kampagnen-Link (z. B. „tiktok“) oder von welcher Plattform (z. B. Instagram oder Google) du gekommen bist. Gespeichert wird nur ein Zähler pro Tag, Herkunft und Kampagne: ohne IP-Adresse, ohne Cookies und ohne etwas auf deinem Gerät abzulegen. Ein Besuch lässt sich damit keiner Person zuordnen. Wir nutzen die Zahlen, um zu sehen, welche Werbung funktioniert (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO).',
+    ],
+  },
+  {
     title: 'Warteliste auf wannayap.app',
     paragraphs: [
       'Trägst du dich auf der Website in die Warteliste ein, speichern wir deine E-Mail-Adresse, um dir zu schreiben, sobald die App startet, und dir bis dahin höchstens ein paar Neuigkeiten zu schicken. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO).',

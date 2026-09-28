@@ -392,10 +392,48 @@ dialog.wl-dialog::backdrop { background: rgba(5,5,10,0.78); backdrop-filter: blu
     <span>Gemacht für echte Gespräche.</span>
   </div>
 </footer>
+${visitScript({ apiUrl, siteUrl })}
 ${waiting ? waitlistScript({ apiUrl, siteUrl }) : ''}
 </body>
 </html>`;
 };
+
+/**
+ * Counts the visit (Admin console → Warteliste → Landing Page): one POST with
+ * where it came from, no cookie, nothing stored on the device. Source is
+ * utm_source, else the platform in the referrer (e.g. the link in the Instagram
+ * bio). Reloads, back/forward and the links from our own mails don't count.
+ * Also leaves the source in window.wyVisitSource for the sign-up.
+ */
+function visitScript({ apiUrl, siteUrl }) {
+  return `<script>
+(() => {
+  const q = new URLSearchParams(location.search);
+  const PLATFORMS = [
+    ['instagram', /(^|\\.)instagram\\.com$/], ['tiktok', /(^|\\.)tiktok\\.com$/], ['facebook', /(^|\\.)(facebook\\.com|fb\\.com|fb\\.me)$/],
+    ['youtube', /(^|\\.)(youtube\\.com|youtu\\.be)$/], ['x', /(^|\\.)(x\\.com|twitter\\.com|t\\.co)$/], ['linkedin', /(^|\\.)(linkedin\\.com|lnkd\\.in)$/],
+    ['reddit', /(^|\\.)reddit\\.com$/], ['snapchat', /(^|\\.)snapchat\\.com$/], ['whatsapp', /(^|\\.)whatsapp\\.(com|net)$/],
+    ['google', /(^|\\.)google\\.[a-z.]+$/], ['bing', /(^|\\.)bing\\.com$/], ['duckduckgo', /(^|\\.)duckduckgo\\.com$/], ['ecosia', /(^|\\.)ecosia\\.org$/],
+  ];
+  let host = '';
+  try { host = document.referrer ? new URL(document.referrer).hostname : ''; } catch {}
+  const own = host === location.hostname || host === new URL(${JSON.stringify(siteUrl)}).hostname;
+  const platform = host && !own ? (PLATFORMS.find(([, re]) => re.test(host)) || ['web'])[0] : null;
+  const source = q.get('utm_source') || platform;
+  window.wyVisitSource = source;
+
+  const nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+  if (nav && nav.type !== 'navigate') return;
+  if (q.has('bestaetigen') || q.has('abmelden') || navigator.webdriver) return;
+  fetch(${JSON.stringify(apiUrl)} + '/waitlist/visit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source, campaign: q.get('utm_campaign'), ref: q.has('ref') }),
+    keepalive: true,
+  }).catch(() => {});
+})();
+</script>`;
+}
 
 /**
  * Waitlist in the browser: sign-up, the confirmation link (?bestaetigen=),
@@ -477,7 +515,7 @@ function waitlistScript({ apiUrl, siteUrl }) {
           email,
           website: form.website.value,
           ref: store.get('wy_ref'),
-          source: store.get('wy_src'),
+          source: store.get('wy_src') || window.wyVisitSource,
           campaign: store.get('wy_camp'),
         });
         if (res.ok) {

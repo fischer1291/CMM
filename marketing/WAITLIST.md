@@ -46,6 +46,12 @@ Die wichtigsten Zahlen in der Konsole: **Bestätigungsquote** (unter 50 %: Betre
 Absender der Bestätigungsmail prüfen), **Anteil über Empfehlung** (je höher, desto
 günstiger jede Anmeldung) und **Neue Bestätigungen pro Tag** nach jeder Kampagne.
 
+**Besuche:** Oben im Tab Warteliste zählt die Konsole die Aufrufe der Landing Page
+(ohne Neuladen und ohne die Links aus den Mails) und stellt sie pro Quelle und Kampagne
+den bestätigten Anmeldungen gegenüber. Ohne `utm_source` nimmt sie die Plattform, von der
+der Besuch kam. TikTok schickt diese Angabe oft nicht mit, solche Besuche landen unter
+„direkt“. Deshalb auch in der Bio immer einen Link mit `utm_source` verwenden.
+
 ## Release-Tag
 
 1. **App-Store-Link setzen:** `public/download.html` → `STORE_URL`. Alle Links auf
