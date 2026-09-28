@@ -18,7 +18,7 @@ const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/M
 const FFMPEG = process.env.FFMPEG || 'ffmpeg';
 const FPS = Number(process.env.FPS || 30);
 const SITE = (process.env.SITE_URL || 'https://wannayap.app').replace(/^https?:\/\//, '');
-const OUT = path.join(__dirname, 'dist/video');
+const OUT = process.env.VIDEO_OUT || path.join(__dirname, 'dist/video');
 
 function encoder(file, seconds) {
   const music = process.env.MUSIC;
@@ -35,16 +35,18 @@ function encoder(file, seconds) {
   return { stdin: child.stdin, done };
 }
 
-async function render(browser, ad) {
+async function render(browser, ad, outDir = OUT) {
   const page = await browser.newPage();
   await page.setViewport({ width: ad.w, height: ad.h, deviceScaleFactor: 1 });
   await page.setContent(ad.html, { waitUntil: 'networkidle0' });
   await page.evaluate(() => document.fonts.ready);
+  // Templates with one-line texts shrink them to fit (src/templates.js)
+  await page.evaluate(() => window.fitText && window.fitText());
   // Stop the clock: from now on we set every animation's time ourselves
   await page.evaluate(() => document.getAnimations().forEach((anim) => anim.pause()));
 
-  fs.mkdirSync(OUT, { recursive: true });
-  const file = path.join(OUT, `${ad.name}.mp4`);
+  fs.mkdirSync(outDir, { recursive: true });
+  const file = path.join(outDir, `${ad.name}.mp4`);
   const { stdin, done } = encoder(file, ad.seconds);
   const frames = Math.round(ad.seconds * FPS);
   for (let i = 0; i < frames; i++) {
@@ -58,14 +60,23 @@ async function render(browser, ad) {
   await done;
   await page.close();
   process.stdout.write(`\r✓ ${path.relative(__dirname, file)} (${ad.seconds} s, ${ad.w}×${ad.h})\n`);
+  return file;
 }
+
+/** Headless Chrome for render(); CHROME_ARGS adds flags (e.g. --no-sandbox in containers). */
+const launch = () =>
+  puppeteer.launch({
+    executablePath: CHROME,
+    headless: true,
+    args: ['--hide-scrollbars', '--force-color-profile=srgb', ...(process.env.CHROME_ARGS || '').split(' ').filter(Boolean)],
+  });
 
 async function main() {
   const filter = process.argv[2];
   const logoSvg = markOnly(120).replace(/width="120" height="120"/, 'width="100%" height="100%"');
   const list = ads({ logoSvg, shortUrl: SITE }).filter((ad) => !filter || ad.name.includes(filter));
   if (!list.length) throw new Error(`No ad matches "${filter}"`);
-  const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ['--hide-scrollbars', '--force-color-profile=srgb'] });
+  const browser = await launch();
   try {
     for (const ad of list) await render(browser, ad);
   } finally {
@@ -73,7 +84,11 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+module.exports = { render, launch };
+
+if (require.main === module) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

@@ -10,7 +10,9 @@
     "transcribe": "tools/transcribe/transcribe.sh"
   },
   "dependencies": {
-    "qrcode": "^1.5.4"
+    "@anthropic-ai/sdk": "^0.128.0",
+    "qrcode": "^1.5.4",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "puppeteer-core": "^25.12.0"
