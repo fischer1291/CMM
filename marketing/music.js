@@ -40,8 +40,12 @@ const C = {
 const INTRO_CHORDS = ['Bm7', 'Gmaj7', 'Bm7', 'Gmaj7', 'Em7', 'Asus'];
 const GROOVE_CHORDS = ['D', 'AC', 'Bm7', 'Gmaj7', 'D', 'A', 'Gadd9'];
 
-function render(film) {
-  const OUT = path.join(HERO, 'audio', `${film.music}.wav`);
+/**
+ * Music for one film: { shots: [{ id, seconds, source? }], starts: { <id>: s, end: s }, total }.
+ * The first shot with source "app" is where the music lifts, `starts.end` is
+ * where the final chord hits. Also used by the marketing agent (agent/cut.js).
+ */
+function render(film, OUT = path.join(HERO, 'audio', `${film.music}.wav`)) {
 
   // Cut points from the shot list
   const lift = film.shots.find((s) => s.source === 'app') || film.shots[Math.floor(film.shots.length / 3)];
@@ -302,4 +306,8 @@ function render(film) {
   console.log(`✓ ${path.relative(__dirname, OUT)} (${SECONDS.toFixed(2)} s, ${BPM} bpm, groove from ${GROOVE_START.toFixed(2)} s, final chord at ${OUTRO_START.toFixed(2)} s)`);
 }
 
-for (const film of selected()) render(film);
+module.exports = { render };
+
+if (require.main === module) {
+  for (const film of selected()) render(film);
+}

@@ -86,4 +86,4 @@ Hinweis: Links in Captions sind nicht klickbar, die meisten Besuche kommen über
 ${history}`;
 }
 
-module.exports = { system, user };
+module.exports = { system, user, playbook, SCREEN_INFO };

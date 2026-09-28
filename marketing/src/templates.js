@@ -55,7 +55,8 @@ function appScene(at, until, payoff, screen, big = 112) {
 
 /**
  * The templates. Each takes the content and the shared end card and returns
- * { seconds, body }.
+ * { seconds, body, liftAt, endAt }: liftAt is where the app comes in (the
+ * music lifts there), endAt where the end card starts.
  */
 const templates = {
   /** A chat that never turns into a call, crossed out; then the app. */
@@ -67,6 +68,8 @@ const templates = {
     const end = app + 4.5;
     return {
       seconds: Math.round((end + 2.5) * 10) / 10,
+      liftAt: app,
+      endAt: end,
       body: `
     <div class="scene" style="animation:fadeOut .6s ${out}s both">
       <div class="safe" style="top:190px">
@@ -86,6 +89,8 @@ const templates = {
   moment(c, endCard) {
     return {
       seconds: 13,
+      liftAt: 1.8,
+      endAt: 10.5,
       body: `
     <div class="scene" style="animation:fadeOut .5s 10.1s both">
       <div class="safe" style="top:190px">
@@ -111,6 +116,8 @@ const templates = {
     const end = app + 3.3;
     return {
       seconds: Math.round((end + 2.5) * 10) / 10,
+      liftAt: app,
+      endAt: end,
       body: `
     <div class="scene" style="animation:fadeOut .5s ${out}s both">
       <div class="safe" style="top:360px;display:flex;flex-direction:column;gap:30px">
@@ -124,5 +131,11 @@ const templates = {
     };
   },
 };
+
+/**
+ * Only the app part (payoff over a real app screen), for the hero videos:
+ * after the AI scenes, before the end card (agent/cut.js).
+ */
+templates.app = (c) => ({ seconds: 3.6, liftAt: 0, endAt: 3.6, body: appScene(0, 99, c.payoff, c.screen) });
 
 module.exports = { templates, SCREENS, LIMITS, esc, hl };

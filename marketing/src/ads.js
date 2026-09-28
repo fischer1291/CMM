@@ -60,8 +60,8 @@ function endCardFor({ logoSvg, shortUrl }) {
 /** One ad from a template and its content (src/templates.js), 1080×1920. */
 function buildAd({ name, template, content, logoSvg, shortUrl }) {
   if (!templates[template]) throw new Error(`Unknown template "${template}"`);
-  const { seconds, body } = templates[template](content, endCardFor({ logoSvg, shortUrl }));
-  return { name, w: W, h: H, seconds, html: page(W, H, body, MOTION) };
+  const { seconds, body, liftAt, endAt } = templates[template](content, endCardFor({ logoSvg, shortUrl }));
+  return { name, w: W, h: H, seconds, liftAt, endAt, html: page(W, H, body, MOTION) };
 }
 
 /** The three launch ads, as template content. */
