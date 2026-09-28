@@ -151,35 +151,43 @@ module.exports = function kit({ logoSvg, qrSvg, shortUrl }) {
       <p style="font-family:var(--mono);font-size:30px;color:var(--text-2)">${shortUrl}</p>
     </div>`);
 
-  /* ---------- App Store screenshots 6.9" (1320×2868) and 6.5" (1284×2778) ----------
+  /* ---------- App Store screenshots (iPhone and iPad) ----------
    * Real screens of the app (tools/app-screens.js → static/appstore/), in a
    * phone with the iOS status bar the web render doesn't have. */
   const STATUS_BAR = 150; // 50 pt at @3x, scaled with the phone below
   // 6.9" (1320×2868) and 6.5" (1284×2778): App Store Connect asks for one of them
+  // iPhone 6.9" (1320×2868) and 6.5" (1284×2778), iPad 13" (2064×2752 and
+  // 2048×2732): App Store Connect asks for one size per device class. Each
+  // layout is drawn at its base width and scaled to the sizes of its class.
+  const STORE_LAYOUTS = {
+    iphone: { base: 1320, pw: 1040, top: 700, title: 122, eyebrow: 40, inset: '150px 100px auto', blob: [1000, 160, 1200] },
+    ipad: { base: 2064, pw: 1060, top: 760, title: 150, eyebrow: 50, inset: '170px 240px auto', blob: [1400, 330, 900] },
+  };
   const STORE_SIZES = [
-    { w: 1320, h: 2868, suffix: '' },
-    { w: 1284, h: 2778, suffix: '-1284x2778' },
+    { w: 1320, h: 2868, suffix: '', layout: 'iphone' },
+    { w: 1284, h: 2778, suffix: '-1284x2778', layout: 'iphone' },
+    { w: 2064, h: 2752, suffix: '-ipad-2064x2752', layout: 'ipad' },
+    { w: 2048, h: 2732, suffix: '-ipad-2048x2732', layout: 'ipad' },
   ];
   const store = (n, eyebrow, title, screen, opts = {}) => {
     const file = path.join(__dirname, '../static/appstore', `${screen}.png`);
     if (!fs.existsSync(file)) return;
-    const pw = 1040; // phone width incl. bezel, laid out at 1320 wide
-    const sw = pw - 36;
-    const scale = sw / 1320;
     for (const size of STORE_SIZES) {
-      // Laid out at 1320 wide and scaled, so both sizes look the same
-      const k = size.w / 1320;
+      const L = STORE_LAYOUTS[size.layout];
+      const sw = L.pw - 36; // screen width inside the bezel
+      const sh = Math.round(sw * (2868 / 1320));
+      const k = size.w / L.base;
       const h = size.h / k;
       add('appstore', `appstore-${n}-${screen}${size.suffix}`, size.w, size.h, `
-    <div style="position:absolute;left:0;top:0;width:1320px;height:${h}px;transform:scale(${k});transform-origin:0 0">
-      <div class="glowblob" style="width:1000px;height:1000px;left:160px;top:1200px;opacity:.28"></div>
-      <div style="position:absolute;inset:150px 100px auto;text-align:center;display:flex;flex-direction:column;align-items:center;gap:34px">
-        <p class="eyebrow" style="font-size:40px;${opts.pink ? 'color:var(--pink)' : ''}">${eyebrow}</p>
-        <h1 style="font-size:122px">${title}</h1>
+    <div style="position:absolute;left:0;top:0;width:${L.base}px;height:${h}px;transform:scale(${k});transform-origin:0 0">
+      <div class="glowblob" style="width:${L.blob[0]}px;height:${L.blob[0]}px;left:${L.blob[1]}px;top:${L.blob[2]}px;opacity:.28"></div>
+      <div style="position:absolute;inset:${L.inset};text-align:center;display:flex;flex-direction:column;align-items:center;gap:34px">
+        <p class="eyebrow" style="font-size:${L.eyebrow}px;${opts.pink ? 'color:var(--pink)' : ''}">${eyebrow}</p>
+        <h1 style="font-size:${L.title}px">${title}</h1>
       </div>
-      <div class="storephone" style="left:${(1320 - pw) / 2}px;top:700px;width:${pw}px;height:${Math.round(sw * (2868 / 1320)) + 36}px">
-        <div class="storescreen" style="height:${Math.round(sw * (2868 / 1320))}px">
-          <div class="sbar" style="height:${Math.round(STATUS_BAR * scale)}px"><span>9:41</span><i class="island"></i><span class="icons">${SIGNAL}</span></div>
+      <div class="storephone" style="left:${(L.base - L.pw) / 2}px;top:${L.top}px;width:${L.pw}px;height:${sh + 36}px">
+        <div class="storescreen" style="height:${sh}px">
+          <div class="sbar" style="height:${Math.round(STATUS_BAR * (sw / 1320))}px"><span>9:41</span><i class="island"></i><span class="icons">${SIGNAL}</span></div>
           <img src="file://${file}" style="width:${sw}px">
         </div>
       </div>

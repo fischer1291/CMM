@@ -95,9 +95,11 @@ Die Handy-Inhalte sind echte Screens der App: die Komponenten-Galerie
 (`dev/DevPreview.tsx`) mit Beispieldaten, im Web-Build gerendert. Apple rechnet die
 6,9″-Bilder für die kleineren iPhones selbst herunter.
 
-**iPad:** Version 1.0 gibt es nur fürs iPhone (`supportsTablet: false`,
-`TARGETED_DEVICE_FAMILY = 1` im Xcode-Projekt). iPad-Screenshots braucht es deshalb nicht;
-auf dem iPad läuft die App im iPhone-Format.
+**iPad (13″):** Dieselben sieben Motive gibt es auch im iPad-Format, mit `-ipad-2064x2752`
+bzw. `-ipad-2048x2732` im Namen. Version 1.0 ist eine reine iPhone-App (`supportsTablet:
+false`, `TARGETED_DEVICE_FAMILY = 1`); sobald ein solcher Build der Version zugeordnet ist,
+verlangt App Store Connect normalerweise keine iPad-Screenshots mehr. Solange das Feld
+noch da ist, diese hochladen.
 
 **Neu erzeugen**, wenn sich Screens ändern:
 
