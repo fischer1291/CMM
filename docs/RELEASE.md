@@ -13,6 +13,7 @@ fehlt dort.
 | App-Eintrag in App Store Connect (Bundle-ID `com.schly21.kontaktlisteapp`) | App Store Connect | offen |
 | Demo-Zugang für App Review: `REVIEW_PHONE` und `REVIEW_CODE` (6–10 Ziffern) | Render → Environment | offen |
 | Datenschutz-URL: `https://wannayap.app/datenschutz` | App Store Connect → App-Informationen | offen |
+| Store-Texte und Screenshots | `docs/APPSTORE.md`, Bilder aus `marketing/` (`npm run build` → `dist/kit/appstore/`) | fertig zum Hochladen |
 
 ### Backend-Umgebung (Render)
 

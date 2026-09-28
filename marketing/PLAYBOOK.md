@@ -133,7 +133,7 @@ sich bezahlte Reichweite.
 | `social/stories/story-1-ich-hab-zeit.png` | 1080×1920 | Status-Story zum Reposten |
 | `social/stories/story-2-yap-moment.png` | 1080×1920 | Täglicher Moment-Reminder |
 | `social/stories/story-3-warteliste.png` | 1080×1920 | Story mit Link-Sticker zur Warteliste |
-| `appstore/appstore-1…6.png` | 1290×2796 | App-Store-Screenshots 6,9″ |
+| `appstore/appstore-1…7-….png` | 1320×2868 | App-Store-Screenshots 6,9″ (echte Screens, `docs/APPSTORE.md`) |
 | `print/flyer-a6.pdf` / `.png` | A6 | Flyer mit QR-Code (ohne Beschnittzugabe) |
 | `web/og-image.png` | 1200×630 | Linkvorschau (WhatsApp, iMessage, LinkedIn) |
 | `../video/ad-1-bald-telefonieren.mp4` | 1080×1920, 13 s | Anzeige/Reel: Hook „Wie oft hast du das geschrieben?“ |
@@ -255,41 +255,8 @@ Kontakt: [Name, E-Mail, Telefon] · Website: [Landing-Page-URL] · Presse-Motive
 
 ## 9. App-Store-Texte
 
-**Name (max. 30):** Wanna yap?
-**Untertitel (max. 30):** Ruf an, wenn’s passt
-**Werbetext (max. 170):** Sieh, wer aus deinen Leuten gerade Zeit hat, und ruf einfach an. Jeden Tag 10 Minuten Yap Moment. Kein Feed, keine Likes, keine Fremden.
-**Keywords (max. 100, ohne Leerzeichen nach Kommas):**
-`anrufen,telefonieren,freunde,familie,erreichbar,videoanruf,gruppenanruf,kontakt,status,freundschaft`
-
-**Beschreibung:**
-
-Wir schreiben hundert Nachrichten und telefonieren nie. Wanna yap? ändert das.
-
-SIEH, WER GERADE ZEIT HAT
-Ein Tipp auf den Ring, und deine Kontakte sehen: Jetzt passt ein Anruf. Wenn ihr beide
-gerade Zeit habt, sagt dir die App Bescheid.
-
-DER YAP MOMENT
-Einmal am Tag haben alle gleichzeitig 10 Minuten. Wer dabei ist, ist erreichbar.
-
-KREISE UND RITUALE
-Familie, WG, die Leute von früher: Leg einen Kreis an und ein Ritual wie „jeden Sonntag
-18 Uhr“. Die Runde öffnet sich von allein.
-
-MOMENTS, ABER ANDERS
-Halte im Anruf einen Moment fest, wenn beide zustimmen. Sichtbar 24 Stunden, und nur
-für die, die heute selbst ein echtes Gespräch geführt haben.
-
-DEINE GESPRÄCHSZEIT
-Serien und Abzeichen für Zeit mit deinen Menschen. Privat, bis du entscheidest, wer
-sie sehen darf.
-
-KEIN FEED. KEINE LIKES. KEINE FREMDEN. KEINE WERBUNG.
-
-**Wichtig zu den Screenshots:** Apple verlangt, dass Screenshots die App im Einsatz
-zeigen. Die Mockups im Kit bilden die echten Screens nach. Prüf vor dem Hochladen,
-dass jeder Screen genau so in der App aussieht, oder tausch den Handy-Inhalt gegen
-echte Simulator-Screenshots (gleiche Vorlage, `src/kit.js` → `store(...)`).
+Name, Untertitel, Werbetext, Keywords, Beschreibung und die Screenshots (echte Screens
+der App, `tools/app-screens.js`) stehen fertig zum Kopieren in `docs/APPSTORE.md`.
 
 ---
 
