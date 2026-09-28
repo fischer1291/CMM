@@ -59,6 +59,34 @@ Fehler und Warnungen bleiben erhalten. VoIP- und normale Push-Tokens aus
 TestFlight/App-Store-Builds sind „production“-Tokens; das Backend erkennt
 die APNs-Umgebung selbst.
 
+### Build über GitHub (ohne Mac)
+
+Der Workflow **iOS-Build** (`.github/workflows/ios-build.yml`) startet den Build auf
+den Macs von EAS und lädt ihn auf Wunsch gleich zu App Store Connect hoch:
+GitHub → Actions → iOS-Build → *Run workflow*. Den Fortschritt zeigt expo.dev
+(Projekt → Builds), am Ende kommt eine Mail von Expo.
+
+Einmal einrichten, auf dem Mac im Projektordner:
+
+1. `npx eas-cli login` mit dem Expo-Konto `schly21`.
+2. `npx eas-cli credentials --platform ios` → Profil *production*:
+   - Distributionszertifikat und Provisioning-Profil von EAS verwalten lassen
+     (mit dem Apple-Konto anmelden, EAS legt sie an oder übernimmt die vorhandenen).
+   - Push-Schlüssel (APNs) ebenso, und einen **App Store Connect API Key** anlegen
+     lassen: den braucht der automatische Upload.
+3. `npx eas-cli build:version:set --platform ios` und die **höchste Build-Nummer**
+   eintragen, die schon bei App Store Connect liegt (z. B. 22 nach dem letzten
+   `scripts/testflight.sh`). EAS zählt ab da selbst hoch; eine doppelte Nummer
+   lehnt Apple ab.
+4. expo.dev → Account Settings → Access Tokens → Token anlegen, dann in GitHub →
+   CMM → Settings → Secrets and variables → Actions als Secret **`EXPO_TOKEN`**.
+5. Die **Apple-ID der App** (App Store Connect → App → App-Informationen → Apple-ID,
+   nur Ziffern) in `eas.json` unter `submit.production.ios.ascAppId` eintragen.
+   Sie ist nicht geheim (steht auch im App-Store-Link).
+
+Wer weiter vom Mac baut (`scripts/testflight.sh`), setzt danach mit Schritt 3 die
+Build-Nummer bei EAS nach, sonst kollidieren die Nummern.
+
 ## 3. App Store Connect: App-Datenschutz
 
 Keine Daten werden zum Tracking verwendet. Anzugeben (alle „mit der
