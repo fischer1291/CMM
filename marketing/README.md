@@ -21,6 +21,8 @@ Internet für die Google Fonts.
 | `dist/landing/` | Fertige Landing Page, deploybar als eigene Netlify-Site |
 | `dist/kit/` | Gerenderte PNGs und der Flyer als PDF |
 | `src/ads.js` | Animierte Werbevideos (Reels/TikTok/Stories) und die Endkarte |
+| `src/templates.js` | Vorlagen der Werbevideos (chat, moment, list), die der Marketing-Agent befüllt |
+| `agent/` | Täglicher Marketing-Agent: neue Videos zur Freigabe in der Konsole ([AGENT.md](AGENT.md)) |
 | `dist/video/` | Gerenderte MP4s (`npm run video`) und das Hero-Video (`npm run hero`) |
 | `hero/` | Shotliste des Hero-Videos; KI-Clips und Ton kommen nach `hero/clips/` und `hero/audio/` (nicht im Git) |
 

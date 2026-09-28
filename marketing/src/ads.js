@@ -6,7 +6,8 @@
 // ends on the same end card, texts stay inside the safe zone (TikTok/Reels UI
 // covers roughly the bottom 20 % and the right 12 %).
 const { page } = require('./kit');
-const { screens, ICON } = require('./screens');
+const { ICON } = require('./screens');
+const { templates } = require('./templates');
 
 const W = 1080;
 const H = 1920;
@@ -40,12 +41,9 @@ const MOTION = `
 `;
 
 
-module.exports = function ads({ logoSvg, shortUrl }) {
-  const brandRow = (size = 34) =>
-    `<div class="brand" style="font-size:${size}px"><span style="width:${size * 1.5}px;height:${size * 1.5}px;display:block">${logoSvg}</span>Wanna yap?</div>`;
-
-  /** The same end card everywhere, from `t` seconds on. */
-  const endCard = (t, { w = W, h = H } = {}) => {
+/** The shared end card, from `t` seconds on. */
+function endCardFor({ logoSvg, shortUrl }) {
+  return (t, { w = W, h = H } = {}) => {
     const wide = w > h;
     return `<div class="scene" style="animation:fadeIn .5s ${t}s both;background:var(--bg)">
       <div class="glowblob" style="width:${wide ? 700 : 820}px;height:${wide ? 700 : 820}px;left:50%;top:50%;margin:-${wide ? 350 : 410}px 0 0 -${wide ? 350 : 410}px;animation:pulse 3s ${t}s infinite both"></div>
@@ -57,74 +55,64 @@ module.exports = function ads({ logoSvg, shortUrl }) {
       </div>
     </div>`;
   };
+}
 
-  const ads = [];
+/** One ad from a template and its content (src/templates.js), 1080×1920. */
+function buildAd({ name, template, content, logoSvg, shortUrl }) {
+  if (!templates[template]) throw new Error(`Unknown template "${template}"`);
+  const { seconds, body } = templates[template](content, endCardFor({ logoSvg, shortUrl }));
+  return { name, w: W, h: H, seconds, html: page(W, H, body, MOTION) };
+}
+
+/** The three launch ads, as template content. */
+const LAUNCH_ADS = [
+  {
+    name: 'ad-1-bald-telefonieren',
+    template: 'chat',
+    content: {
+      eyebrow: 'Ehrliche Frage',
+      hook: 'Wie oft hast du das dieses Jahr geschrieben?',
+      bubbles: [
+        { from: 'me', text: 'Lass mal bald telefonieren! 🥺' },
+        { from: 'them', text: 'Jaaa unbedingt, nächste Woche?' },
+        { from: 'them', text: 'Sorry, war im Zug 🙈' },
+        { from: 'me', text: 'Ah, du hattest angerufen?' },
+        { from: 'them', text: 'Lass mal bald telefonieren!!' },
+      ],
+      payoff: 'Sieh einfach, wer *gerade Zeit* hat.',
+      screen: 'status',
+    },
+  },
+  {
+    name: 'ad-2-yap-moment',
+    template: 'moment',
+    content: {
+      eyebrow: '⚡ Yap Moment',
+      hook: 'Jeden Tag haben alle meine Leute *gleichzeitig Zeit.*',
+      pushes: [
+        { initial: 'M', title: 'Mila ist dabei', sub: 'hat 10 Minuten Zeit' },
+        { initial: 'J', title: 'Jonas ist dabei', sub: 'aus Hamburg' },
+        { initial: 'O', title: 'Oma ist dabei 👵', sub: 'Küche, wie immer' },
+      ],
+    },
+  },
+  {
+    name: 'ad-3-kein-feed',
+    template: 'list',
+    content: {
+      lines: ['Kein Feed.', 'Keine Likes.', 'Keine Fremden.', 'Keine Werbung.'],
+      punch: 'Nur deine Menschen.',
+      payoff: 'Sieh, wer Zeit hat. *Ruf einfach an.*',
+      screen: 'status',
+    },
+  },
+];
+
+module.exports = function ads({ logoSvg, shortUrl }) {
+  const endCard = endCardFor({ logoSvg, shortUrl });
+  const ads = LAUNCH_ADS.map((ad) => buildAd({ ...ad, logoSvg, shortUrl }));
   const add = (name, seconds, body, { w = W, h = H } = {}) => ads.push({ name, w, h, seconds, html: page(w, h, body, MOTION) });
-
-  /* ---------- 1: "Lass mal bald telefonieren" (13 s) ---------- */
-  const chat = [
-    ['me', 'Lass mal bald telefonieren! 🥺'],
-    ['them', 'Jaaa unbedingt, nächste Woche?'],
-    ['them', 'Sorry, war im Zug 🙈'],
-    ['me', 'Ah, du hattest angerufen?'],
-    ['them', 'Lass mal bald telefonieren!!'],
-  ];
-  add('ad-1-bald-telefonieren', 13, `
-    <div class="scene" style="animation:fadeOut .6s 5.6s both">
-      <div class="safe" style="top:190px">
-        <p class="eyebrow" style="font-size:30px;animation:fadeIn .4s 0s both">Ehrliche Frage</p>
-        <h1 style="font-size:96px;margin-top:24px;animation:rise .7s .1s cubic-bezier(.2,.8,.2,1) both">Wie oft hast du das dieses Jahr geschrieben?</h1>
-      </div>
-      <div class="safe" style="top:760px;display:flex;flex-direction:column;gap:26px">
-        ${chat.map(([who, text], i) => `<div class="bubble ${who}" style="animation:rise .5s ${1.2 + i * 0.75}s cubic-bezier(.2,.8,.2,1) both"><span class="struck" style="animation:strike .35s ${4.9 + i * 0.08}s both">${text}</span></div>`).join('')}
-      </div>
-    </div>
-    <div class="scene" style="animation:fadeIn .5s 6s both, fadeOut .5s 10.1s both">
-      <div class="safe" style="top:190px;text-align:left">
-        <h1 style="font-size:112px;animation:rise .7s 6.1s cubic-bezier(.2,.8,.2,1) both">Sieh einfach, wer <span class="grad-text">gerade Zeit</span> hat.</h1>
-      </div>
-      <div class="glowblob" style="width:760px;height:760px;left:160px;top:900px;animation:pulse 3s 6s infinite both"></div>
-      <div style="position:absolute;left:50%;top:700px;animation:slideUp .9s 6.4s cubic-bezier(.2,.8,.2,1) both">${screens.status({ pw: 600 })}</div>
-    </div>
-    ${endCard(10.5)}`);
-
-  /* ---------- 2: Yap Moment (13 s) ---------- */
-  const joins = [
-    ['M', 'Mila ist dabei', 'hat 10 Minuten Zeit'],
-    ['J', 'Jonas ist dabei', 'aus Hamburg'],
-    ['O', 'Oma ist dabei 👵', 'Küche, wie immer'],
-  ];
-  add('ad-2-yap-moment', 13, `
-    <div class="scene" style="animation:fadeOut .5s 10.1s both">
-      <div class="safe" style="top:190px">
-        <p class="eyebrow" style="font-size:30px;color:var(--pink);animation:fadeIn .4s 0s both">⚡ Yap Moment</p>
-        <h1 style="font-size:100px;margin-top:24px;animation:rise .7s .1s cubic-bezier(.2,.8,.2,1) both">Jeden Tag haben alle meine Leute <span class="grad-text">gleichzeitig Zeit.</span></h1>
-      </div>
-      <div class="safe clock grad-text" style="top:760px;font-family:var(--mono);font-weight:700;font-size:210px;letter-spacing:-.04em;line-height:1;animation:fadeIn .4s 1.2s both, tick 9s 1.2s steps(9, end) both"></div>
-      <div class="safe" style="top:1040px;display:flex;flex-direction:column;gap:24px">
-        <div class="push" style="animation:drop .6s 1.8s cubic-bezier(.2,.8,.2,1) both"><div class="ic">${ICON.flash}</div><div><b>Yap Moment ist da</b><span>10 Minuten, alle haben Zeit</span></div><time>jetzt</time></div>
-        ${joins.map(([l, t, s], i) => `<div class="push" style="animation:drop .6s ${3.4 + i * 1.3}s cubic-bezier(.2,.8,.2,1) both"><div class="ic" style="border-radius:50%;font-size:42px;font-weight:700">${l}</div><div><b>${t}</b><span>${s}</span></div><time>jetzt</time></div>`).join('')}
-      </div>
-    </div>
-    ${endCard(10.5)}`);
-
-  /* ---------- 3: Kein Feed (11 s) ---------- */
-  const nots = ['Kein Feed.', 'Keine Likes.', 'Keine Fremden.', 'Keine Werbung.'];
-  add('ad-3-kein-feed', 11, `
-    <div class="scene" style="animation:fadeOut .5s 4.9s both">
-      <div class="safe" style="top:360px;display:flex;flex-direction:column;gap:30px">
-        ${nots.map((t, i) => `<h1 style="font-size:108px;animation:rise .45s ${0.1 + i * 0.7}s cubic-bezier(.2,.8,.2,1) both"><span class="struck" style="animation:strike .3s ${0.45 + i * 0.7}s both;color:var(--text-2)">${t}</span></h1>`).join('')}
-        <h1 style="font-size:132px;margin-top:40px;animation:pop .7s 3.2s both"><span class="grad-text">Nur deine Menschen.</span></h1>
-      </div>
-    </div>
-    <div class="scene" style="animation:fadeIn .5s 5.2s both, fadeOut .5s 8.1s both">
-      <div class="safe" style="top:190px">
-        <h1 style="font-size:104px;animation:rise .7s 5.3s cubic-bezier(.2,.8,.2,1) both">Sieh, wer Zeit hat. <span class="grad-text">Ruf einfach an.</span></h1>
-      </div>
-      <div class="glowblob" style="width:760px;height:760px;left:160px;top:900px;animation:pulse 3s 5.2s infinite both"></div>
-      <div style="position:absolute;left:50%;top:700px;animation:slideUp .9s 5.5s cubic-bezier(.2,.8,.2,1) both">${screens.status({ pw: 600 })}</div>
-    </div>
-    ${endCard(8.5)}`);
+  const joins = LAUNCH_ADS[1].content.pushes.map((p) => [p.initial, p.title, p.sub]);
 
   /* ---------- Hero insert: Yap Moment without headline (4 s) ----------
      Stand-in for shot 08 until there is a filmed/AI clip (hero/shots.json).
@@ -143,3 +131,6 @@ module.exports = function ads({ logoSvg, shortUrl }) {
 
   return ads;
 };
+
+module.exports.buildAd = buildAd;
+module.exports.LAUNCH_ADS = LAUNCH_ADS;
