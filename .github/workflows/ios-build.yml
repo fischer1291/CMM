@@ -1,0 +1,53 @@
+# iOS build in the cloud (EAS), started by hand: GitHub → Actions → iOS-Build →
+# Run workflow. EAS builds the production app from main and, if chosen, hands
+# it to App Store Connect (TestFlight). One-time setup: docs/RELEASE.md,
+# section "Build über GitHub".
+name: iOS-Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      submit:
+        description: Danach zu App Store Connect hochladen (TestFlight)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup vorhanden?
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          SUBMIT: ${{ inputs.submit }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Secret EXPO_TOKEN fehlt (GitHub → Settings → Secrets and variables → Actions). Siehe docs/RELEASE.md."
+            exit 1
+          fi
+          if [ "$SUBMIT" = "true" ] && ! node -e 'process.exit(/^\d+$/.test(require("./eas.json").submit?.production?.ios?.ascAppId || "") ? 0 : 1)'; then
+            echo "::error::In eas.json fehlt submit.production.ios.ascAppId: die Apple-ID der App aus App Store Connect. Siehe docs/RELEASE.md."
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      # The build runs on EAS's Macs; this job only starts it. Progress and
+      # the result: expo.dev → Projekt → Builds (and a mail from Expo)
+      - name: Build starten
+        run: eas build --platform ios --profile production --non-interactive --no-wait ${{ inputs.submit && '--auto-submit' || '' }}
