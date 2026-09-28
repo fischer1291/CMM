@@ -1,5 +1,6 @@
 // The daily marketing agent: reads the numbers, past decisions and the
-// budget from the backend, has Claude write new ads for the app templates,
+// budget from the backend, has Claude search the web for current trends
+// (agent/trends.js) and write new ads for the app templates,
 // renders them to MP4 with music and uploads them as drafts. A person
 // approves them in the admin console (tab Freigabe). It also proposes
 // reference images for the hero characters that still need one
@@ -19,6 +20,7 @@ const { Plan } = require('./schema');
 const prompt = require('./prompt');
 const { ask } = require('./claude');
 const { ensureReferences } = require('./characters');
+const { trends } = require('./trends');
 const { KEY, backend, spent, uploadDraft, musicFor, today, dayTag, BudgetExceeded } = require('./common');
 
 const COUNT = Math.min(4, Math.max(1, Number(process.env.AD_COUNT || 2)));
@@ -37,9 +39,10 @@ async function main() {
   // Reference images for the hero videos, while a character still needs one
   if (!DRY && !PLAN_FILE) await ensureReferences(context.characters);
 
+  const trendNotes = PLAN_FILE ? null : await trends();
   const { output: plan, model } = PLAN_FILE
     ? { output: Plan.parse(JSON.parse(fs.readFileSync(PLAN_FILE, 'utf8'))), model: null }
-    : await ask({ schema: Plan, system: prompt.system(), content: prompt.user({ count: COUNT, today: today(), context }), purpose: 'plan-app' });
+    : await ask({ schema: Plan, system: prompt.system(), content: prompt.user({ count: COUNT, today: today(), context, trendNotes }), purpose: 'plan-app' });
   console.log(`\nAnalyse: ${plan.analysis}\n`);
 
   const day = dayTag();

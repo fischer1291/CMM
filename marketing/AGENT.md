@@ -5,8 +5,9 @@ Admin-Konsole frei und postest sie (noch) selbst.
 
 | Was | Wann | Wie | Kosten |
 |---|---|---|---|
+| **Trends** | vor jedem Lauf | Claude sucht im Web, welche Hashtags, Anlässe und Formate in der Nische gerade laufen (`agent/trends.js`); fließt in Captions und Hashtags ein | ~0,10–0,40 € |
 | **App-Videos** | täglich ~6 Uhr, 2 Stück | Claude schreibt Texte für die Vorlagen in `src/templates.js` (chat, moment, list), gerendert mit eigener Musik | ~0,10–0,20 € |
-| **Hero-Videos** | Di und Fr ~6:30 | nächste Folge der Serie mit Anna (und Lena, Jonas, Oma Gisela): Claude schreibt die Folge, Veo 3.1 Fast dreht 2–3 Einstellungen mit den Referenzbildern, Claude prüft die Aufnahmen, dann Schnitt mit Untertiteln, echtem App-Screen, Endkarte, Musik | ~3–5 € |
+| **Hero-Videos** | Di und Fr ~6:30 | nächste Folge der Serie mit Anna (und Lena, Jonas, Oma Gisela): Claude schreibt die Folge, Veo 3.1 Fast dreht 2–3 Einstellungen mit den Referenzbildern, Claude prüft die Aufnahmen, Gemini hört den Ton (`agent/speech.js`), dann Schnitt mit Untertiteln, echtem App-Screen, Endkarte, Musik | ~3–5 € |
 | **Referenzbilder** | nebenbei, bis pro Figur eins gewählt ist | Gemini-Bildmodell, 3 Vorschläge pro Figur | ~0,07 € pro Bild |
 
 ```
@@ -33,7 +34,8 @@ Geschichte der Hero-Videos gehen beim nächsten Lauf an den Agenten zurück.
   aus. Danach wird mit den echten Kosten abgerechnet. Eine Reservierung, die nie abgerechnet
   wird (Lauf abgestürzt), zählt mit ihrem Höchstbetrag.
 - Grundlage sind die Listenpreise in `agent/common.js` (Claude Opus 5: 5/25 $ pro Million
-  Tokens; Veo 3.1 Fast 1080p: 0,12 $ pro Sekunde, ein Clip = 8 s = 0,96 $; Bild: 0,067 $).
+  Tokens; Websuche: 0,01 $ pro Suche; Veo 3.1 Fast 1080p: 0,12 $ pro Sekunde, ein Clip = 8 s =
+  0,96 $; Bild: 0,067 $; Tonprüfung: aufgerundet 0,01 €).
   Ein Dollar wird als ein Euro gerechnet, das liegt auf der sicheren Seite.
 - Reicht das Budget an einem Hero-Tag nicht für mindestens zwei Einstellungen, fällt das
   Hero-Video aus (Hinweis im GitHub-Lauf). Die App-Videos kosten Cent-Beträge.
@@ -81,10 +83,15 @@ Braucht wie `npm run video` Google Chrome und ffmpeg.
   nicht, alle Texte werden escaped, Längen sind begrenzt.
 - Er kann Entwürfe, Referenzbild-Vorschläge und Ausgaben anlegen und Zahlen lesen, aber nichts
   freigeben, auswählen, posten oder das Budget ändern. Das können nur Owner in der Konsole.
-- Hero-Videos werden immer als KI markiert: in der Konsole, und die Captions enden mit
-  „Szenen mit KI erstellt.“ Beim Posten auf TikTok „KI-generierter Inhalt“ und auf Instagram
-  „KI-Info“ einschalten. Handy-Bildschirme in KI-Szenen sind nie lesbar; die App zeigt immer
-  der echte Screen.
+- Hero-Videos werden immer als KI markiert: in der Konsole und beim automatischen Posten über
+  die Plattform (Instagram „KI-Info“, TikTok „KI-generierter Inhalt“), nicht im Text der
+  Caption. Wer ein Hero-Video von Hand postet, schaltet den Hinweis dort selbst ein.
+  Handy-Bildschirme in KI-Szenen sind nie lesbar; die App zeigt immer der echte Screen.
+- Die Figuren wirken durch Mimik, Lachen und Gesten, sie sprechen meistens nicht. Höchstens ein
+  kurzer Satz pro Folge, dann auf Deutsch. Spricht Veo trotzdem (oft Englisch), hört Gemini das
+  und der Ton der Aufnahme wird stumm geschaltet; die Karte in der Konsole sagt es dazu.
+- Hashtags: 3–5 (Instagram erlaubt höchstens 5), immer #wannayap, der Rest passend aus der
+  Trend-Recherche des Tages. Suchbegriffe stehen im ersten Satz der Caption.
 - Marke, Tonalität und Regeln kommen aus `PLAYBOOK.md`, `HERO-VIDEO.md`, `agent/prompt.js`
   und `agent/hero-prompt.js`. Änderungen dort gelten ab dem nächsten Lauf.
 
@@ -121,8 +128,14 @@ TikTok `is_aigc`).
    `TIKTOK_CLIENT_SECRET` eintragen.
 4. In der Konsole unter Kanäle **Mit TikTok verbinden**.
 5. Bis TikTok die App geprüft hat („Audit“), sind direkte Posts nur privat sichtbar. Bis
-   dahin im Modus **Entwurf** lassen: Das Video landet in der TikTok-App, du veröffentlichst
-   es dort mit zwei Tipps und hakst es in der Konsole ab. Nach dem Audit auf **Direkt**.
+   dahin im Modus **Entwurf** lassen: Das Video landet in der TikTok-App, du fügst dort den
+   Text ein (bei KI-Videos „KI-generierter Inhalt“ einschalten), veröffentlichst und hakst es
+   in der Konsole ab; die Karte zeigt die Schritte. Nach dem Audit auf **Direkt**.
+6. **Sandbox:** Solange die App bei TikTok in Prüfung ist, geht es nur mit den Sandbox-Schlüsseln
+   (eigener Client Key und Secret im Reiter Sandbox) und nur für Konten, die dort als
+   Target User eingetragen sind. Nach der Freigabe die Produktions-Schlüssel auf Render
+   eintragen und in der Konsole TikTok trennen und neu verbinden: Sandbox-Anmeldungen gelten
+   in der Produktion nicht.
 
 ## Nächste Stufe
 

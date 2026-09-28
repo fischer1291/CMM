@@ -5,7 +5,7 @@
 const fs = require('fs');
 const { GoogleGenAI } = require('@google/genai');
 const { spend, videoCost, VIDEO_MODEL } = require('./common');
-const { STYLE, NEGATIVE } = require('./hero-prompt');
+const { STYLE, NEGATIVE, sound } = require('./hero-prompt');
 
 const SECONDS = 8;
 const POLL_MS = 10000;
@@ -58,7 +58,7 @@ async function start(prompt, referenceImages) {
 async function generateClip({ shot, look, reference, out, campaign, hint }) {
   if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY fehlt');
   // No negativePrompt parameter: not every account may use it, so it goes into the prompt
-  const prompt = [shot.prompt, look ? `The person: ${look}.` : '', `Avoid: ${NEGATIVE}${hint ? `; ${hint}` : ''}.`, STYLE].filter(Boolean).join(' ');
+  const prompt = [shot.prompt, look ? `The person: ${look}.` : '', `Avoid: ${NEGATIVE}${hint ? `; ${hint}` : ''}.`, STYLE, sound(shot)].filter(Boolean).join(' ');
   const referenceImages = reference ? [await referenceImage(reference)] : undefined;
   const cost = videoCost(SECONDS);
   return spend({ provider: 'google', purpose: 'video-clip', estimateEur: cost, campaign, note: shot.action.slice(0, 120) }, async () => {

@@ -60,7 +60,7 @@ const Draft = z.object({
     instagram: text(600, 'Caption für Instagram Reels, mit Call to Action „Link in Bio“'),
     tiktok: text(300, 'Caption für TikTok, kürzer und lockerer'),
   }),
-  hashtags: z.array(z.string().regex(/^[a-z0-9äöüß_]+$/).max(30)).min(3).max(6).describe('ohne #, klein geschrieben'),
+  hashtags: z.array(z.string().regex(/^[a-z0-9äöüß_]+$/).max(30)).min(3).max(5).describe('ohne #, klein geschrieben, 3–5'),
 });
 
 const Plan = z.object({

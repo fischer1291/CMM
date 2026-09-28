@@ -11,6 +11,7 @@ const Shot = z.object({
   action: text(200, 'Was in der Einstellung passiert, auf Deutsch, für die Freigabe'),
   prompt: text(700, 'Bildbeschreibung für den Videogenerator auf Englisch: Ort, Licht, Handlung, Kamera. Ohne Aussehen der Figur (kommt vom Referenzbild) und ohne Stil (wird angehängt)'),
   caption: z.string().max(56).describe('Untertitel auf Deutsch, der eingeblendet wird (höchstens 56 Zeichen, darf leer sein)'),
+  line: z.string().max(60).describe('Satz auf Deutsch, den die Figur hörbar sagt, höchstens 8 Wörter; fast immer leer, höchstens eine Einstellung pro Folge'),
   seconds: z.number().min(2.5).max(5).describe('Wie viele Sekunden der 8-Sekunden-Aufnahme ins Video kommen'),
 });
 
@@ -27,7 +28,7 @@ const HeroPlan = z.object({
     instagram: text(600, 'Caption für Instagram Reels mit „Link in Bio“'),
     tiktok: text(300, 'Caption für TikTok, kürzer und lockerer'),
   }),
-  hashtags: z.array(z.string().regex(/^[a-z0-9äöüß_]+$/).max(30)).min(3).max(6).describe('ohne #, klein geschrieben'),
+  hashtags: z.array(z.string().regex(/^[a-z0-9äöüß_]+$/).max(30)).min(3).max(5).describe('ohne #, klein geschrieben, 3–5'),
 });
 
 const Review = z.object({

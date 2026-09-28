@@ -86,8 +86,9 @@ kommerzielle Nutzung ist meist nur in den bezahlten Stufen erlaubt.
   im Bild.
 - **Kennzeichnen:** TikTok und Meta verlangen, realistische KI-Inhalte als solche zu
   markieren (Schalter „KI-generiert“ beim Hochladen). Auch die Transparenzpflichten
-  des EU AI Act sprechen dafür. Ein kleines „Szenen mit KI erstellt“ in der
-  Videobeschreibung genügt.
+  des EU AI Act sprechen dafür. Beim automatischen Posten setzt das Backend die
+  Kennzeichnung der Plattform (Instagram „KI-Info“, TikTok „KI-generierter Inhalt“);
+  ein zusätzlicher Satz in der Caption ist nicht nötig.
 - **Keine gestellten Erfahrungsberichte:** Die KI-Figuren sind Szenen, keine „Nutzer“.
 - **Ehrlicher Hinweis zur Zielgruppe:** Eine App für echte Gespräche, beworben mit
   KI-Menschen, kann auf TikTok Kommentare wie „KI-Leute für echte Verbindung?“

@@ -6,6 +6,8 @@ const KEY = process.env.MARKETING_AGENT_KEY;
 const MODEL = process.env.AGENT_MODEL || 'claude-opus-5';
 const VIDEO_MODEL = process.env.VIDEO_MODEL || 'veo-3.1-fast-generate-preview';
 const IMAGE_MODEL = process.env.IMAGE_MODEL || 'gemini-3.1-flash-image-preview';
+// Listens to the Veo clips: does someone speak, and in which language
+const SPEECH_MODEL = process.env.SPEECH_MODEL || 'gemini-flash-latest';
 // Prices are in US dollars; counting a dollar as a euro keeps the budget on the safe side
 const USD_TO_EUR = Number(process.env.USD_TO_EUR || 1);
 
@@ -17,6 +19,10 @@ const PRICES = {
   video: { 'veo-3.1-fast-generate-preview': 0.12, 'veo-3.1-generate-preview': 0.4 },
   // per image up to 1K
   image: 0.067,
+  // per web search (Claude's web search tool, $10 per 1,000)
+  search: 0.01,
+  // checking a clip's sound for speech (Gemini Flash; a fraction of a cent, rounded up)
+  speech: 0.005,
 };
 const eur = (usd) => Math.ceil(usd * USD_TO_EUR * 100) / 100;
 const claudeCost = (usage) =>
@@ -121,8 +127,8 @@ const today = () => new Date().toLocaleDateString('de-DE', { timeZone: 'Europe/B
 const dayTag = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' }).slice(5).replace('-', '');
 
 module.exports = {
-  API, KEY, MODEL, VIDEO_MODEL, IMAGE_MODEL,
+  API, KEY, MODEL, VIDEO_MODEL, IMAGE_MODEL, SPEECH_MODEL,
   backend, spend, spent, BudgetExceeded, uploadDraft, musicFor,
-  claudeCost, claudeMax, videoCost, imageCost,
+  PRICES, eur, claudeCost, claudeMax, videoCost, imageCost,
   today, dayTag,
 };

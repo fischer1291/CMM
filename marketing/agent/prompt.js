@@ -3,6 +3,11 @@
 const fs = require('fs');
 const path = require('path');
 const { SCREENS, LIMITS } = require('../src/templates');
+const trends = require('./trends');
+
+/** Hashtags and search words, for app and hero videos alike. */
+const HASHTAG_RULES = `- Hashtags: 3–5 (Instagram erlaubt höchstens 5), immer „wannayap“, dazu 2–4 aus den aktuellen Trends unten, die wirklich zum Video passen: lieber passende Nischen-Tags (z. B. zum Semesterstart oder zur Situation im Video) als riesige Allerwelts-Tags wie fyp oder viral. Wechsle sie von Video zu Video, statt immer dieselben zu nehmen.
+- Suchbegriffe: Die Plattformen finden Videos heute vor allem über Wörter in der Caption. Schreib die zwei, drei Begriffe, nach denen die Zielgruppe sucht (z. B. „Ersti“, „neue Stadt“, „Fernfreundschaft“), natürlich in den ersten Satz der Caption.`;
 
 /** Sections of PLAYBOOK.md by their number ("## 1. …" up to the next "## "). */
 function playbook(numbers) {
@@ -53,10 +58,10 @@ Beim Hook und beim payoff markierst du genau eine Wortgruppe mit *Sternchen*, si
 - Jede Kampagne ist eine Einladung: Das Video soll Lust machen, die App mit einer bestimmten Person zu teilen.
 - Wiederhole keine Idee, die schon lief oder verworfen wurde. Nimm Begründungen beim Verwerfen ernst und wende sie auch auf neue Entwürfe an.
 - Teste bewusst: Jeder Entwurf prüft eine klare Hypothese (anderer Hook, andere Zielgruppe, andere Situation). Mische die Vorlagen.
-- Hashtags: 3–6, darunter immer „wannayap“.`;
+${HASHTAG_RULES}`;
 }
 
-function user({ count, today, context }) {
+function user({ count, today, context, trendNotes }) {
   const { visits, drafts } = context;
   const history = drafts.length
     ? drafts
@@ -83,7 +88,9 @@ ${campaigns}
 Hinweis: Links in Captions sind nicht klickbar, die meisten Besuche kommen über den Bio-Link. Die Zahlen pro Video sind deshalb noch dünn; Begründungen beim Verwerfen und was gepostet wurde, sind oft das bessere Signal.
 
 # Bisherige Entwürfe (neueste zuerst)
-${history}`;
+${history}
+
+${trends.section(trendNotes)}`;
 }
 
-module.exports = { system, user, playbook, SCREEN_INFO };
+module.exports = { system, user, playbook, SCREEN_INFO, HASHTAG_RULES };

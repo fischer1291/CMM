@@ -1,5 +1,6 @@
 // Cuts a hero video: the Veo scenes (each trimmed, with its caption burned
-// in and its own ambience kept quietly), the real app screen with the payoff,
+// in and its own ambience kept quietly, a planned German line at full volume,
+// unplanned speech muted), the real app screen with the payoff,
 // the end card, and the code-composed music (music.js) under all of it.
 // Loudness is measured and set as plain gain (-16 LUFS), like hero.js.
 const fs = require('fs');
@@ -16,6 +17,7 @@ const FPS = 30;
 const RATE = 48000;
 const TARGET_LUFS = -16;
 const AMBIENCE = 0.35;
+const VOICE = 1;
 const END_SECONDS = 4.5;
 
 function ffmpeg(args) {
@@ -46,7 +48,7 @@ function lufs(file) {
 }
 
 /**
- * shots: [{ file, start, seconds, caption }], app: { payoff, screen }.
+ * shots: [{ file, start, seconds, caption, mute, voice }], app: { payoff, screen }.
  * Returns { file, seconds }.
  */
 async function cutHero({ browser, shots, app, logoSvg, shortUrl, out, tmp }) {
@@ -72,8 +74,10 @@ async function cutHero({ browser, shots, app, logoSvg, shortUrl, out, tmp }) {
       '-map', '[out]', '-frames:v', String(Math.round(d * FPS)), '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', v,
     ]);
     const a = path.join(tmp, `shot-${i}.wav`);
-    if (hasAudio(shot.file)) {
-      ffmpeg(['-ss', String(shot.start), '-i', shot.file, '-af', `aresample=${RATE},aformat=channel_layouts=stereo,volume=${AMBIENCE},apad,atrim=end_sample=${Math.round(d * RATE)}`, '-ar', String(RATE), '-ac', '2', a]);
+    if (!shot.mute && hasAudio(shot.file)) {
+      // A planned spoken line must be understood; plain ambience stays in the background
+      const volume = shot.voice ? VOICE : AMBIENCE;
+      ffmpeg(['-ss', String(shot.start), '-i', shot.file, '-af', `aresample=${RATE},aformat=channel_layouts=stereo,volume=${volume},apad,atrim=end_sample=${Math.round(d * RATE)}`, '-ar', String(RATE), '-ac', '2', a]);
     } else silence(d, a);
     videos.push(v);
     audios.push(a);
