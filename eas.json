@@ -9,7 +9,8 @@
       "distribution": "internal",
       "channel": "development",
       "env": {
-        "APP_VARIANT": "development"
+        "APP_VARIANT": "development",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "test_MSKwlsxEEdEskrlRNIrKMALZEJM"
       },
       "cache": {
         "key": "dev-v1"
@@ -19,7 +20,8 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "APP_VARIANT": "production"
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_nHDdtjwsypUiXVhjhQyzDRDYmXW"
       },
       "cache": {
         "key": "preview-v1"
@@ -29,7 +31,8 @@
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "APP_VARIANT": "production"
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_nHDdtjwsypUiXVhjhQyzDRDYmXW"
       },
       "cache": {
         "key": "prod-v1"
