@@ -12,6 +12,7 @@ import { VerifyView } from '../features/auth/VerifyView';
 import { ContactsView } from '../features/contacts/ContactsView';
 import { CallsView } from '../features/calls/CallsView';
 import { PlusView } from '../features/plus/PlusView';
+import type { Offer } from '../services/purchases';
 import { ReferralCard } from '../features/plus/ReferralCard';
 import { YearReviewView } from '../features/plus/YearReviewView';
 import { NudgeSheet } from '../components/NudgeSheet';
@@ -248,6 +249,10 @@ const SAMPLE_PLAN: Plan = {
   products: [],
   interest: null,
 };
+const STORE_OFFERS: Offer[] = [
+  { id: '$rc_annual', title: 'Jährlich', price: '24,99 €', period: 'year', pkg: null },
+  { id: '$rc_monthly', title: 'Monatlich', price: '2,99 €', period: 'month', pkg: null },
+];
 const plusProps = {
   plan: SAMPLE_PLAN,
   offers: [],
@@ -582,22 +587,27 @@ const SCREENS: Record<string, () => React.ReactElement> = {
     <View style={{ height: 2600, transform: [{ translateY: -1150 }] }}>
       <PlusView
         {...plusProps}
-        offers={[
-          { id: '$rc_annual', title: 'Jährlich', price: '24,99 €', period: 'year', pkg: null },
-          { id: '$rc_monthly', title: 'Monatlich', price: '2,99 €', period: 'month', pkg: null },
-        ]}
+        offers={STORE_OFFERS}
         selected="$rc_annual"
         interest={new Set()}
       />
     </View>
   ),
+  // App Store Connect review screenshot per subscription: offers, buy button, terms
+  ...Object.fromEntries(
+    (['year', 'month'] as const).map((period) => [
+      `plus-review-${period}`,
+      () => (
+        <View style={{ height: 2600, transform: [{ translateY: -900 }] }}>
+          <PlusView {...plusProps} offers={STORE_OFFERS} selected={STORE_OFFERS.find((o) => o.period === period)!.id} interest={new Set()} />
+        </View>
+      ),
+    ])
+  ),
   'plus-store': () => (
     <PlusView
       {...plusProps}
-      offers={[
-        { id: '$rc_annual', title: 'Jährlich', price: '24,99 €', period: 'year', pkg: null },
-        { id: '$rc_monthly', title: 'Monatlich', price: '2,99 €', period: 'month', pkg: null },
-      ]}
+      offers={STORE_OFFERS}
       selected="$rc_annual"
       interest={new Set()}
     />
