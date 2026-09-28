@@ -1,14 +1,20 @@
 // The briefing for a hero video: one episode of a running story with the
 // recurring characters, filmed by Veo, then the real app and the end card.
 const { SCREENS } = require('../src/templates');
-const { playbook, SCREEN_INFO } = require('./prompt');
+const { playbook, SCREEN_INFO, HASHTAG_RULES } = require('./prompt');
+const trends = require('./trends');
 const { CHARACTERS } = require('./characters');
 
-/** Appended to every Veo prompt (from HERO-VIDEO.md, plus sound and safety). */
+/** Appended to every Veo prompt (from HERO-VIDEO.md, plus safety). */
 const STYLE =
   'Cinematic 35mm film look, shallow depth of field, soft natural film grain, warm tungsten practical lights indoors, cool blue night tones outdoors, subtle cyan and magenta neon accents in reflections, realistic skin texture, candid documentary feel, slight handheld movement, vertical 9:16 framing. ' +
-  'No text, no logos, no subtitles, no brand names. Phone screens are never readable: seen from behind, from the side or out of focus. ' +
-  'Sound: natural ambience only, nobody speaks, no music.';
+  'No text, no logos, no subtitles, no brand names. Phone screens are never readable: seen from behind, from the side or out of focus.';
+
+/** The sound of a shot: at most the one German line it plans, otherwise no words at all. */
+const sound = (shot) =>
+  shot.line
+    ? `Sound: natural ambience. The person says in German, quietly and naturally, with a native German accent: "${shot.line.replace(/"/g, "'")}". No other words are spoken, no music.`
+    : 'Sound: natural ambience and non-verbal sounds only, like laughter, a sigh or a breath. Nobody says any words, in any language. No music.';
 const NEGATIVE = 'text, subtitles, captions, logo, watermark, readable phone screen, user interface, distorted hands, extra fingers, deformed face, cartoon';
 
 function system() {
@@ -30,12 +36,15 @@ Anna ist die Hauptfigur der Serie: Sie trifft genau die wichtigste Zielgruppe (E
 
 - 2–3 Einstellungen. Die erste ist der Hook: ein Moment, den jede*r aus dem eigenen Leben kennt, verständlich ohne Ton. Dann das kleine Problem oder die Sehnsucht (Leute weit weg, das Timing passt nie). Die App löst es erst danach auf dem echten Screen (payoff).
 - Pro Einstellung nimmt der Schnitt 2,5–5 Sekunden aus einer 8-Sekunden-Aufnahme. Plane Handlungen, die in diese Zeit passen: eine Geste, ein Blick, eine kleine Bewegung.
-- Untertitel (caption) erzählen die Geschichte in kurzen Sätzen, Du-Form oder Ich-Perspektive der Figur. Niemand spricht in die Kamera, es gibt keine Dialoge.
+- Echt wirkt es durch Mimik, Lachen und Gesten, nicht durch Reden: ein Grinsen beim Lesen einer Nachricht, ein Lachen, das rausplatzt, Augenrollen, Schultern hochziehen, ein Seufzer, eine Umarmung. Beschreib das im prompt konkret.
+- Die Figuren sprechen meistens nicht. Höchstens eine Einstellung pro Folge darf einen kurzen gesprochenen Satz haben (line), und nur, wenn er die Szene wirklich stärker macht: auf Deutsch, alltäglich, höchstens 8 Wörter, nie in die Kamera. Dann ist die caption dieser Einstellung genau dieser Satz (für alle, die ohne Ton schauen). Sonst bleibt line leer.
+- Untertitel (caption) erzählen die Geschichte in kurzen Sätzen, Du-Form oder Ich-Perspektive der Figur.
 - Einstellungen ohne erkennbare Person (character "none") gehen auch, z. B. ein Zugfenster bei Nacht.
 
 # Regeln für die Bildbeschreibung (prompt, auf Englisch)
 
-- Beschreibe Ort, Licht, Handlung und Kamera. Das Aussehen der Figur kommt vom Referenzbild, der Stil wird angehängt: „${STYLE}“
+- Beschreibe Ort, Licht, Handlung, Mimik und Kamera. Das Aussehen der Figur kommt vom Referenzbild, der Stil und der Ton werden angehängt: „${STYLE}“
+- Schreib keinen gesprochenen Text in den prompt; ein geplanter Satz gehört nur in line.
 - Handy-Bildschirme sind nie lesbar. Die App zeigt nur der echte Screen am Ende.
 - Keine Texte, Schilder mit Schrift, Logos, Marken oder echten Personen im Bild. Bekannte Orte sind in Ordnung, wenn nichts Geschriebenes zu sehen ist.
 - Alle Figuren sind erwachsen. Keine Kinder im Bild.
@@ -47,13 +56,13 @@ Anna ist die Hauptfigur der Serie: Sie trifft genau die wichtigste Zielgruppe (E
 - Die Figuren sind Szenen, keine „Nutzer“: keine Erfahrungsberichte („Ich nutze die App seit …“), keine erfundenen Zahlen, Bewertungen oder Auszeichnungen.
 - Nur Funktionen, die es gibt: Status „erreichbar“, Yap Moment, Kreise mit Ritualen, Moments mit „Talk first“, Anstupsen, Video- und Sprachanrufe, Statistik. Kostenlos fürs iPhone.
 - Einsamkeit nie als Angstmacher, niemanden beschämen.
-- Captions: Die Videos zeigen realistische KI-Personen. Schreib am Ende der Instagram- und der TikTok-Caption „Szenen mit KI erstellt.“
-- Hashtags: 3–6, darunter immer „wannayap“.
+- Captions: Kein Hinweis auf KI im Text. Das Video wird beim Posten über die Plattform als KI-generiert gekennzeichnet („KI-Info“).
+${HASHTAG_RULES}
 
 App-Screens für den payoff: ${SCREENS.map((s) => `${s} (${SCREEN_INFO[s]})`).join('; ')}.`;
 }
 
-function user({ today, context, available, maxShots }) {
+function user({ today, context, available, maxShots, trendNotes }) {
   const heroes = context.drafts.filter((d) => d.kind === 'hero');
   const story = heroes.length
     ? heroes
@@ -81,7 +90,9 @@ ${story}
 ${apps || '–'}
 
 # Landing Page, letzte 30 Tage
-${campaigns}`;
+${campaigns}
+
+${trends.section(trendNotes)}`;
 }
 
-module.exports = { system, user, STYLE, NEGATIVE };
+module.exports = { system, user, STYLE, NEGATIVE, sound };

@@ -1,7 +1,8 @@
 // Hero video (twice a week): the next episode of the running story with the
 // recurring characters. Claude writes the episode, Veo films 2–3 shots with the
 // chosen reference images, Claude checks the clips (one more take for a bad
-// one if the budget allows), then the cut: scenes with captions, the real
+// one if the budget allows), Gemini listens for words nobody planned (those
+// clips are muted), then the cut: scenes with captions, the real
 // app screen, the end card, music. The draft is marked as AI and waits for
 // approval in the admin console like every other video.
 //
@@ -20,6 +21,8 @@ const { ask } = require('./claude');
 const { byKey, ensureReferences } = require('./characters');
 const { generateClip, SECONDS } = require('./veo');
 const { cutHero, frames } = require('./cut');
+const { trends } = require('./trends');
+const { listen } = require('./speech');
 const { KEY, backend, spent, uploadDraft, today, dayTag, videoCost, BudgetExceeded } = require('./common');
 
 const OUT = path.join(__dirname, '../dist/agent');
@@ -27,8 +30,8 @@ const SITE = (process.env.SITE_URL || 'https://wannayap.app').replace(/^https?:\
 const arg = (name) => (process.argv.includes(name) ? process.argv[process.argv.indexOf(name) + 1] : null);
 const PLAN_FILE = arg('--plan');
 const CLIPS_DIR = arg('--clips');
-// Plan and the check of the clips (Claude), kept free on top of the clips
-const OVERHEAD_EUR = 0.9;
+// Trend research, plan and the check of the clips (Claude), kept free on top of the clips
+const OVERHEAD_EUR = 1.3;
 const MAX_RETAKES = 1;
 
 /** Claude looks at three frames of every clip next to the reference image. */
@@ -47,6 +50,13 @@ async function review(plan, clips, tmp) {
     const r = output.shots[i] || { ok: true, problems: '', bestStart: 0 };
     return { ...r, bestStart: Math.max(0, Math.min(r.bestStart, SECONDS - shot.seconds)) };
   });
+}
+
+/** A saved plan; plans from before spoken lines existed have none. */
+function savedPlan(file) {
+  const plan = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const p = plan.plan || plan;
+  return { ...p, shots: (p.shots || []).map((s) => ({ line: '', ...s })) };
 }
 
 async function main() {
@@ -70,9 +80,10 @@ async function main() {
     return;
   }
 
+  const trendNotes = PLAN_FILE ? null : await trends();
   const { output: plan, model } = PLAN_FILE
-    ? { output: HeroPlan.parse(JSON.parse(fs.readFileSync(PLAN_FILE, 'utf8'))), model: null }
-    : await ask({ schema: HeroPlan, system: heroPrompt.system(), content: heroPrompt.user({ today: today(), context, available, maxShots }), purpose: 'plan-hero' });
+    ? { output: HeroPlan.parse(savedPlan(PLAN_FILE)), model: null }
+    : await ask({ schema: HeroPlan, system: heroPrompt.system(), content: heroPrompt.user({ today: today(), context, available, maxShots, trendNotes }), purpose: 'plan-hero' });
   plan.shots = plan.shots.slice(0, maxShots);
   // Only characters that have a reference image may appear
   for (const shot of plan.shots) if (!test && shot.character !== 'none' && !available.some((c) => c.key === shot.character)) shot.character = 'none';
@@ -114,6 +125,26 @@ async function main() {
   }
   const warnings = checks.map((c, i) => (c.ok ? null : `Aufnahme ${i + 1}: ${c.problems}`)).filter(Boolean);
 
+  // Listen: words nobody planned (Veo likes to add English chatter) are muted
+  for (const [i, shot] of plan.shots.entries()) {
+    if (test) break;
+    let heard;
+    try {
+      heard = await listen(clips[i].file, { campaign, tmp });
+    } catch (err) {
+      // Also when the budget is used up: the clips are paid for, the video still gets cut
+      warnings.push(`Aufnahme ${i + 1}: Ton nicht geprüft (${err.message.slice(0, 120)})`);
+      continue;
+    }
+    if (!heard.speech) continue;
+    if (shot.line && heard.language === 'de') clips[i].voice = true;
+    else {
+      clips[i].mute = true;
+      warnings.push(`Aufnahme ${i + 1}: Ton stumm geschaltet, Veo ließ ${heard.language ? `auf „${heard.language}“ ` : ''}sprechen${heard.words ? ` („${heard.words.slice(0, 80)}“)` : ''}`);
+    }
+    console.log(`  Aufnahme ${i + 1}: gesprochen (${heard.language || '?'}): ${heard.words || '–'}${clips[i].mute ? ' → stumm' : ''}`);
+  }
+
   // The cut
   const logoSvg = markOnly(120).replace(/width="120" height="120"/, 'width="100%" height="100%"');
   const browser = await launch();
@@ -121,7 +152,7 @@ async function main() {
   try {
     video = await cutHero({
       browser,
-      shots: plan.shots.map((s, i) => ({ file: clips[i].file, start: checks[i].bestStart, seconds: s.seconds, caption: s.caption })),
+      shots: plan.shots.map((s, i) => ({ file: clips[i].file, start: checks[i].bestStart, seconds: s.seconds, caption: s.caption, mute: !!clips[i].mute, voice: !!clips[i].voice })),
       app: { payoff: plan.payoff, screen: plan.screen },
       logoSvg,
       shortUrl: SITE,
@@ -135,19 +166,18 @@ async function main() {
   console.log(`✓ ${path.relative(process.cwd(), video.file)} (${video.seconds} s)`);
   if (test) return;
 
-  const label = 'Szenen mit KI erstellt.';
-  const withLabel = (t) => (t.includes(label) ? t : `${t}\n\n${label}`);
   const uploaded = await uploadDraft(campaign, {
     kind: 'hero',
     ai: true,
     template: 'hero',
     title: plan.title,
-    idea: warnings.length ? `${plan.idea}\n\nPrüfung durch Claude: ${warnings.join(' · ')}` : plan.idea,
+    idea: warnings.length ? `${plan.idea}\n\nPrüfung: ${warnings.join(' · ')}` : plan.idea,
     episode: plan.episode,
     characters: [...new Set(plan.shots.map((s) => s.character).filter((k) => k !== 'none'))],
-    content: { shots: plan.shots.map(({ character, action, caption, seconds }) => ({ character, action, caption, seconds })), payoff: plan.payoff, screen: plan.screen },
+    content: { shots: plan.shots.map(({ character, action, caption, line, seconds }) => ({ character, action, caption, line, seconds })), payoff: plan.payoff, screen: plan.screen },
     seconds: video.seconds,
-    captions: { instagram: withLabel(plan.captions.instagram), tiktok: withLabel(plan.captions.tiktok) },
+    // The AI label comes from the platforms (set when posting), not from the text
+    captions: plan.captions,
     hashtags: plan.hashtags,
     model,
     costEur: spent(),
