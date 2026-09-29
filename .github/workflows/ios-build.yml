@@ -1,8 +1,10 @@
-# iOS build in the cloud (EAS), started by hand: GitHub → Actions → iOS-Build →
-# Run workflow. EAS builds the production app from main and, if chosen, hands
-# it to App Store Connect (TestFlight). One-time setup: docs/RELEASE.md,
-# section "Build über GitHub".
+# The one way to TestFlight: GitHub → Actions → iOS-Build → Run workflow.
+# EAS builds the production app from main on its Macs, counts the build number
+# and uploads it to App Store Connect. The run waits for both and is green only
+# when the build really is at Apple; its summary shows the build number and
+# links. One-time setup (already done): docs/RELEASE.md.
 name: iOS-Build
+run-name: iOS-Build ${{ inputs.submit && 'nach TestFlight' || 'ohne Upload' }}
 
 on:
   workflow_dispatch:
@@ -11,6 +13,10 @@ on:
         description: Danach zu App Store Connect hochladen (TestFlight)
         type: boolean
         default: true
+      was_testen:
+        description: Was testen? (steht bei den Testern in TestFlight, optional)
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -22,7 +28,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Build (about 15–25 min on EAS, longer when EAS is busy) plus upload
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - name: Setup vorhanden?
@@ -38,6 +45,7 @@ jobs:
             echo "::error::In eas.json fehlt submit.production.ios.ascAppId: die Apple-ID der App aus App Store Connect. Siehe docs/RELEASE.md."
             exit 1
           fi
+          node scripts/version.js
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -47,7 +55,19 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-      # The build runs on EAS's Macs; this job only starts it. Progress and
-      # the result: expo.dev → Projekt → Builds (and a mail from Expo)
-      - name: Build starten
-        run: eas build --platform ios --profile production --non-interactive --no-wait ${{ inputs.submit && '--auto-submit' || '' }}
+      # EAS prints its progress here; the result (JSON) goes outside the checkout, which must stay clean
+      - name: Build und Upload
+        env:
+          SUBMIT: ${{ inputs.submit }}
+          NOTE: ${{ inputs.was_testen }}
+        run: |
+          args=(--platform ios --profile production --non-interactive --json)
+          if [ "$SUBMIT" = "true" ]; then
+            args+=(--auto-submit --what-to-test "${NOTE:-Aktueller Stand von main ($(git rev-parse --short HEAD))}")
+          fi
+          set +e
+          eas build "${args[@]}" > "$RUNNER_TEMP/build.json"
+          status=$?
+          set -e
+          node scripts/ios-build-summary.js "$RUNNER_TEMP/build.json" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit $status

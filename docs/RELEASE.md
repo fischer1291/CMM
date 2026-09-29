@@ -10,10 +10,10 @@ fehlt dort.
 |---|---|---|
 | Anbieterangaben (Name, Anschrift, E-Mail) | `content/legal.ts` → `OPERATOR` | erledigt (E-Mail muss ankommen) |
 | Datenschutzerklärung juristisch prüfen lassen | `content/legal.ts` → `PRIVACY_SECTIONS` | Entwurf |
-| App-Eintrag in App Store Connect (Bundle-ID `com.schly21.kontaktlisteapp`) | App Store Connect | offen |
-| Demo-Zugang für App Review: `REVIEW_PHONE` und `REVIEW_CODE` (6–10 Ziffern) | Render → Environment | offen |
-| Datenschutz-URL: `https://wannayap.app/datenschutz` | App Store Connect → App-Informationen | offen |
-| Store-Texte und Screenshots | `docs/APPSTORE.md`, Bilder aus `marketing/` (`npm run build` → `dist/kit/appstore/`) | fertig zum Hochladen |
+| App-Eintrag in App Store Connect (Bundle-ID `com.schly21.kontaktlisteapp`) | App Store Connect | erledigt |
+| Demo-Zugang für App Review: `REVIEW_PHONE` und `REVIEW_CODE` (6–10 Ziffern) | Render → Environment | erledigt (nach der Freigabe entfernen) |
+| Datenschutz-URL: `https://wannayap.app/datenschutz` | App Store Connect → App-Informationen | erledigt |
+| Store-Texte und Screenshots | `docs/APPSTORE.md`, Bilder aus `marketing/` (`npm run build` → `dist/kit/appstore/`) | erledigt (1.0 mit Build 22 in der Prüfung) |
 
 ### Backend-Umgebung (Render)
 
@@ -29,63 +29,71 @@ Prüfen: `https://api.wannayap.app/api/push-health` sollte
 `authRequired`, `voipConfigured` und `agoraCertificateFromEnv` jeweils mit
 `true` zeigen, dazu unter `version` den erwarteten Commit.
 
-## 2. Build und Upload
+## 2. Build und Upload (TestFlight)
 
-Mit EAS (Expo-Konto `schly21`):
+Es gibt **einen** Weg: EAS baut in der Cloud, zählt die Build-Nummer und lädt nach
+App Store Connect hoch. So gibt es nur einen Zähler und keine doppelten Nummern mehr.
 
-```bash
-npx eas-cli login
-npx eas-cli build --platform ios --profile production
-npx eas-cli submit --platform ios --latest
-```
+**Normalfall, ohne Mac:** GitHub → CMM → Actions → **iOS-Build** → *Run workflow*
+(Branch `main`, „hochladen“ angehakt, optional „Was testen?“ für die Tester).
+Der Lauf wartet, bis der Build fertig und bei Apple ist (meist 20–30 Minuten), und
+ist nur dann grün. Die Zusammenfassung des Laufs zeigt die Build-Nummer und die
+Links zu expo.dev. Danach verarbeitet Apple den Build noch 10–30 Minuten, dann
+steht er in TestFlight. Die Frage nach der
+Exportverschlüsselung kommt nicht (`ITSAppUsesNonExemptEncryption: false`).
 
-Oder direkt von diesem Mac mit dem in Xcode angemeldeten Apple-Konto
-(ohne EAS). Das Skript baut das Release-Archiv, zählt die Build-Nummer
-hoch und lädt es zu App Store Connect hoch:
+**Vom Mac aus, gleicher Weg:** `scripts/testflight.sh "Was testen?"` (vorher einmal
+`npx eas-cli login`). Gebaut wird, was committet ist.
 
-```bash
-scripts/testflight.sh
-```
+Nicht mehr bauen: direkt mit Xcode (*Archive → Distribute*) oder mit `xcodebuild`.
+Solche Builds zählen an EAS vorbei, und die nächste Nummer von EAS gibt es dann
+schon bei Apple.
 
-Alternativ über Xcode: `ios/CallMeMaybe.xcworkspace` öffnen, Schema
-`CallMeMaybe`, Ziel „Any iOS Device“, dann *Product → Archive* und
-*Distribute App → App Store Connect*.
+### Nummern
 
-Die Build-Nummer zählt EAS automatisch hoch (`appVersionSource: remote`).
-Die Versionsnummer steht in `app.config.js` unter `version`.
+| | Wo | Wer ändert sie |
+|---|---|---|
+| Version (1.0.0, 1.0.1, …): die Version im App Store | `app.config.js` und `ios/CallMeMaybe/Info.plist` | du, mit `node scripts/version.js 1.0.1` (setzt beide) |
+| Build-Nummer (23, 24, …): jeder Upload eine neue | EAS (`appVersionSource: remote`) | EAS, bei jedem Build +1 |
+
+`CFBundleVersion` in der Info.plist ist nur ein Platzhalter; EAS schreibt beim Bauen
+die richtige Nummer hinein. Die aktuelle Nummer bei EAS: `npx eas-cli build:version:get -p ios`.
+CI prüft, dass beide Dateien dieselbe Version haben (`node scripts/version.js`).
+
+Nach der Freigabe von 1.0.0 braucht jede neue Store-Version eine höhere Version
+(`node scripts/version.js 1.0.1`, committen, dann bauen). Für TestFlight allein
+genügt eine neue Build-Nummer, die Version kann bleiben.
+
+### App Store Connect: welcher Build wofür
+
+- **In der Prüfung / im Store:** der Build, der unter *Distribution → Version →
+  Build* ausgewählt ist. Diesen während der Prüfung nicht austauschen, sonst
+  beginnt sie neu.
+- **TestFlight:** jeder neue Build. Zum Testen neuer Stände einfach bauen; die
+  Version im Store bleibt davon unberührt.
+- Aufräumen: alte Builds unter *TestFlight → Build → Build ablaufen lassen*.
+  Löschen kann man bei Apple nichts, abgelaufene Builds sind für Tester weg.
+  Build-Nummern werden nie wiederverwendet, Lücken sind normal.
 
 Release-Builds entfernen `console.log/info/debug` (`babel.config.js`),
 Fehler und Warnungen bleiben erhalten. VoIP- und normale Push-Tokens aus
 TestFlight/App-Store-Builds sind „production“-Tokens; das Backend erkennt
 die APNs-Umgebung selbst.
 
-### Build über GitHub (ohne Mac)
+### Einrichtung (einmalig, erledigt)
 
-Der Workflow **iOS-Build** (`.github/workflows/ios-build.yml`) startet den Build auf
-den Macs von EAS und lädt ihn auf Wunsch gleich zu App Store Connect hoch:
-GitHub → Actions → iOS-Build → *Run workflow*. Den Fortschritt zeigt expo.dev
-(Projekt → Builds), am Ende kommt eine Mail von Expo.
-
-Einmal einrichten, auf dem Mac im Projektordner:
+Nur falls es neu eingerichtet werden muss, z. B. mit einem neuen Expo-Konto:
 
 1. `npx eas-cli login` mit dem Expo-Konto `schly21`.
-2. `npx eas-cli credentials --platform ios` → Profil *production*:
-   - Distributionszertifikat und Provisioning-Profil von EAS verwalten lassen
-     (mit dem Apple-Konto anmelden, EAS legt sie an oder übernimmt die vorhandenen).
-   - Push-Schlüssel (APNs) ebenso, und einen **App Store Connect API Key** anlegen
-     lassen: den braucht der automatische Upload.
-3. `npx eas-cli build:version:set --platform ios` und die **höchste Build-Nummer**
-   eintragen, die schon bei App Store Connect liegt (z. B. 22 nach dem letzten
-   `scripts/testflight.sh`). EAS zählt ab da selbst hoch; eine doppelte Nummer
-   lehnt Apple ab.
-4. expo.dev → Account Settings → Access Tokens → Token anlegen, dann in GitHub →
-   CMM → Settings → Secrets and variables → Actions als Secret **`EXPO_TOKEN`**.
-5. Die **Apple-ID der App** (App Store Connect → App → App-Informationen → Apple-ID,
-   nur Ziffern) in `eas.json` unter `submit.production.ios.ascAppId` eintragen.
-   Sie ist nicht geheim (steht auch im App-Store-Link).
-
-Wer weiter vom Mac baut (`scripts/testflight.sh`), setzt danach mit Schritt 3 die
-Build-Nummer bei EAS nach, sonst kollidieren die Nummern.
+2. `npx eas-cli credentials --platform ios` → Profil *production*: Zertifikat,
+   Provisioning-Profil, Push-Schlüssel und einen **App Store Connect API Key**
+   von EAS verwalten lassen (den braucht der Upload).
+3. `npx eas-cli build:version:set --platform ios`: die **höchste Build-Nummer**
+   eintragen, die schon bei App Store Connect liegt. EAS zählt ab da weiter.
+4. expo.dev → Account Settings → Access Tokens → Token anlegen, in GitHub → CMM →
+   Settings → Secrets and variables → Actions als Secret **`EXPO_TOKEN`**.
+5. Die **Apple-ID der App** (App Store Connect → App-Informationen → Apple-ID) in
+   `eas.json` unter `submit.production.ios.ascAppId` (ist `6746295124`).
 
 ## 3. App Store Connect: App-Datenschutz
 
