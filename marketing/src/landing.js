@@ -403,7 +403,8 @@ ${waiting ? waitlistScript({ apiUrl, siteUrl }) : ''}
  * where it came from, no cookie, nothing stored on the device; then, once
  * each, whether the page was read and whether someone typed an address. Source is
  * utm_source, else the platform in the referrer (e.g. the link in the Instagram
- * bio). Reloads, back/forward and the links from our own mails don't count.
+ * bio). Reloads, back/forward, clicks within our own pages, the links from
+ * our own mails and browsers switched off with ?nichtzaehlen=1 don't count.
  * Also leaves the source in window.wyVisitSource for the sign-up.
  */
 function visitScript({ apiUrl, siteUrl }) {
@@ -423,8 +424,29 @@ function visitScript({ apiUrl, siteUrl }) {
   const source = q.get('utm_source') || platform;
   window.wyVisitSource = source;
 
+  // The team's own devices: ?nichtzaehlen=1 switches counting off in this
+  // browser (on request, so it is kept on the device), ?nichtzaehlen=0 on again
+  let off = false;
+  try {
+    const choice = q.get('nichtzaehlen');
+    if (choice === '1') localStorage.setItem('wy_nocount', '1');
+    if (choice === '0') localStorage.removeItem('wy_nocount');
+    off = localStorage.getItem('wy_nocount') === '1';
+  } catch {}
+  if (q.has('nichtzaehlen')) {
+    q.delete('nichtzaehlen');
+    history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
+    const note = document.createElement('div');
+    note.textContent = off ? 'Besuche von diesem Browser werden nicht mehr gezählt.' : 'Besuche von diesem Browser werden wieder gezählt.';
+    note.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:99;padding:12px 18px;border-radius:14px;background:#1c1c2b;color:#f4f4fa;font:500 15px/1.4 system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.5)';
+    document.addEventListener('DOMContentLoaded', () => { document.body.appendChild(note); setTimeout(() => note.remove(), 4000); });
+  }
+  if (off) return;
+
+  // Reloads, back/forward and clicks within our own pages are no new visit
   const nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
   if (nav && nav.type !== 'navigate') return;
+  if (own) return;
   if (q.has('bestaetigen') || q.has('abmelden') || navigator.webdriver) return;
   const send = (path, extra) => fetch(${JSON.stringify(apiUrl)} + path, {
     method: 'POST',
