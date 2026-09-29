@@ -573,6 +573,7 @@ function waitlistScript({ apiUrl, siteUrl }) {
           return;
         }
         msg.textContent = data.error === 'invalid_email' ? 'Bitte gib eine gültige E-Mail-Adresse ein.'
+          : data.error === 'undeliverable' ? 'An diese Adresse lässt sich keine Mail zustellen. Vielleicht ein Tippfehler?'
           : res.status === 429 ? 'Zu viele Versuche. Probier es in einer Stunde noch mal.'
           : 'Gerade klappt es nicht. Versuch es gleich noch einmal.';
       } catch {
