@@ -14,6 +14,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Versionsnummern
+        run: node scripts/version.js
       - run: npm ci
       - name: Typecheck
         run: npm run typecheck
