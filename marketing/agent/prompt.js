@@ -5,6 +5,19 @@ const path = require('path');
 const { SCREENS, LIMITS } = require('../src/templates');
 const trends = require('./trends');
 
+/** What a person changed in the texts before posting: a strong signal for the next captions. */
+const editedNote = (d) => {
+  if (!d.edited) return '';
+  const b = d.edited.before || {};
+  const tags = (list) => (list || []).map((h) => `#${h}`).join(' ');
+  const lines = [];
+  for (const p of ['instagram', 'tiktok']) {
+    if ((b.captions?.[p] || '') !== (d.edited.captions?.[p] || '')) lines.push(`${p === 'instagram' ? 'Instagram' : 'TikTok'}: „${b.captions?.[p] || ''}“ → „${d.edited.captions?.[p] || ''}“`);
+  }
+  if (tags(b.hashtags) !== tags(d.edited.hashtags)) lines.push(`Hashtags: ${tags(b.hashtags)} → ${tags(d.edited.hashtags)}`);
+  return lines.length ? `\n  Von Hand geändert (übernimm, was dahintersteckt): ${lines.join(' · ')}` : '';
+};
+
 /** Hashtags and search words, for app and hero videos alike. */
 const HASHTAG_RULES = `- Hashtags: 3–5 (Instagram erlaubt höchstens 5), immer „wannayap“, dazu 2–4 aus den aktuellen Trends unten, die wirklich zum Video passen: lieber passende Nischen-Tags (z. B. zum Semesterstart oder zur Situation im Video) als riesige Allerwelts-Tags wie fyp oder viral. Wechsle sie von Video zu Video, statt immer dieselben zu nehmen.
 - Suchbegriffe: Die Plattformen finden Videos heute vor allem über Wörter in der Caption. Schreib die zwei, drei Begriffe, nach denen die Zielgruppe sucht (z. B. „Ersti“, „neue Stadt“, „Fernfreundschaft“), natürlich in den ersten Satz der Caption.`;
@@ -56,7 +69,7 @@ Beim Hook und beim payoff markierst du genau eine Wortgruppe mit *Sternchen*, si
 - Keine erfundenen Zahlen, Nutzerstimmen, Bewertungen oder Auszeichnungen. Keine echten Personen oder Marken. Andere Apps nicht schlechtmachen.
 - Einsamkeit nie als Angstmacher, niemanden beschämen, keinen Druck aufbauen.
 - Jede Kampagne ist eine Einladung: Das Video soll Lust machen, die App mit einer bestimmten Person zu teilen.
-- Wiederhole keine Idee, die schon lief oder verworfen wurde. Nimm Begründungen beim Verwerfen ernst und wende sie auch auf neue Entwürfe an.
+- Wiederhole keine Idee, die schon lief oder verworfen wurde. Nimm Begründungen beim Verwerfen ernst und wende sie auch auf neue Entwürfe an. Hat die Person Captions oder Hashtags vor dem Posten geändert, schreib künftig so, wie sie es wollte.
 - Teste bewusst: Jeder Entwurf prüft eine klare Hypothese (anderer Hook, andere Zielgruppe, andere Situation). Mische die Vorlagen.
 ${HASHTAG_RULES}`;
 }
@@ -67,7 +80,7 @@ function user({ count, today, context, trendNotes }) {
     ? drafts
         .map((d) => {
           const posted = Object.entries(d.posted || {}).filter(([, at]) => at).map(([p]) => p);
-          return `- ${d.createdAt.slice(0, 10)} · ${d.campaign} · ${d.template} · ${d.status}${posted.length ? ` (gepostet: ${posted.join(', ')})` : ''} · „${d.title}“${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}\n  Inhalt: ${JSON.stringify(d.content)}`;
+          return `- ${d.createdAt.slice(0, 10)} · ${d.campaign} · ${d.template} · ${d.status}${posted.length ? ` (gepostet: ${posted.join(', ')})` : ''} · „${d.title}“${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}\n  Inhalt: ${JSON.stringify(d.content)}${editedNote(d)}`;
         })
         .join('\n')
     : 'Noch keine. Das ist der erste Lauf.';
@@ -93,4 +106,4 @@ ${history}
 ${trends.section(trendNotes)}`;
 }
 
-module.exports = { system, user, playbook, SCREEN_INFO, HASHTAG_RULES };
+module.exports = { system, user, playbook, SCREEN_INFO, HASHTAG_RULES, editedNote };
