@@ -5,8 +5,8 @@ Admin-Konsole frei und postest sie (noch) selbst.
 
 | Was | Wann | Wie | Kosten |
 |---|---|---|---|
-| **Trends** | vor jedem Lauf | Claude sucht im Web, welche Hashtags, Anlässe und Formate in der Nische gerade laufen (`agent/trends.js`); fließt in Captions und Hashtags ein | ~0,10–0,40 € |
-| **App-Videos** | täglich ~6 Uhr, 2 Stück | Claude schreibt Texte für die Vorlagen in `src/templates.js` (chat, moment, list), gerendert mit eigener Musik | ~0,10–0,20 € |
+| **Trends** | vor jedem Lauf | Claude sucht im Web, welche Hashtags, Anlässe, Formate und TikTok-Sounds in der Nische gerade laufen (`agent/trends.js`); fließt in Captions, Hashtags und Sound-Tipps ein | ~0,10–0,50 € |
+| **App-Videos** | täglich ~6 Uhr, 2 Stück | Claude schreibt Texte für die Vorlagen in `src/templates.js` (chat, moment, list), gerendert mit eigener Musik (Stil passend zum Video, siehe unten) | ~0,10–0,20 € |
 | **Hero-Videos** | Di und Fr ~6:30 | nächste Folge der Serie mit Anna (und Lena, Jonas, Oma Gisela): Claude schreibt die Folge, Veo 3.1 Fast dreht 2–3 Einstellungen mit den Referenzbildern, Claude prüft die Aufnahmen, Gemini hört den Ton (`agent/speech.js`), dann Schnitt mit Untertiteln, echtem App-Screen, Endkarte, Musik | ~3–5 € |
 | **Referenzbilder** | nebenbei, bis pro Figur eins gewählt ist | Gemini-Bildmodell, 3 Vorschläge pro Figur | ~0,07 € pro Bild |
 
@@ -76,6 +76,25 @@ node agent/hero.js --plan heroplan.json --clips clips/               # Hero-Schn
 ```
 
 Braucht wie `npm run video` Google Chrome und ffmpeg.
+
+## Musik und Sounds
+
+- **Musik im Video:** kommt aus Code (`music.js`), ohne Rechte Dritter, und darf deshalb
+  automatisch auf Instagram und TikTok. Sechs Stile: Lo-Fi, House, Pop, Trap/Hip-Hop, Afro,
+  Akustik. Claude wählt pro Video den Stil, der zur Stimmung passt; derselbe Stil läuft nie
+  zweimal hintereinander (`agent/soundtrack.js`). Tonart, Akkordfolge und Tempo hängen am
+  Kampagnennamen, jedes Video klingt also anders. Probehören: `npm run music -- --styles`
+  (nach `dist/music/`).
+- **Sound-Tipp für TikTok:** Die Trend-Recherche sucht auch Sounds, die gerade auf TikTok in
+  Deutschland laufen, bevorzugt aus der kommerziellen Musikbibliothek (für Unternehmenskonten
+  freigegeben). Claude schlägt pro Video einen passenden vor; die Karte in der Konsole zeigt
+  ihn („kommerziell frei“ oder „prüfen“). Im Modus **Entwurf** legst du ihn in der TikTok-App
+  dazu und stellst den Originalton aus (bei Hero-Videos mit gesprochenem Satz nur leiser);
+  die Schritte stehen auf der Karte.
+- **Keine viralen Songs in der Datei:** Sie gehören ihren Labels. Über die Schnittstellen darf
+  man keine Plattform-Sounds anhängen, und in einer hochgeladenen Datei erkennen Instagram und
+  TikTok fremde Musik und schalten sie stumm oder sperren das Video. Trend-Sounds deshalb
+  nur über die Apps selbst.
 
 ## Was der Agent darf und was nicht
 

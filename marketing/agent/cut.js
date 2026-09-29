@@ -48,10 +48,11 @@ function lufs(file) {
 }
 
 /**
- * shots: [{ file, start, seconds, caption, mute, voice }], app: { payoff, screen }.
+ * shots: [{ file, start, seconds, caption, mute, voice }], app: { payoff, screen },
+ * music: { style, campaign } (agent/soundtrack.js).
  * Returns { file, seconds }.
  */
-async function cutHero({ browser, shots, app, logoSvg, shortUrl, out, tmp }) {
+async function cutHero({ browser, shots, app, logoSvg, shortUrl, out, tmp, music: musicOptions }) {
   fs.rmSync(tmp, { recursive: true, force: true });
   fs.mkdirSync(tmp, { recursive: true });
   const videos = [];
@@ -105,7 +106,7 @@ async function cutHero({ browser, shots, app, logoSvg, shortUrl, out, tmp }) {
   ffmpeg([...videos.flatMap((f) => ['-i', f]), '-filter_complex', `${videos.map((_, i) => `[${i}:v]`).join('')}concat=n=${videos.length}:v=1:a=0[v]`, '-map', '[v]', '-c:v', 'libx264', '-crf', '17', cut]);
   const bed = path.join(tmp, 'bed.wav');
   ffmpeg([...audios.flatMap((f) => ['-i', f]), '-filter_complex', `${audios.map((_, i) => `[${i}:a]`).join('')}concat=n=${audios.length}:v=0:a=1[a]`, '-map', '[a]', bed]);
-  const music = musicFor({ seconds: total, liftAt: scenes, endAt: scenes + appAd.seconds }, path.join(tmp, 'music.wav'));
+  const music = musicFor({ seconds: total, liftAt: scenes, endAt: scenes + appAd.seconds }, path.join(tmp, 'music.wav'), musicOptions);
   const mixed = path.join(tmp, 'mix.wav');
   ffmpeg([
     '-i', bed, '-i', music,
