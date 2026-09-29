@@ -1,7 +1,7 @@
 // The briefing for a hero video: one episode of a running story with the
 // recurring characters, filmed by Veo, then the real app and the end card.
 const { SCREENS } = require('../src/templates');
-const { playbook, SCREEN_INFO, HASHTAG_RULES } = require('./prompt');
+const { playbook, SCREEN_INFO, HASHTAG_RULES, editedNote } = require('./prompt');
 const trends = require('./trends');
 const { CHARACTERS } = require('./characters');
 
@@ -56,6 +56,7 @@ Anna ist die Hauptfigur der Serie: Sie trifft genau die wichtigste Zielgruppe (E
 - Die Figuren sind Szenen, keine „Nutzer“: keine Erfahrungsberichte („Ich nutze die App seit …“), keine erfundenen Zahlen, Bewertungen oder Auszeichnungen.
 - Nur Funktionen, die es gibt: Status „erreichbar“, Yap Moment, Kreise mit Ritualen, Moments mit „Talk first“, Anstupsen, Video- und Sprachanrufe, Statistik. Kostenlos fürs iPhone.
 - Einsamkeit nie als Angstmacher, niemanden beschämen.
+- Hat die Person Captions oder Hashtags früherer Videos vor dem Posten geändert (steht in der Geschichte unten), schreib so, wie sie es wollte.
 - Captions: Kein Hinweis auf KI im Text. Das Video wird beim Posten über die Plattform als KI-generiert gekennzeichnet („KI-Info“).
 ${HASHTAG_RULES}
 
@@ -68,13 +69,13 @@ function user({ today, context, available, maxShots, trendNotes }) {
     ? heroes
         .slice()
         .reverse()
-        .map((d) => `- ${d.createdAt.slice(0, 10)} · „${d.title}“ · ${d.status}${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}\n  ${d.episode || '(ohne Zusammenfassung)'}`)
+        .map((d) => `- ${d.createdAt.slice(0, 10)} · „${d.title}“ · ${d.status}${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}\n  ${d.episode || '(ohne Zusammenfassung)'}${editedNote(d)}`)
         .join('\n')
     : 'Noch keine Folge. Das ist die erste: Stell Anna vor.';
   const apps = context.drafts
     .filter((d) => d.kind !== 'hero')
     .slice(0, 8)
-    .map((d) => `- „${d.title}“ · ${d.status}${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}`)
+    .map((d) => `- „${d.title}“ · ${d.status}${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}${editedNote(d)}`)
     .join('\n');
   const campaigns = context.visits?.campaigns?.length
     ? context.visits.campaigns.slice(0, 10).map((c) => `- ${c.source}${c.campaign ? ` · ${c.campaign}` : ''}: ${c.visits} Besuche, ${c.signups} Anmeldungen`).join('\n')
