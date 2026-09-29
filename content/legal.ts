@@ -16,7 +16,7 @@ export const OPERATOR = {
 
 const addressLines = (o: Operator) => [o.name, ...(o.careOf ? [o.careOf] : []), o.street, o.city, o.country];
 
-export const PRIVACY_UPDATED = '28. September 2026';
+export const PRIVACY_UPDATED = '29. September 2026';
 
 export type LegalSection = { title: string; paragraphs: string[] };
 
@@ -99,7 +99,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     title: 'Besuchszählung auf wannayap.app',
     paragraphs: [
-      'Öffnest du die Startseite von wannayap.app, zählen wir den Besuch. Die Seite schickt dafür nur an unseren Server, über welchen Kampagnen-Link (z. B. „tiktok“) oder von welcher Plattform (z. B. Instagram oder Google) du gekommen bist. Gespeichert wird nur ein Zähler pro Tag, Herkunft und Kampagne: ohne IP-Adresse, ohne Cookies und ohne etwas auf deinem Gerät abzulegen; die Kampagne gilt nur für diesen Besuch. Ein Besuch lässt sich damit keiner Person zuordnen. Wir nutzen die Zahlen, um zu sehen, welche Werbung funktioniert (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO).',
+      'Öffnest du die Startseite von wannayap.app, zählen wir den Besuch. Die Seite schickt dafür nur an unseren Server, über welchen Kampagnen-Link (z. B. „tiktok“) oder von welcher Plattform (z. B. Instagram oder Google) du gekommen bist. Außerdem zählen wir, ob die Seite gelesen wurde (15 Sekunden geöffnet oder nach unten gescrollt) und ob jemand angefangen hat, eine E-Mail-Adresse einzutippen (nicht, was eingetippt wurde). Gespeichert wird nur ein Zähler pro Tag, Herkunft und Kampagne: ohne IP-Adresse, ohne Cookies und ohne etwas auf deinem Gerät abzulegen; die Kampagne gilt nur für diesen Besuch. Ein Besuch lässt sich damit keiner Person zuordnen. Wir nutzen die Zahlen, um zu sehen, welche Werbung funktioniert (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO).',
     ],
   },
   {

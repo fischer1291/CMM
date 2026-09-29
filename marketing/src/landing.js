@@ -400,7 +400,8 @@ ${waiting ? waitlistScript({ apiUrl, siteUrl }) : ''}
 
 /**
  * Counts the visit (Admin console → Warteliste → Landing Page): one POST with
- * where it came from, no cookie, nothing stored on the device. Source is
+ * where it came from, no cookie, nothing stored on the device; then, once
+ * each, whether the page was read and whether someone typed an address. Source is
  * utm_source, else the platform in the referrer (e.g. the link in the Instagram
  * bio). Reloads, back/forward and the links from our own mails don't count.
  * Also leaves the source in window.wyVisitSource for the sign-up.
@@ -425,12 +426,33 @@ function visitScript({ apiUrl, siteUrl }) {
   const nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
   if (nav && nav.type !== 'navigate') return;
   if (q.has('bestaetigen') || q.has('abmelden') || navigator.webdriver) return;
-  fetch(${JSON.stringify(apiUrl)} + '/waitlist/visit', {
+  const send = (path, extra) => fetch(${JSON.stringify(apiUrl)} + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ source, campaign: q.get('utm_campaign'), ref: q.has('ref') }),
+    body: JSON.stringify({ ...extra, source, campaign: q.get('utm_campaign'), ref: q.has('ref') }),
     keepalive: true,
   }).catch(() => {});
+  send('/waitlist/visit', {});
+
+  // The way to a sign-up, once each: read (15 s on screen or scrolled past
+  // the first screen), then typed into an e-mail field. Only counters.
+  let read = false;
+  const onScroll = () => { if (scrollY > innerHeight * 0.6) markRead(); };
+  const timer = setTimeout(() => { if (document.visibilityState === 'visible') markRead(); }, 15000);
+  function markRead() {
+    if (read) return;
+    read = true;
+    clearTimeout(timer);
+    removeEventListener('scroll', onScroll);
+    send('/waitlist/event', { step: 'engaged' });
+  }
+  addEventListener('scroll', onScroll, { passive: true });
+  let typed = false;
+  document.addEventListener('input', (e) => {
+    if (typed || !e.target || e.target.type !== 'email') return;
+    typed = true;
+    send('/waitlist/event', { step: 'form' });
+  });
 })();
 </script>`;
 }
