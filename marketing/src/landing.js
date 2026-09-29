@@ -564,11 +564,14 @@ function waitlistScript({ apiUrl, siteUrl }) {
           source: utm.source || window.wyVisitSource,
           campaign: utm.campaign,
         });
+        const data = await res.json().catch(() => ({}));
         if (res.ok) {
-          form.outerHTML = '<div class="wl-done"><h3>Fast geschafft! 📬</h3><p>Wir haben dir eine Mail an <b>' + esc(email) + '</b> geschickt. Bestätige deine Adresse, dann bist du auf der Liste. Keine Mail da? Schau im Spam-Ordner nach.</p></div>';
+          form.outerHTML = data.mailDelayed
+            // The sign-up is kept; the mail follows as soon as sending works again
+            ? '<div class="wl-done"><h3>Du bist eingetragen! 📬</h3><p>Die Bestätigungsmail an <b>' + esc(email) + '</b> kommt in den nächsten Minuten. Bestätige deine Adresse, dann bist du auf der Liste. Schau auch im Spam-Ordner nach.</p></div>'
+            : '<div class="wl-done"><h3>Fast geschafft! 📬</h3><p>Wir haben dir eine Mail an <b>' + esc(email) + '</b> geschickt. Bestätige deine Adresse, dann bist du auf der Liste. Keine Mail da? Schau im Spam-Ordner nach.</p></div>';
           return;
         }
-        const data = await res.json().catch(() => ({}));
         msg.textContent = data.error === 'invalid_email' ? 'Bitte gib eine gültige E-Mail-Adresse ein.'
           : res.status === 429 ? 'Zu viele Versuche. Probier es in einer Stunde noch mal.'
           : 'Gerade klappt es nicht. Versuch es gleich noch einmal.';
