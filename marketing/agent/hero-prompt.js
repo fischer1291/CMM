@@ -1,8 +1,9 @@
 // The briefing for a hero video: one episode of a running story with the
 // recurring characters, filmed by Veo, then the real app and the end card.
 const { SCREENS } = require('../src/templates');
-const { playbook, SCREEN_INFO, HASHTAG_RULES, editedNote } = require('./prompt');
+const { playbook, SCREEN_INFO, HASHTAG_RULES, editedNote, soundNote } = require('./prompt');
 const trends = require('./trends');
+const soundtrack = require('./soundtrack');
 const { CHARACTERS } = require('./characters');
 
 /** Appended to every Veo prompt (from HERO-VIDEO.md, plus safety). */
@@ -69,7 +70,7 @@ function user({ today, context, available, maxShots, trendNotes }) {
     ? heroes
         .slice()
         .reverse()
-        .map((d) => `- ${d.createdAt.slice(0, 10)} · „${d.title}“ · ${d.status}${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}\n  ${d.episode || '(ohne Zusammenfassung)'}${editedNote(d)}`)
+        .map((d) => `- ${d.createdAt.slice(0, 10)} · „${d.title}“ · ${d.status}${soundNote(d)}${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}\n  ${d.episode || '(ohne Zusammenfassung)'}${editedNote(d)}`)
         .join('\n')
     : 'Noch keine Folge. Das ist die erste: Stell Anna vor.';
   const apps = context.drafts
@@ -92,6 +93,10 @@ ${apps || '–'}
 
 # Landing Page, letzte 30 Tage
 ${campaigns}
+
+# Musik und Sound
+Unter die Szenen kommt Musik; die Szenen selbst behalten nur ihren Umgebungston.
+${soundtrack.rules(soundtrack.recentStyles(context.drafts))}
 
 ${trends.section(trendNotes)}`;
 }

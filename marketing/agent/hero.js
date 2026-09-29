@@ -24,6 +24,7 @@ const { cutHero, frames } = require('./cut');
 const { trends } = require('./trends');
 const { listen } = require('./speech');
 const { KEY, backend, spent, uploadDraft, today, dayTag, videoCost, BudgetExceeded } = require('./common');
+const { chooseStyles, recentStyles, soundTip, withDefaults } = require('./soundtrack');
 
 const OUT = path.join(__dirname, '../dist/agent');
 const SITE = (process.env.SITE_URL || 'https://wannayap.app').replace(/^https?:\/\//, '');
@@ -56,7 +57,7 @@ async function review(plan, clips, tmp) {
 function savedPlan(file) {
   const plan = JSON.parse(fs.readFileSync(file, 'utf8'));
   const p = plan.plan || plan;
-  return { ...p, shots: (p.shots || []).map((s) => ({ line: '', ...s })) };
+  return withDefaults({ ...p, shots: (p.shots || []).map((s) => ({ line: '', ...s })) });
 }
 
 async function main() {
@@ -91,6 +92,9 @@ async function main() {
 
   const day = dayTag();
   const campaign = `yap-${day}-${plan.slug}`;
+  const [style] = chooseStyles([plan.music], recentStyles(context.drafts));
+  const sound = soundTip(plan.sound);
+  console.log(`Musik: ${style}${sound ? `, Sound-Tipp: ${sound.title}` : ''}`);
   const tmp = path.join(OUT, `.hero-${plan.slug}`);
   fs.rmSync(tmp, { recursive: true, force: true });
   fs.mkdirSync(tmp, { recursive: true });
@@ -158,6 +162,7 @@ async function main() {
       shortUrl: SITE,
       out: path.join(OUT, `${day}-hero-${plan.slug}.mp4`),
       tmp: path.join(tmp, 'cut'),
+      music: { style, campaign },
     });
   } finally {
     await browser.close();
@@ -179,6 +184,8 @@ async function main() {
     // The AI label comes from the platforms (set when posting), not from the text
     captions: plan.captions,
     hashtags: plan.hashtags,
+    music: { style },
+    sound,
     model,
     costEur: spent(),
   }, video.file);

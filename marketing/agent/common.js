@@ -111,15 +111,19 @@ async function uploadDraft(base, fields, file) {
   return null;
 }
 
-/** Music for a video of `seconds`: lifts at `liftAt`, final chord at `endAt` (music.js). */
-function musicFor({ seconds, liftAt, endAt }, out) {
+/**
+ * Music for a video of `seconds`: lifts at `liftAt`, final chord at `endAt`
+ * (music.js), in `style`, varied by the campaign name (agent/soundtrack.js).
+ */
+function musicFor({ seconds, liftAt, endAt }, out, { style, campaign } = {}) {
   const { render } = require('../music');
+  const { seedFor } = require('./soundtrack');
   const lift = Math.max(0, Math.min(liftAt, endAt));
   const shots = [
     ...(lift > 0 ? [{ id: 'intro', seconds: lift }] : []),
     { id: 'app', source: 'app', seconds: endAt - lift },
   ];
-  render({ shots, starts: { intro: 0, app: lift, end: endAt }, total: seconds }, out);
+  render({ shots, starts: { intro: 0, app: lift, end: endAt }, total: seconds }, out, { style, seed: campaign ? seedFor(campaign) : undefined });
   return out;
 }
 const today = () => new Date().toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });

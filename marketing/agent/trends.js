@@ -1,15 +1,15 @@
 // What is going on right now: before each run Claude searches the web for the
 // hashtags, occasions and formats that work in Wanna yap?'s niche in Germany
-// this week, so captions and hashtags follow current trends instead of the
-// model's training data. Inside a budget reservation like every paid call;
+// this week, and which sounds are trending on TikTok, so captions, hashtags
+// and sound tips follow current trends instead of the model's training data. Inside a budget reservation like every paid call;
 // if it fails or the budget is used up, the run goes on without it.
 const Anthropic = require('@anthropic-ai/sdk');
 const { MODEL, spend, claudeCost, claudeMax, PRICES, eur } = require('./common');
 
-const MAX_SEARCHES = 5;
+const MAX_SEARCHES = 7;
 // A paused server-side search loop is resumed at most this often
 const MAX_CONTINUES = 2;
-const MAX_CHARS = 3000;
+const MAX_CHARS = 4000;
 
 const PROMPT = `Du recherchierst für den Marketing-Agenten von „Wanna yap?“, einer iPhone-App, die zeigt, wer aus deinen Leuten gerade Zeit hat, damit man einfach anruft. Zielgruppe in Deutschland, 18–30: Erstis und Studis in einer neuen Stadt, Fernfreundschaften, Leute nach einem Umzug, Familie weit weg. Die Videos laufen als Instagram Reels und auf TikTok, auf Deutsch.
 
@@ -18,8 +18,9 @@ Such im Web (bevorzugt Quellen der letzten vier Wochen, z. B. TikTok Creative Ce
 1. Welche Hashtags in diesem Umfeld auf TikTok und Instagram in Deutschland gerade gut laufen oder steigen (Studium, Ersti, Umzug, neue Stadt, Freundschaft, Fernbeziehung, Heimweh, Telefonieren …). Unterscheide große Allerwelts-Tags von passenden Nischen-Tags.
 2. Was diese und nächste Woche Anlass ist: Semesterstart, Feiertage, Ereignisse, Formate oder Memes, die gerade laufen und zur Marke passen.
 3. Die aktuellen Regeln und Empfehlungen der Plattformen zu Hashtags und Suchbegriffen in Captions (wie viele Hashtags, was Reichweite bringt).
+4. Welche Sounds und Songs gerade auf TikTok in Deutschland trenden oder steigen (z. B. TikTok Creative Center → Songs, Region Deutschland, Filter „Für Geschäftszwecke freigegeben“ bzw. „Approved for business use“), und welche Audios auf Instagram Reels gerade laufen. 6–10 Stück mit unterschiedlicher Stimmung (ruhig, gefühlvoll, fröhlich, treibend, witzig). Pro Sound: Titel, Interpret, Stimmung, und ob er belegt in der kommerziellen Musikbibliothek von TikTok ist (nur dann darf ein Unternehmenskonto ihn nutzen).
 
-Antworte auf Deutsch in knappen Stichpunkten, höchstens ${MAX_CHARS - 500} Zeichen, mit den Abschnitten „Hashtags“, „Anlässe und Formate“, „Regeln“. Schreib zu jedem Hashtag dazu, wie gut belegt er ist. Erfinde nichts: Was du nicht belegen kannst, lässt du weg.`;
+Antworte auf Deutsch in knappen Stichpunkten, höchstens ${MAX_CHARS - 500} Zeichen, mit den Abschnitten „Hashtags“, „Anlässe und Formate“, „Regeln“, „Sounds“. Schreib zu jedem Hashtag und Sound dazu, wie gut belegt er ist. Erfinde nichts: Was du nicht belegen kannst, lässt du weg.`;
 
 /** Research notes as text, or null when the search did not work out. */
 async function trends({ campaign } = {}) {
@@ -62,6 +63,6 @@ async function trends({ campaign } = {}) {
 /** The notes as a section of the planning prompt. */
 const section = (notes) =>
   `# Aktuelle Trends (Websuche von heute)
-${notes || 'Heute keine Recherche. Nimm Hashtags, die sicher zum Thema passen.'}`;
+${notes || 'Heute keine Recherche. Nimm Hashtags, die sicher zum Thema passen, und lass den Sound-Tipp leer.'}`;
 
 module.exports = { trends, section };

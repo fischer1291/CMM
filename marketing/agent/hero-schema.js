@@ -3,6 +3,7 @@
 const { z } = require('zod');
 const { SCREENS, LIMITS } = require('../src/templates');
 const { CHARACTERS } = require('./characters');
+const { Music, Sound } = require('./soundtrack');
 
 const text = (max, what) => z.string().min(1).max(max).describe(`${what}, höchstens ${max} Zeichen`);
 
@@ -29,6 +30,8 @@ const HeroPlan = z.object({
     tiktok: text(300, 'Caption für TikTok, kürzer und lockerer'),
   }),
   hashtags: z.array(z.string().regex(/^[a-z0-9äöüß_]+$/).max(30)).min(3).max(5).describe('ohne #, klein geschrieben, 3–5'),
+  music: Music,
+  sound: Sound,
 });
 
 const Review = z.object({

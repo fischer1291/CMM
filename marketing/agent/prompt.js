@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { SCREENS, LIMITS } = require('../src/templates');
 const trends = require('./trends');
+const soundtrack = require('./soundtrack');
 
 /** What a person changed in the texts before posting: a strong signal for the next captions. */
 const editedNote = (d) => {
@@ -17,6 +18,9 @@ const editedNote = (d) => {
   if (tags(b.hashtags) !== tags(d.edited.hashtags)) lines.push(`Hashtags: ${tags(b.hashtags)} → ${tags(d.edited.hashtags)}`);
   return lines.length ? `\n  Von Hand geändert (übernimm, was dahintersteckt): ${lines.join(' · ')}` : '';
 };
+
+/** Music style and sound tip of an earlier video, for the history. */
+const soundNote = (d) => [d.music?.style ? ` · Musik: ${d.music.style}` : '', d.sound?.title ? ` · Sound-Tipp: „${d.sound.title}“` : ''].join('');
 
 /** Hashtags and search words, for app and hero videos alike. */
 const HASHTAG_RULES = `- Hashtags: 3–5 (Instagram erlaubt höchstens 5), immer „wannayap“, dazu 2–4 aus den aktuellen Trends unten, die wirklich zum Video passen: lieber passende Nischen-Tags (z. B. zum Semesterstart oder zur Situation im Video) als riesige Allerwelts-Tags wie fyp oder viral. Wechsle sie von Video zu Video, statt immer dieselben zu nehmen.
@@ -52,7 +56,7 @@ ${playbook([1, 5, 6])}
 
 # Die Vorlagen
 
-Die Videos entstehen aus festen, animierten Vorlagen. Du lieferst nur die Texte. Alle Videos laufen ohne Ton, der Text muss allein funktionieren, und jedes endet mit derselben Endkarte („Ruf an, wenn’s passt.“, „Kostenlos fürs iPhone“, wannayap.app).
+Die Videos entstehen aus festen, animierten Vorlagen. Du lieferst nur die Texte. Viele schauen ohne Ton: Der Text muss allein funktionieren (Musik kommt dazu, siehe unten), und jedes endet mit derselben Endkarte („Ruf an, wenn’s passt.“, „Kostenlos fürs iPhone“, wannayap.app).
 
 - chat (ca. 13 s): Hook oben, darunter ${LIMITS.bubbles[0]}–${LIMITS.bubbles[1]} Chatnachrichten, die nie zu einem Anruf führen und am Ende durchgestrichen werden. Dann die Auflösung (payoff) über einem App-Screen. Stärkste Vorlage für wiedererkennbare Alltagsmomente („Lass mal bald telefonieren“).
 - moment (13 s): Hook oben, eine Uhr zählt runter, die Benachrichtigung „Yap Moment ist da“ kommt, dann ${LIMITS.pushes[0]}–${LIMITS.pushes[1]} Freunde, die dazukommen (pushes). Für das tägliche Ritual.
@@ -80,7 +84,7 @@ function user({ count, today, context, trendNotes }) {
     ? drafts
         .map((d) => {
           const posted = Object.entries(d.posted || {}).filter(([, at]) => at).map(([p]) => p);
-          return `- ${d.createdAt.slice(0, 10)} · ${d.campaign} · ${d.template} · ${d.status}${posted.length ? ` (gepostet: ${posted.join(', ')})` : ''} · „${d.title}“${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}\n  Inhalt: ${JSON.stringify(d.content)}${editedNote(d)}`;
+          return `- ${d.createdAt.slice(0, 10)} · ${d.campaign} · ${d.template} · ${d.status}${posted.length ? ` (gepostet: ${posted.join(', ')})` : ''} · „${d.title}“${soundNote(d)}${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}\n  Inhalt: ${JSON.stringify(d.content)}${editedNote(d)}`;
         })
         .join('\n')
     : 'Noch keine. Das ist der erste Lauf.';
@@ -103,7 +107,10 @@ Hinweis: Links in Captions sind nicht klickbar, die meisten Besuche kommen über
 # Bisherige Entwürfe (neueste zuerst)
 ${history}
 
+# Musik und Sound
+${soundtrack.rules(soundtrack.recentStyles(drafts))}
+
 ${trends.section(trendNotes)}`;
 }
 
-module.exports = { system, user, playbook, SCREEN_INFO, HASHTAG_RULES, editedNote };
+module.exports = { system, user, playbook, SCREEN_INFO, HASHTAG_RULES, editedNote, soundNote };

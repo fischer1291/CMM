@@ -21,6 +21,7 @@ const prompt = require('./prompt');
 const { ask } = require('./claude');
 const { ensureReferences } = require('./characters');
 const { trends } = require('./trends');
+const { chooseStyles, recentStyles, soundTip, withDefaults } = require('./soundtrack');
 const { KEY, backend, spent, uploadDraft, musicFor, today, dayTag, BudgetExceeded } = require('./common');
 
 const COUNT = Math.min(4, Math.max(1, Number(process.env.AD_COUNT || 2)));
@@ -41,7 +42,7 @@ async function main() {
 
   const trendNotes = PLAN_FILE ? null : await trends();
   const { output: plan, model } = PLAN_FILE
-    ? { output: Plan.parse(JSON.parse(fs.readFileSync(PLAN_FILE, 'utf8'))), model: null }
+    ? { output: Plan.parse(withDefaults(JSON.parse(fs.readFileSync(PLAN_FILE, 'utf8')))), model: null }
     : await ask({ schema: Plan, system: prompt.system(), content: prompt.user({ count: COUNT, today: today(), context, trendNotes }), purpose: 'plan-app' });
   console.log(`\nAnalyse: ${plan.analysis}\n`);
 
@@ -50,19 +51,24 @@ async function main() {
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await launch();
   const done = [];
+  // Claude's styles, but never the same twice in a row
+  const styles = chooseStyles(plan.drafts.map((d) => d.music), recentStyles(context.drafts));
   try {
-    for (const draft of plan.drafts) {
+    for (const [n, draft] of plan.drafts.entries()) {
       const { template, ...content } = draft.ad;
       const ad = buildAd({ name: `${day}-${draft.slug}`, template, content, logoSvg, shortUrl: SITE });
-      console.log(`→ ${draft.title} (${template}, ${ad.seconds} s)`);
-      const music = musicFor(ad, path.join(OUT, `${ad.name}.wav`));
+      const campaign = `yap-${day}-${draft.slug}`;
+      const style = styles[n];
+      const sound = soundTip(draft.sound);
+      console.log(`→ ${draft.title} (${template}, ${ad.seconds} s, Musik: ${style}${sound ? `, Sound-Tipp: ${sound.title}` : ''})`);
+      const music = musicFor(ad, path.join(OUT, `${ad.name}.wav`), { style, campaign });
       const file = await render(browser, ad, OUT, { music });
       fs.writeFileSync(file.replace(/\.mp4$/, '.json'), JSON.stringify(draft, null, 2));
       if (DRY) {
         done.push(ad.name);
         continue;
       }
-      const campaign = await uploadDraft(`yap-${day}-${draft.slug}`, {
+      const uploaded = await uploadDraft(campaign, {
         kind: 'app',
         template,
         title: draft.title,
@@ -71,9 +77,11 @@ async function main() {
         seconds: ad.seconds,
         captions: draft.captions,
         hashtags: draft.hashtags,
+        music: { style },
+        sound,
         model,
       }, file);
-      if (campaign) done.push(campaign);
+      if (uploaded) done.push(uploaded);
       else console.warn(`  übersprungen: Kampagnenname ${draft.slug} schon vergeben`);
     }
   } finally {
