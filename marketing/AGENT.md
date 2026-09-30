@@ -86,9 +86,10 @@ Braucht wie `npm run video` Google Chrome und ffmpeg.
   Kampagnennamen, jedes Video klingt also anders. Probehören: `npm run music -- --styles`
   (nach `dist/music/`).
 - **Sound-Tipp für TikTok:** Die Trend-Recherche sucht auch Sounds, die gerade auf TikTok in
-  Deutschland laufen, bevorzugt aus der kommerziellen Musikbibliothek (für Unternehmenskonten
-  freigegeben). Claude schlägt pro Video einen passenden vor; die Karte in der Konsole zeigt
-  ihn („kommerziell frei“ oder „prüfen“). Im Modus **Entwurf** legst du ihn in der TikTok-App
+  Deutschland laufen. Claude schlägt pro Video einen passenden vor: bevorzugt einen aus der
+  kommerziellen Musikbibliothek (für Unternehmenskonten freigegeben, „kommerziell frei“),
+  sonst einen anderen Trend-Sound („prüfen“: in TikTok nachsehen, ob er für das Konto
+  verfügbar ist). Leer bleibt der Tipp nur, wenn die Recherche gar keine Sounds findet. Im Modus **Entwurf** legst du ihn in der TikTok-App
   dazu und stellst den Originalton aus (bei Hero-Videos mit gesprochenem Satz nur leiser);
   die Schritte stehen auf der Karte.
 - **Keine viralen Songs in der Datei:** Sie gehören ihren Labels. Über die Schnittstellen darf

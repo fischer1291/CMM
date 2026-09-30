@@ -17,7 +17,7 @@ const Music = z.enum(STYLE_KEYS).describe(`Musikstil des Videos: ${STYLE_KEYS.jo
 
 const Sound = z
   .object({
-    title: z.string().max(80).describe('Titel des Sounds oder Songs, wie er in TikTok heißt; leer, wenn die Recherche keinen passenden belegt'),
+    title: z.string().max(80).describe('Titel des Sounds oder Songs, wie er in TikTok heißt; leer nur, wenn die Recherche keine Sounds nennt'),
     artist: z.string().max(80).describe('Interpret oder Urheber, leer wenn unbekannt'),
     commercial: z.boolean().describe('Laut Recherche in der kommerziellen Musikbibliothek von TikTok (für Unternehmenskonten freigegeben)'),
     why: z.string().max(200).describe('Warum er zu diesem Video passt, kurz'),
@@ -63,7 +63,7 @@ function rules(recent = []) {
   const last = recent.slice(0, 6).map((s) => STYLES[s].label);
   return `- Musik: Jedes Video bekommt eigene Musik (aus Code, frei von Rechten). Wähle pro Video den Stil, der zur Stimmung passt, und sorg für Abwechslung: nie zweimal hintereinander derselbe, und möglichst keiner, der in den letzten Videos schon lief${last.length ? ` (zuletzt, neueste zuerst: ${last.join(', ')})` : ''}. Tonart, Akkorde und Tempo variieren von selbst. Die Stile:
 ${STYLE_KEYS.map((k) => `  - ${k}: ${STYLES[k].label}, ${STYLES[k].bpm} bpm; ${STYLES[k].mood}`).join('\n')}
-- Sound-Tipp (sound): ein Sound, der laut Trend-Recherche gerade auf TikTok läuft und zur Stimmung des Videos passt. Die Person legt ihn in der TikTok-App zum Video, bevor sie es veröffentlicht. Wanna yap? postet als Unternehmen: nimm bevorzugt Sounds aus der kommerziellen Musikbibliothek (commercial: true) und sag es nur, wenn die Recherche das belegt. Nur Sounds, die in der Recherche stehen, nichts erfinden; gibt es keinen passenden, bleibt title leer. Keinen Sound zweimal hintereinander. Songtexte gehören nicht in die Texte des Videos.`;
+- Sound-Tipp (sound): ein Sound, der laut Trend-Recherche gerade auf TikTok läuft und zur Stimmung des Videos passt. Die Person legt ihn in der TikTok-App zum Video, bevor sie es veröffentlicht. Schlag fast immer einen vor: Passt ein Sound aus der kommerziellen Musikbibliothek (für Unternehmenskonten freigegeben), nimm den, mit commercial: true, aber nur, wenn die Recherche das belegt. Sonst nimm einen anderen Trend-Sound aus der Recherche mit commercial: false; die Person prüft dann in TikTok, ob er für ihr Konto verfügbar ist. Nur Sounds, die in der Recherche stehen, nichts erfinden; leer (title leer) nur, wenn die Recherche gar keine Sounds nennt. Keinen Sound zweimal hintereinander. Songtexte gehören nicht in die Texte des Videos.`;
 }
 
 /** Saved plans from before music and sound tips: lo-fi (as then), no tip. */
