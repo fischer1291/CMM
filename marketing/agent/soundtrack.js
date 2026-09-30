@@ -17,7 +17,7 @@ const Music = z.enum(STYLE_KEYS).describe(`Musikstil des Videos: ${STYLE_KEYS.jo
 
 const Sound = z
   .object({
-    title: z.string().max(80).describe('Titel des Sounds oder Songs, wie er in TikTok heißt; leer, wenn die Recherche keinen passenden belegt'),
+    title: z.string().max(80).describe('Titel des Sounds oder Songs, wie er in TikTok heißt; leer nur, wenn die Recherche keine Sounds nennt'),
     artist: z.string().max(80).describe('Interpret oder Urheber, leer wenn unbekannt'),
     commercial: z.boolean().describe('Laut Recherche in der kommerziellen Musikbibliothek von TikTok (für Unternehmenskonten freigegeben)'),
     why: z.string().max(200).describe('Warum er zu diesem Video passt, kurz'),
