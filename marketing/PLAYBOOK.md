@@ -149,7 +149,7 @@ Texte und Farben änderst du in `src/kit.js`, danach `npm run build`. Videos: `s
 
 ## 5. TikTok- und Reels-Skripte
 
-Format: Hochkant, 7–20 Sekunden, Text-Overlay in den ersten 1,5 Sekunden, Ton an.
+Format: Hochkant, 25–30 Sekunden (Hero-Serien bis 40 Sekunden), Text-Overlay in den ersten 1,5 Sekunden, Ton an.
 Immer mit echten Menschen und echter App-Nutzung. Die stärksten Hooks sind
 wiedererkennbare Alltagsmomente.
 
@@ -185,26 +185,28 @@ wiedererkennbare Alltagsmomente.
 
 ## 6. Captions
 
+Kurz, knackig, nicht werblich: ein, zwei Sätze, die klingen wie eine Person Anfang 20,
+nicht wie eine Marke. Höchstens zwei Emojis. Genau ein Auslöser zum Mitmachen (Frage,
+„schick das …“, Teaser auf die nächste Folge). „Link in Bio“ nur ab und zu. Die
+Suchbegriffe (Ersti, neue Stadt, Fernfreundschaft …) stehen auf Deutsch im ersten Satz,
+die Hashtags sind englisch: 3–5, immer #wannayap, dazu aktuell trendende und passende
+Nischen-Tags (Instagram erlaubt höchstens 5).
+
 **Post 1 (Hook):**
-Ehrliche Frage: Wann hast du zuletzt jemanden einfach so angerufen? 📞
-Wanna yap? zeigt dir, wer aus deinen Leuten gerade Zeit hat. Ein Tipp, und du
-bist erreichbar. Link in Bio.
-#wannayap #echtegespräche #freundschaft #fernfreundschaft #studentlife
+wann hast du zuletzt jemanden einfach so angerufen? 📞 ehrlich.
+#wannayap #phonecall #bestfriends #relatable
 
 **Post 2 (Ausreden):**
-Wir alle kennen diese Sätze. Wir wollen sie nicht mehr schreiben. 💛
-Schick das an die Person, mit der du „bald mal“ telefonieren wolltest.
-#wannayap #lassmalbaldtelefonieren #freunde #wgleben
+schick das der person, mit der du seit wochen „bald mal“ telefonieren willst
+#wannayap #longdistancefriendship #friendship #relatable
 
 **Post 3 (Talk first):**
-Talk first. Then see. ✨ Die Moments deiner Leute siehst du erst, wenn du heute selbst
-ein echtes Gespräch geführt hast. Kein Feed, kein Endlos-Scrollen.
-#wannayap #digitalwellbeing #echteverbindung
+talk first, then see. die moments deiner leute gibt’s erst nach einem echten gespräch ✨
+#wannayap #digitalwellbeing #reallife
 
 **Karussell:**
-Deine Freunde haben gerade Zeit. Du weißt es nur nicht. Wisch dich durch 👉
-Welcher Freundin würdest du als Erstes Bescheid geben? Markier sie.
-#wannayap #freundschaft #familie #appempfehlung
+deine freunde haben gerade zeit. du weißt es nur nicht. welche freundin rufst du zuerst an?
+#wannayap #friendship #family #bestfriends
 
 ---
 

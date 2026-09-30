@@ -52,13 +52,14 @@ async function start(prompt, referenceImages) {
 
 /**
  * Generate one clip for `shot` into `out`. `look` describes the character
- * (reinforces the reference image), `reference` is its image URL or null.
- * `hint` adds what went wrong in an earlier attempt.
+ * (reinforces the reference image), `voice` how they sound (the same in every
+ * episode), `reference` is its image URL or null. `hint` adds what went wrong
+ * in an earlier attempt.
  */
-async function generateClip({ shot, look, reference, out, campaign, hint }) {
+async function generateClip({ shot, look, voice, reference, out, campaign, hint }) {
   if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY fehlt');
   // No negativePrompt parameter: not every account may use it, so it goes into the prompt
-  const prompt = [shot.prompt, look ? `The person: ${look}.` : '', `Avoid: ${NEGATIVE}${hint ? `; ${hint}` : ''}.`, STYLE, sound(shot)].filter(Boolean).join(' ');
+  const prompt = [shot.prompt, look ? `The person: ${look}.` : '', `Avoid: ${NEGATIVE}${hint ? `; ${hint}` : ''}.`, STYLE, sound(shot, voice && `in a ${voice}`)].filter(Boolean).join(' ');
   const referenceImages = reference ? [await referenceImage(reference)] : undefined;
   const cost = videoCost(SECONDS);
   return spend({ provider: 'google', purpose: 'video-clip', estimateEur: cost, campaign, note: shot.action.slice(0, 120) }, async () => {

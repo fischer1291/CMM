@@ -2,6 +2,8 @@
 // in HERO-VIDEO.md); their reference images are proposed by the image model
 // and chosen by a person in the admin console (Freigabe → Figuren). Veo gets
 // the chosen image with every shot, so faces stay the same across episodes.
+// Each of them carries their own series (title, premise, season arc, running
+// gag, hashtag) and a voice, so they sound alike from episode to episode.
 //
 // All of them are adults: Veo only allows adults in the EU, and with
 // reference images anyway.
@@ -15,24 +17,56 @@ const CHARACTERS = [
     summary:
       '18, hat gerade Abi gemacht und reist vor dem Studium durch die Welt. Bald zieht sie in eine fremde Stadt (nicht ihre Heimat) und fängt dort Medizin an. Ihre Leute sind plötzlich weit weg.',
     look: '18-year-old German woman, long wavy light-brown hair often tied in a loose low ponytail, sun-kissed skin and a few freckles from travelling, natural look without make-up, small gold stud earrings, faded denim jacket over a white t-shirt, woven friendship bracelets on her wrist',
+    voice: 'bright, lively young female voice, 18 years old, speaks fast when excited',
+    tag: 'annayaps',
+    series: {
+      title: 'Anna zieht los',
+      premise: 'Nach dem Abi reist Anna allein los, danach beginnt sie Medizin in einer Stadt, in der sie niemanden kennt. Zeitverschiebung, neue Leute, alte Leute: Sie will niemanden verlieren.',
+      arc: 'Letzte Nacht zu Hause und das Versprechen, jeden Sonntag zu telefonieren · unterwegs: zu Hause schlafen alle, wenn sie Zeit hat · verpasste Anrufe mitten im Abenteuer · der Ring passt endlich, erstes echtes Gespräch über die Zeitzonen · Zusage fürs Medizinstudium · erste Nacht im Wohnheim, niemand da · Anatomie überfordert, der Yap Moment mit den Leuten von zu Hause · neue Freunde und alte Freunde in einer Runde',
+      gag: 'Die Zeitverschiebung: Mama ruft immer genau im falschen Moment an.',
+    },
   },
   {
     key: 'lena',
     name: 'Lena',
     summary: '21, Studentin, gerade in eine neue Stadt (Leipzig) gezogen, vermisst ihre Leute von zu Hause.',
     look: '21-year-old German woman, shoulder-length dark curly hair, light freckles, oversized cream knit hoodie, small silver hoop earrings',
+    voice: 'warm, slightly husky young female voice, 21 years old, relaxed and a little ironic',
+    tag: 'lenayaps',
+    series: {
+      title: 'Lena · neu in Leipzig',
+      premise: 'Neue Stadt, WG-Zimmer mit Umzugskartons, die eigenen Leute plötzlich weit weg, und jedes „lass mal bald telefonieren“ bleibt ein Versprechen.',
+      arc: 'erste Nacht: 40 Chats, kein Anruf · Lena und Jonas verpassen sich dreimal an einem Tag · der Ring leuchtet, erster echter Anruf (dieselbe Szene wie bei Jonas) · Yap Moment: die stille Mitbewohnerin steht plötzlich mit Handy in der Tür · Talk first: sie muss erst selbst anrufen und ruft Oma an · Sonntag 18 Uhr: Oma, Jonas und die WG in einer Runde',
+      gag: 'Ihr Zähler „lass mal bald telefonieren“: erst steigt er, später zählt ein zweiter die echten Anrufe.',
+    },
   },
   {
     key: 'jonas',
     name: 'Jonas',
-    summary: '23, Lenas bester Freund aus der Heimat, lebt in Hamburg, pendelt viel mit der S-Bahn.',
+    summary: '23, Lenas bester Freund aus der Heimat, lebt in Hamburg, arbeitet im Schichtdienst und pendelt viel mit der S-Bahn.',
     look: '23-year-old German man, short dark-blond hair, light stubble, olive-green bomber jacket over a grey hoodie',
+    voice: 'calm, low young male voice, 23 years old, dry humour, a little tired',
+    tag: 'jonasyaps',
+    series: {
+      title: 'Jonas · 23:14',
+      premise: 'Jonas ist wach, wenn alle schlafen, und ruft grundsätzlich drei Minuten zu spät zurück.',
+      arc: 'fünf verpasste Anrufe, fünfmal „Ah, du hattest angerufen?“ · 23:14 in der S-Bahn: endlich Zeit, alle schlafen · sein Ring leuchtet, zum ersten Mal ist er pünktlich (Lenas Anruf von seiner Seite) · Wochenplan: nach der Schicht steht sein Status von selbst auf „Zeit“ · Rollentausch: diesmal geht Lena nicht ran · er ruft zum ersten Mal zuerst an, bei Oma Gisela',
+      gag: '„Ah, du hattest angerufen?“',
+    },
   },
   {
     key: 'gisela',
     name: 'Oma Gisela',
     summary: '78, Lenas Oma, liebt den Sonntagsanruf mit der Familie, hat die App von ihrer Enkelin bekommen.',
     look: '78-year-old German grandmother, silver bob haircut, round glasses, burgundy cardigan, warm smile',
+    voice: 'warm, clear elderly female voice, 78 years old, a bit too loud on the phone',
+    tag: 'grandmayaps',
+    series: {
+      title: 'Oma Gisela lernt yappen',
+      premise: 'Lena hat ihrer Oma die App installiert, und Gisela nimmt sie sehr ernst. Sie ist nie die Witzfigur: Am Ende ist sie die Coolste von allen.',
+      arc: 'Lena erklärt am Telefon, Gisela sieht nur ihr eigenes Ohr · sie merkt, dass sie sieht, wer Zeit hat, und ruft alle an · Yap Moment mit Opa Heinz, der nur kurz zuschauen wollte · ein Moment festhalten: beide müssen zustimmen, sie drückt vierzehnmal · sie teilt stolz ihre Gesprächszeit mit Lena · sie hat das Sonntagsritual selbst angelegt, alle sind da',
+      gag: 'Handy viel zu nah am Gesicht, um 5:58 Uhr schon auf „Zeit“; „Ich hab Zeit, Kind.“',
+    },
   },
 ];
 
