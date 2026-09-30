@@ -63,7 +63,19 @@ Deine Kontakte werden nur als Prüfwerte abgeglichen, Namen verlassen dein Gerä
 KEIN FEED. KEINE LIKES. KEINE FREMDEN. KEINE WERBUNG.
 
 Kostenlos fürs iPhone. Wanna yap? macht am meisten Spaß mit deinen Leuten: Lade die ein, mit denen du öfter reden willst.
+
+WANNA YAP+ (FREIWILLIG)
+Alles Wichtige bleibt kostenlos. Mit Wanna yap+ bekommst du dazu: alle Moments für immer, größere Kreise, Runden ohne Zeitlimit, Video in HD, deinen Jahresrückblick und mehr. Wanna yap+ gibt es als Monats- oder Jahresabo. Es verlängert sich automatisch, bis du es kündigst. Kündigen kannst du jederzeit in den Einstellungen deines Apple-Kontos, spätestens 24 Stunden vor Ablauf.
+
+Nutzungsbedingungen (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Datenschutz: https://wannayap.app/datenschutz
 ```
+
+Die beiden Links am Ende verlangt Apple, weil die App Abos anbietet (Richtlinie 3.1.2): Ohne
+Link zu den Nutzungsbedingungen im Eintrag wird die Prüfung angehalten. Wir nutzen Apples
+Standard-EULA; dieselben Links zeigt die App unter dem Kauf-Button (`app/plus.tsx`). Kommen
+eigene Nutzungsbedingungen auf wannayap.app, beide Stellen umstellen oder die eigene EULA in
+App Store Connect → App-Informationen → Lizenzvereinbarung hinterlegen.
 
 **Neuerungen in dieser Version:** `Die erste Version von Wanna yap?. Schön, dass du da bist.`
 
