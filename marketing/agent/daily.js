@@ -1,7 +1,8 @@
 // The daily marketing agent: reads the numbers, past decisions and the
 // budget from the backend, has Claude search the web for current trends
-// (agent/trends.js) and write new ads for the app templates,
-// renders them to MP4 with music and uploads them as drafts. A person
+// (agent/trends.js) and write new 25–30 s stories for the app template
+// (src/templates.js → story), renders them to MP4 with music and uploads them
+// as drafts. A person
 // approves them in the admin console (tab Freigabe). It also proposes
 // reference images for the hero characters that still need one
 // (agent/characters.js). Every paid call is reserved against the budget first.
@@ -16,12 +17,13 @@ const path = require('path');
 const { markOnly } = require('../../docs/brand/logo');
 const { buildAd } = require('../src/ads');
 const { render, launch } = require('../video');
-const { Plan } = require('./schema');
+const { Plan, PlanFile } = require('./schema');
 const prompt = require('./prompt');
 const { ask } = require('./claude');
 const { ensureReferences } = require('./characters');
 const { trends } = require('./trends');
 const { chooseStyles, recentStyles, soundTip, withDefaults } = require('./soundtrack');
+const { tidy } = require('./texts');
 const { KEY, backend, spent, uploadDraft, musicFor, today, dayTag, BudgetExceeded } = require('./common');
 
 const COUNT = Math.min(4, Math.max(1, Number(process.env.AD_COUNT || 2)));
@@ -42,7 +44,7 @@ async function main() {
 
   const trendNotes = PLAN_FILE ? null : await trends();
   const { output: plan, model } = PLAN_FILE
-    ? { output: Plan.parse(withDefaults(JSON.parse(fs.readFileSync(PLAN_FILE, 'utf8')))), model: null }
+    ? { output: PlanFile.parse(withDefaults(JSON.parse(fs.readFileSync(PLAN_FILE, 'utf8')))), model: null }
     : await ask({ schema: Plan, system: prompt.system(), content: prompt.user({ count: COUNT, today: today(), context, trendNotes }), purpose: 'plan-app' });
   console.log(`\nAnalyse: ${plan.analysis}\n`);
 
@@ -60,7 +62,10 @@ async function main() {
       const campaign = `yap-${day}-${draft.slug}`;
       const style = styles[n];
       const sound = soundTip(draft.sound);
+      // At most two emojis, English hashtags with #wannayap, at most five
+      Object.assign(draft, tidy(draft));
       console.log(`→ ${draft.title} (${template}, ${ad.seconds} s, Musik: ${style}${sound ? `, Sound-Tipp: ${sound.title}` : ''})`);
+      if (template === 'story' && (ad.seconds < 25 || ad.seconds > 30)) console.log(`::warning::${draft.title}: ${ad.seconds} s statt 25–30 s`);
       const music = musicFor(ad, path.join(OUT, `${ad.name}.wav`), { style, campaign });
       const file = await render(browser, ad, OUT, { music });
       fs.writeFileSync(file.replace(/\.mp4$/, '.json'), JSON.stringify(draft, null, 2));

@@ -5,9 +5,9 @@ Admin-Konsole frei und postest sie (noch) selbst.
 
 | Was | Wann | Wie | Kosten |
 |---|---|---|---|
-| **Trends** | vor jedem Lauf | Claude sucht im Web, welche Hashtags, Anlässe, Formate und TikTok-Sounds in der Nische gerade laufen (`agent/trends.js`); fließt in Captions, Hashtags und Sound-Tipps ein | ~0,10–0,50 € |
-| **App-Videos** | täglich ~6 Uhr, 2 Stück | Claude schreibt Texte für die Vorlagen in `src/templates.js` (chat, moment, list), gerendert mit eigener Musik (Stil passend zum Video, siehe unten) | ~0,10–0,20 € |
-| **Hero-Videos** | Di und Fr ~6:30 | nächste Folge der Serie mit Anna (und Lena, Jonas, Oma Gisela): Claude schreibt die Folge, Veo 3.1 Fast dreht 2–3 Einstellungen mit den Referenzbildern, Claude prüft die Aufnahmen, Gemini hört den Ton (`agent/speech.js`), dann Schnitt mit Untertiteln, echtem App-Screen, Endkarte, Musik | ~3–5 € |
+| **Trends** | vor jedem Lauf | Claude sucht im Web, welche englischen Hashtags, Anlässe, Formate und Sounds (TikTok, Reels) in der Nische gerade laufen (`agent/trends.js`); fließt in Captions, Hashtags und Sound-Tipps ein | ~0,10–0,50 € |
+| **App-Videos** | täglich ~6 Uhr, 2 Stück | 25–30 s: Claude schreibt eine kleine Geschichte aus 3–5 Blöcken der Vorlage `story` in `src/templates.js` (Chat als Gespräch, Liste, Yap Moment, großer Satz, echter App-Screen), gerendert mit eigener Musik (Stil passend zum Video, siehe unten) | ~0,10–0,20 € |
+| **Hero-Videos** | Di und Fr ~6:30 | bis 40 s, die nächste Folge einer Serie (jede Hauptfigur hat ihre eigene, siehe Figuren): Claude schreibt die Folge mit Gesprächen auf Deutsch, Veo 3.1 Fast dreht bis zu 7 Einstellungen mit Referenzbild und fester Stimme pro Figur, Claude prüft die Bilder, Gemini hört den Ton (`agent/speech.js`) und bis zu zwei schlechte Aufnahmen werden neu gedreht; dann Schnitt mit „Folge n“ und Hook, Untertiteln, echtem App-Screen als Wendung, Payoff, Endkarte und Musik, die unter der Sprache leiser wird | ~8–10 € (bei kleinerem Budget kürzere Folgen) |
 | **Referenzbilder** | nebenbei, bis pro Figur eins gewählt ist | Gemini-Bildmodell, 3 Vorschläge pro Figur | ~0,07 € pro Bild |
 
 ```
@@ -28,7 +28,10 @@ Geschichte der Hero-Videos gehen beim nächsten Lauf an den Agenten zurück.
 ## Budget
 
 - **Tagesbudget und Wochenbudget** (Woche ab Montag, Zeitzone Berlin) stellst du in der
-  Konsole unter **Freigabe** ein. Start: 5 € pro Tag, 25 € pro Woche.
+  Konsole unter **Freigabe** ein. Start: 5 € pro Tag, 25 € pro Woche. Für Hero-Folgen bis
+  40 Sekunden (7 Einstellungen plus Neudrehs) braucht der Hero-Tag rund **11 €**, die Woche
+  rund **30 €**. Mit weniger dreht der Agent automatisch kürzere Folgen (so viele
+  Einstellungen, wie ins Budget passen, mindestens zwei).
 - Vor **jedem** bezahlten Aufruf reserviert der Agent den Höchstbetrag im Backend. Passt er
   nicht mehr in den Tag oder die Woche, lehnt das Backend ab und der Agent lässt den Aufruf
   aus. Danach wird mit den echten Kosten abgerechnet. Eine Reservierung, die nie abgerechnet
@@ -38,7 +41,8 @@ Geschichte der Hero-Videos gehen beim nächsten Lauf an den Agenten zurück.
   0,96 $; Bild: 0,067 $; Tonprüfung: aufgerundet 0,01 €).
   Ein Dollar wird als ein Euro gerechnet, das liegt auf der sicheren Seite.
 - Reicht das Budget an einem Hero-Tag nicht für mindestens zwei Einstellungen, fällt das
-  Hero-Video aus (Hinweis im GitHub-Lauf). Die App-Videos kosten Cent-Beträge.
+  Hero-Video aus (Hinweis im GitHub-Lauf); unter fünf Einstellungen steht im Lauf, wie viel
+  eine volle Folge bräuchte. Die App-Videos kosten Cent-Beträge.
 - **Zweite Absicherung:** In der Claude Console ein monatliches Ausgabenlimit setzen, in
   Google Cloud (Billing → Budgets & alerts) eine Budgetwarnung für das Gemini-Projekt.
 
@@ -50,8 +54,26 @@ vor; du wählst in der Konsole unter **Freigabe → Figuren** eins aus oder ford
 einem Satz, was anders sein soll, neue an. Ohne gewähltes Bild keine Hero-Videos mit
 dieser Figur. Alle Figuren sind erwachsen (in der EU erlaubt Veo nur Erwachsene).
 
-Anna ist die Hauptfigur: 18, Abi, reist vor dem Studium, dann Medizin in einer fremden
-Stadt. Stadt und Nebenfiguren legt der Agent in ihrer ersten Folge fest und bleibt dabei.
+**Serien:** Jede Hauptfigur hat ihre eigene Serie mit rotem Faden, Staffelbogen, Running Gag,
+Serien-Hashtag und fester Stimme (alles in `agent/characters.js`):
+
+| Serie | Figur | Serien-Tag |
+|---|---|---|
+| Anna zieht los (Hauptserie, etwa jede zweite Folge) | Anna, 18, nach dem Abi unterwegs, dann Medizin in einer fremden Stadt | #annayaps |
+| Lena · neu in Leipzig | Lena, 21 | #lenayaps |
+| Jonas · 23:14 („Ah, du hattest angerufen?“) | Jonas, 23, Schichtdienst in Hamburg | #jonasyaps |
+| Oma Gisela lernt yappen | Gisela, 78, Lenas Oma | #grandmayaps |
+
+Lena, Jonas und Gisela teilen eine Welt (Crossover erlaubt), Annas Stadt und Nebenfiguren
+legt der Agent in ihrer ersten Folge fest. Welche Serie dran ist, entscheidet der Agent:
+Anna etwa jede zweite Folge, sonst die Serie, deren letzte Folge am längsten her ist. Die
+Folgen werden pro Serie gezählt („Folge 3“ steht im Titel und im Video), verworfene Folgen
+zählen nicht zur Geschichte. Das Backend gibt dem Agenten die letzten 60 Hero-Folgen mit,
+damit keine Serie ihr Gedächtnis verliert.
+
+**Aufbau einer Folge (höchstens 40 s):** Hook-Einstellung mit „Serie · Folge n“ und einem
+Hook-Satz oben im Bild → Setup → der echte App-Screen als Wendung → Payoff-Einstellungen →
+offenes Ende (Teaser für die nächste Folge) → Endkarte (2,5 s).
 
 ## Einmal einrichten
 
@@ -82,7 +104,8 @@ Braucht wie `npm run video` Google Chrome und ffmpeg.
 - **Musik im Video:** kommt aus Code (`music.js`), ohne Rechte Dritter, und darf deshalb
   automatisch auf Instagram und TikTok. Sechs Stile: Lo-Fi, House, Pop, Trap/Hip-Hop, Afro,
   Akustik. Claude wählt pro Video den Stil, der zur Stimmung passt; derselbe Stil läuft nie
-  zweimal hintereinander (`agent/soundtrack.js`). Tonart, Akkordfolge und Tempo hängen am
+  zweimal hintereinander (`agent/soundtrack.js`). In Hero-Folgen wird die Musik unter jedem
+  gesprochenen Satz um gut 10 dB leiser. Tonart, Akkordfolge und Tempo hängen am
   Kampagnennamen, jedes Video klingt also anders. Probehören: `npm run music -- --styles`
   (nach `dist/music/`).
 - **Sound-Tipp für TikTok:** Die Trend-Recherche sucht auch Sounds, die gerade auf TikTok in
@@ -107,11 +130,17 @@ Braucht wie `npm run video` Google Chrome und ffmpeg.
   die Plattform (Instagram „KI-Info“, TikTok „KI-generierter Inhalt“), nicht im Text der
   Caption. Wer ein Hero-Video von Hand postet, schaltet den Hinweis dort selbst ein.
   Handy-Bildschirme in KI-Szenen sind nie lesbar; die App zeigt immer der echte Screen.
-- Die Figuren wirken durch Mimik, Lachen und Gesten, sie sprechen meistens nicht. Höchstens ein
-  kurzer Satz pro Folge, dann auf Deutsch. Spricht Veo trotzdem (oft Englisch), hört Gemini das
-  und der Ton der Aufnahme wird stumm geschaltet; die Karte in der Konsole sagt es dazu.
-- Hashtags: 3–5 (Instagram erlaubt höchstens 5), immer #wannayap, der Rest passend aus der
-  Trend-Recherche des Tages. Suchbegriffe stehen im ersten Satz der Caption.
+- Die Figuren reden auf Deutsch miteinander, meistens am Telefon: pro Einstellung höchstens ein
+  Satz (bis 12 Wörter), gut die Hälfte der Einstellungen hat einen. Gemini hört jede Aufnahme:
+  Kommt der Satz nicht auf Deutsch oder deutlich anders, wird die Aufnahme neu gedreht (höchstens
+  zwei Neudrehs pro Folge, wenn das Budget reicht), sonst wird ihr Ton stumm geschaltet und der
+  Untertitel trägt den Satz. Ungeplante Sprache wird immer stumm geschaltet. Der Schnitt schneidet
+  nie in einen Satz; die Karte in der Konsole nennt alles, was nicht geklappt hat.
+- Captions: kurz, knackig, nicht werblich, höchstens zwei Emojis (mehr entfernt der Code),
+  „Link in Bio“ nur ab und zu. Suchbegriffe stehen auf Deutsch im ersten Satz.
+- Hashtags: englisch, 3–5 (Instagram erlaubt höchstens 5), immer #wannayap, bei Hero-Folgen
+  der Serien-Tag, der Rest aus den aktuell trendenden Tags der Recherche. Der Code erzwingt
+  #wannayap, den Serien-Tag und die Obergrenze.
 - Marke, Tonalität und Regeln kommen aus `PLAYBOOK.md`, `HERO-VIDEO.md`, `agent/prompt.js`
   und `agent/hero-prompt.js`. Änderungen dort gelten ab dem nächsten Lauf.
 
