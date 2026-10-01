@@ -25,7 +25,7 @@ export function ResearchCard({ onBook, onLater, busy }: Props) {
         <View style={styles.texts}>
           <AppText variant="bodyStrong">15 Minuten mit dem Gründer sprechen?</AppText>
           <AppText variant="caption" color={colors.textSecondary}>
-            Du hast Wanna yap? jetzt zweimal ausprobiert. Erzähl mir, was gut war und was fehlt. Als Dank bekommst du 7 Tage
+            Du hast Wanna yap? jetzt schon ein paar Mal benutzt. Erzähl mir, was gut war und was fehlt. Als Dank bekommst du 7 Tage
             Wanna yap+.
           </AppText>
         </View>

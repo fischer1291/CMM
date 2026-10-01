@@ -142,7 +142,7 @@ der Flyer.
 | 9 | | | | | | |
 | 10 | | | | | | |
 
-Wöchentlich eintragen (aus der Konsole, Reiter Warteliste/Metriken):
+Wöchentlich eintragen (aus der Konsole, Reiter Warteliste, Tabelle Kampagnen):
 
 | Woche | Besuche über den Link | Registrierungen | Davon mit erstem Gespräch | Notiz |
 |---|---|---|---|---|

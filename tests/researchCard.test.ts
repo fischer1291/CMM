@@ -8,7 +8,7 @@ test('the card shows once invited and until answered', () => {
   expect(researchCardVisible(none)).toBe(false);
   expect(researchCardVisible({ ...none, invitedAt: at, bookedAt: at })).toBe(false);
   expect(researchCardVisible({ ...none, invitedAt: at, dismissedAt: at })).toBe(false);
-  // Done without an answer in the app (booked by other means): nothing to ask any more
+  // Booked and already held: nothing to ask any more
   expect(researchCardVisible({ ...none, invitedAt: at, bookedAt: at, doneAt: at })).toBe(false);
 });
 

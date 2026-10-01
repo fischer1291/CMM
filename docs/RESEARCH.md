@@ -45,7 +45,12 @@ im Nutzerdetail und ein Knopf „Gespräch geführt“ sind ein Folge-Punkt
 **Handarbeit einmalig:** cal.com-Konto anlegen, einen 15-Minuten-Termintyp
 „Wanna yap? Gespräch“ einrichten, den Link in `content/links.ts` eintragen
 (heute ein Platzhalter). Buchungsformular: nur Vorname und die Nummer oder
-E-Mail, die cal.com ohnehin braucht; keine weiteren Pflichtfelder.
+E-Mail, die cal.com ohnehin braucht; keine weiteren Pflichtfelder. Dazu den
+AVV (Data Processing Agreement) mit cal.com abschließen und ablegen und in
+`CMM-backend-new/COMPLIANCE.md` eintragen (siehe `docs/PRIVACY-CHANGE.md`,
+Punkte 3 und 4); App-Privacy-Label prüfen (`docs/RELEASE.md`, Abschnitt 3).
+Wählst du einen anderen Anbieter, muss der Absatz in `content/legal.ts`
+mitziehen.
 
 ## Leitfaden (15 Minuten)
 
@@ -81,12 +86,12 @@ festgehalten. Der Ordner `docs/research/` steht in `.gitignore` und bleibt
 lokal: Vornamen sind personenbezogene Daten und gehören nicht in das
 GitHub-Repo. Keine Transkripte, keine Audioaufnahmen.
 
-| Datum | Hash/Vorname | Tags | Kernsatz | Zahlungsbereitschaft (Monat / Jahr) | Sean-Ellis | Android unter engsten 5 |
+| Datum | ID/Vorname | Tags | Kernsatz | Zahlungsbereitschaft (Monat / Jahr) | Sean-Ellis | Android unter engsten 5 |
 |---|---|---|---|---|---|---|
 | | | | | | | |
 
-- **Hash/Vorname:** die ersten 8 Zeichen des `phoneHash` aus der Konsole oder
-  nur der Vorname; nie die Nummer.
+- **ID/Vorname:** nur der Vorname oder die Nutzer-ID aus der Konsole (steht in
+  der Adresse der Nutzerseite, `/admin/users/<id>`); nie die Nummer.
 - **Tags:** feste Liste, damit die Freitag-Triage zählen kann:
   `android`, `fehlende-person`, `preis`, `anruf-hemmung`, `push`, `kreise`,
   `video`, `bug`, `onboarding`, `idee`. Neue Tags nur, wenn drei Gespräche sie
@@ -103,11 +108,13 @@ Ab zehn Zeilen rechnest du den Median von „guter Deal“ und „teuer, aber
 Nach dem Gespräch in der Admin-Konsole den Nutzer öffnen und **Plus für 7
 Tage** geben (Knopf im Nutzerdetail, `POST /admin/users/:id/plus { days: 7 }`,
 auditiert). Das Gespräch als geführt markieren geht heute nur als
-Aufruf gegen die API, eingeloggt mit dem Konsolen-Cookie (Rolle Support,
-auditiert als `research_done`):
+Aufruf gegen die API (Rolle Support, auditiert als `research_done`). Die
+Konsole verlangt bei jedem Schreibaufruf den Header `X-Admin-Request: 1`;
+am einfachsten in der Browser-Konsole der eingeloggten Admin-Seite, das
+Cookie kommt dann automatisch mit:
 
 ```
-POST /admin/users/<id>/research-done
+fetch('/admin/users/<id>/research-done', { method: 'POST', headers: { 'X-Admin-Request': '1' } })
 ```
 
 Beides zusammen ist dein Nachweis, dass die Zusage eingelöst ist.
