@@ -16,9 +16,33 @@ export const OPERATOR = {
 
 const addressLines = (o: Operator) => [o.name, ...(o.careOf ? [o.careOf] : []), o.street, o.city, o.country];
 
-export const PRIVACY_UPDATED = '29. September 2026';
+/**
+ * The mail provider behind SMTP_URL (backend README), e.g. 'Brevo (Sendinblue
+ * SAS, Frankreich)'. The code does not fix one, so it is named in the imprint
+ * and the privacy policy only once it is entered here.
+ */
+export const MAIL_PROVIDER: string | null = null;
+
+export const PRIVACY_UPDATED = '1. Oktober 2026';
+/**
+ * Version of the terms a new user accepts in onboarding. Until our own terms
+ * exist (plan 2.7) Apple's standard EULA applies; the version still records
+ * which wording was shown. Sent with privacyVersion = PRIVACY_UPDATED on
+ * POST /verify/check as ageConfirmed/termsVersion/privacyVersion.
+ */
+export const TERMS_VERSION = '2026-10-01';
+export const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+/** Minimum age to use the app on one's own (Art. 8 GDPR, German threshold). */
+export const MIN_AGE = 16;
 
 export type LegalSection = { title: string; paragraphs: string[] };
+
+const mailProviderLines = () =>
+  MAIL_PROVIDER
+    ? [`Den Versand übernimmt unser E-Mail-Dienstleister ${MAIL_PROVIDER}, der die Adressen in unserem Auftrag verarbeitet (Art. 28 DSGVO) und sie für nichts anderes nutzen darf.`]
+    : [
+        'Den Versand übernimmt ein E-Mail-Dienstleister, der die Adressen in unserem Auftrag verarbeitet (Art. 28 DSGVO) und sie für nichts anderes nutzen darf. Welcher Dienstleister das ist, nennen wir im Impressum, sobald wir ihn eingetragen haben.',
+      ];
 
 const operatorLines = () =>
   OPERATOR
@@ -41,13 +65,21 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     title: 'Anmeldung mit deiner Telefonnummer',
     paragraphs: [
       'Zur Anmeldung bestätigst du deine Nummer mit einem SMS-Code. Den Versand übernimmt Twilio (Twilio Inc., USA). Wir speichern deine Nummer als dein Konto (Art. 6 Abs. 1 lit. b DSGVO).',
+      'Bei der Anmeldung bestätigst du außerdem dein Mindestalter und akzeptierst die Nutzungsbedingungen. Wir speichern dazu den Zeitpunkt der Bestätigung sowie die Fassung der Nutzungsbedingungen und dieser Datenschutzerklärung, die du dabei gesehen hast, als Nachweis.',
+    ],
+  },
+  {
+    title: 'Mindestalter',
+    paragraphs: [
+      `Wanna yap? ist für Menschen ab ${MIN_AGE} Jahren. Bist du jünger als ${MIN_AGE}, darfst du die App nur nutzen, wenn deine Eltern oder Erziehungsberechtigten zustimmen (Art. 8 DSGVO).`,
     ],
   },
   {
     title: 'Kontakte',
     paragraphs: [
-      'Wenn du den Zugriff erlaubst, bildet die App aus den Nummern deines Adressbuchs Prüfwerte (SHA-256-Hashes) und gleicht sie mit registrierten Nutzern ab. Namen und andere Kontaktdaten verlassen dein Gerät nicht.',
-      'Wir speichern nur, welche registrierten Nutzer in deinem Adressbuch stehen. Nummern von Menschen ohne Konto speichern wir nicht.',
+      'Wenn du den Zugriff erlaubst, bildet die App aus jeder Nummer deines Adressbuchs einen Prüfwert (SHA-256-Hash der Nummer im internationalen Format) und schickt nur diese Prüfwerte an unseren Server. Namen und andere Kontaktdaten verlassen dein Gerät nicht.',
+      'Der Server gleicht die Prüfwerte ausschließlich mit den Prüfwerten registrierter Nutzer ab und antwortet, wer davon ein Konto hat. Prüfwerte sind pseudonym, nicht anonym: Wer eine Nummer kennt, kann ihren Prüfwert bilden. Wir behandeln sie deshalb wie personenbezogene Daten. Prüfwerte von Nummern ohne Konto speichern wir nicht.',
+      'Wir speichern nur, welche registrierten Nutzer in deinem Adressbuch stehen, damit nur sie deine Erreichbarkeit sehen und dich anrufen können. Diese Liste und der Prüfwert deiner eigenen Nummer werden mit deinem Konto gelöscht.',
       'Lädst du jemanden ein, speichern wir bis zu 60 Tage einen Prüfwert (Hash) dieser Nummer. Meldet sich die Person an, seid ihr automatisch verbunden und du bekommst Bescheid.',
     ],
   },
@@ -88,6 +120,14 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     ],
   },
   {
+    title: 'Wanna yap+ und Käufe',
+    paragraphs: [
+      'Wanna yap+ kaufst du über Apple (App Store, In-App-Kauf). Die Zahlung wickelt Apple ab; Zahlungsdaten wie Karten- oder Kontonummern bekommen wir nicht zu sehen und speichern sie nicht.',
+      'Den Abo-Status verwaltet in unserem Auftrag RevenueCat (RevenueCat, Inc., USA; Art. 28 DSGVO). Als Kennung nutzen wir dort die interne Nummer deines Kontos, nicht deine Telefonnummer. RevenueCat meldet uns jede Änderung deines Abos; wir speichern davon das Produkt, den Status (z. B. aktiv, gekündigt, Zahlungsproblem, abgelaufen), die Laufzeit, den Preis und die Währung des Ereignisses, den Kündigungsgrund, das dir angezeigte Angebot, ob es sich um einen Testkauf handelt und bei einem Gerätewechsel die betroffenen internen Kontokennungen, um dir Wanna yap+ freizuschalten und unsere Einnahmen zu berechnen (Art. 6 Abs. 1 lit. b DSGVO).',
+      'Diese Abo-Ereignisse bleiben als Nachweis gespeichert, auch wenn du dein Konto löschst; sie sind dann nur noch über die interne Kennung bezeichnet und keiner Nummer mehr zuzuordnen. Wanna yap+ kannst du auch geschenkt bekommen (Einladungen, Warteliste); dann speichern wir nur, bis wann es gilt und woher es kommt.',
+    ],
+  },
+  {
     title: 'Nutzungsstatistik, Support und Moderation',
     paragraphs: [
       'Um die App zu verbessern, zählen wir auf dem Server, an welchen Tagen die App genutzt wird. Dafür speichern wir statt deiner Nummer nur einen Prüfwert (Hash) und das Datum, bis zu 400 Tage. Daraus entstehen ausschließlich Gesamtzahlen (z. B. wie viele Menschen heute aktiv waren). Es gibt kein Tracking-SDK, keine Werbe-IDs und keine Weitergabe an Dritte.',
@@ -111,6 +151,13 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
       'Auf deinem Gerät merkt sich die Website im lokalen Speicher deines Browsers deinen Wartelisten-Code und einen Einladungslink, über den du gekommen bist. Das ist für die von dir gewünschte Funktion nötig (§ 25 Abs. 2 TDDDG) und verlässt dein Gerät nicht.',
       'Die Mails versenden wir über einen E-Mail-Dienstleister, der sie in unserem Auftrag verarbeitet (Art. 28 DSGVO). Du kannst deine Einwilligung jederzeit widerrufen, über den Abmelde-Link in jeder Mail oder per Mail an uns. Dann löschen wir deine Adresse sofort. Andernfalls löschen wir die Warteliste spätestens 12 Monate nach dem Start der App.',
       'Löst du deinen Wartelisten-Code in der App ein, verknüpfen wir den Eintrag mit deinem Konto, um dir das Abzeichen und gegebenenfalls die geschenkten Plus-Tage zu geben.',
+    ],
+  },
+  {
+    title: 'E-Mail-Versand',
+    paragraphs: [
+      'In der App brauchen wir keine E-Mail-Adresse. E-Mails schicken wir nur an Adressen aus der Warteliste: die Bestätigungsmail, die Nachricht zum Start der App und gelegentliche Neuigkeiten, bis du dich abmeldest.',
+      ...mailProviderLines(),
     ],
   },
   {
@@ -154,6 +201,7 @@ export const IMPRINT_SECTIONS: LegalSection[] = [
     title: 'Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV',
     paragraphs: OPERATOR ? [`${OPERATOR.name}, Anschrift wie oben`] : ['–'],
   },
+  ...(MAIL_PROVIDER ? [{ title: 'E-Mail-Dienstleister', paragraphs: [MAIL_PROVIDER] }] : []),
   {
     title: 'Verbraucherstreitbeilegung',
     paragraphs: ['Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.'],

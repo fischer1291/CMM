@@ -9,7 +9,7 @@ fehlt dort.
 | Punkt | Wo | Status |
 |---|---|---|
 | Anbieterangaben (Name, Anschrift, E-Mail) | `content/legal.ts` → `OPERATOR` | erledigt (E-Mail muss ankommen) |
-| Datenschutzerklärung juristisch prüfen lassen | `content/legal.ts` → `PRIVACY_SECTIONS` | Entwurf |
+| Datenschutzerklärung juristisch prüfen lassen | `content/legal.ts` → `PRIVACY_SECTIONS` | ergänzt um Abo, E-Mail, Hash-Verfahren, Mindestalter (1. Oktober 2026); anwaltliche Prüfung offen (Anwaltspaket, Plan 1.6). Änderungen laufen über `docs/PRIVACY-CHANGE.md` |
 | App-Eintrag in App Store Connect (Bundle-ID `com.schly21.kontaktlisteapp`) | App Store Connect | erledigt |
 | Demo-Zugang für App Review: `REVIEW_PHONE` und `REVIEW_CODE` (6–10 Ziffern) | Render → Environment | erledigt (nach der Freigabe entfernen) |
 | Datenschutz-URL: `https://wannayap.app/datenschutz` | App Store Connect → App-Informationen | erledigt |
@@ -104,9 +104,12 @@ Identität verknüpft“, Zweck „App-Funktionalität“):
 - **Kontakte:** Abgleich per Hash; gespeichert werden nur Treffer mit registrierten Nutzern
 - **Nutzerinhalte:** Fotos (Profilbild, Moments)
 - **Kennungen:** Geräte-ID (Push-Tokens)
+- **Käufe:** Kaufhistorie (Abo-Ereignisse von RevenueCat: Produkt, Status, Laufzeit, Preis, Währung, Kündigungsgrund; keine Zahlungsdaten)
 - **Sonstige Daten:** Erreichbarkeit, Zeitplan, Gesprächsdauer
 
-Video und Ton der Anrufe werden nicht gespeichert.
+Video und Ton der Anrufe werden nicht gespeichert. Die Kategorie **Käufe** muss
+in App Store Connect → App-Datenschutz eingetragen sein, bevor der nächste Build
+in die Prüfung geht (Wanna yap+ speichert Abo-Ereignisse je Konto).
 
 ## 4. Hinweise für App Review
 

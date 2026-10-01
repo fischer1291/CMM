@@ -5,10 +5,8 @@ import { usePlan } from '../contexts/PlanContext';
 import { PlusView } from '../features/plus/PlusView';
 import { sendInterest } from '../services/planApi';
 import { buy, loadOffers, Offer, purchasesAvailable, restore } from '../services/purchases';
+import { TERMS_URL } from '../content/legal';
 import { WEB_URL } from '../content/links';
-
-// Apple's standard license agreement until our own terms are online
-const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
 
 export default function PlusScreen() {
   const router = useRouter();

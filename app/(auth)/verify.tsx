@@ -1,5 +1,7 @@
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
+import { PRIVACY_UPDATED, TERMS_VERSION } from '../../content/legal';
 import { useAuth } from '../../contexts/AuthContext';
 import { VerifyView } from '../../features/auth/VerifyView';
 import { apiFetch, apiPostJson } from '../../utils/api';
@@ -9,6 +11,10 @@ const RESEND_SECONDS = 30;
 
 export default function VerifyScreen() {
   const { signIn, pendingPhone } = useAuth();
+  // Set by onboarding once the age box is ticked; re-verifying an old login
+  // skips onboarding and sends nothing, which the backend accepts
+  const { ageConfirmed } = useLocalSearchParams<{ ageConfirmed?: string }>();
+  const consent = ageConfirmed === '1' ? { ageConfirmed: true, termsVersion: TERMS_VERSION, privacyVersion: PRIVACY_UPDATED } : {};
 
   const [phone, setPhone] = useState(pendingPhone ?? '');
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -56,7 +62,7 @@ export default function VerifyScreen() {
     if (!sentTo || entered.length < 6 || loading) return;
     setLoading(true);
     try {
-      const res = await apiPostJson('/verify/check', { phone: sentTo, code: entered }, 10000);
+      const res = await apiPostJson('/verify/check', { phone: sentTo, code: entered, ...consent }, 10000);
       const data = await res.json();
       if (!data.success) {
         setCode('');
