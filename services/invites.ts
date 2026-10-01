@@ -10,6 +10,9 @@ import { DOWNLOAD_URL } from '../content/links';
 import { apiPostJson } from '../utils/api';
 
 const PENDING_KEY = 'pendingInviteCode';
+// A tapped link attributes a sign-up for this long; afterwards the code is
+// stale (same horizon as the backend's invite hashes) and is dropped.
+const PENDING_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 // Same alphabet as the backend's codes (lib/waitlist.js newCode), 8 characters
 const CODE = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$/;
 
@@ -52,10 +55,11 @@ const WAITLIST_ERRORS: Record<string, string> = {
 /**
  * An Android visitor wants to hear when the app comes for Android: the same
  * waitlist as the landing page (marketing/src/landing.js), tagged with the
- * platform and the inviter's campaign. Throws an Error whose message can be
- * shown as is.
+ * platform and the inviter's campaign. Resolves with mailDelayed when the
+ * backend kept the sign-up but could not send the confirmation mail right
+ * away. Throws an Error whose message can be shown as is.
  */
-export async function joinAndroidWaitlist(email: string, code: string | null): Promise<void> {
+export async function joinAndroidWaitlist(email: string, code: string | null): Promise<{ mailDelayed: boolean }> {
   let res: Response;
   try {
     res = await apiPostJson(
@@ -66,8 +70,8 @@ export async function joinAndroidWaitlist(email: string, code: string | null): P
   } catch {
     throw new Error('Keine Verbindung. Versuch es gleich noch einmal.');
   }
-  if (res.ok) return;
   const data = await res.json().catch(() => ({}));
+  if (res.ok) return { mailDelayed: data.mailDelayed === true };
   throw new Error(
     WAITLIST_ERRORS[data.error] ??
       (res.status === 429 ? 'Zu viele Versuche. Probier es in einer Stunde noch mal.' : 'Gerade klappt es nicht. Versuch es gleich noch einmal.')
@@ -75,13 +79,22 @@ export async function joinAndroidWaitlist(email: string, code: string | null): P
 }
 
 /** The app was opened through an invite link: keep the code for the sign-up. */
-export async function rememberInviteCode(code: string): Promise<void> {
-  await AsyncStorage.setItem(PENDING_KEY, code).catch(() => {});
+export async function rememberInviteCode(code: string, now = Date.now()): Promise<void> {
+  await AsyncStorage.setItem(PENDING_KEY, JSON.stringify({ code, at: now })).catch(() => {});
 }
 
-/** The code waiting for the sign-up, if any. */
-export async function pendingInviteCode(): Promise<string | null> {
-  return normalizeInviteCode(await AsyncStorage.getItem(PENDING_KEY).catch(() => null));
+/** The code waiting for the sign-up, if any and not older than 30 days. */
+export async function pendingInviteCode(now = Date.now()): Promise<string | null> {
+  const raw = await AsyncStorage.getItem(PENDING_KEY).catch(() => null);
+  if (!raw) return null;
+  let entry: { code?: unknown; at?: unknown };
+  try {
+    entry = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (typeof entry?.at !== 'number' || now - entry.at > PENDING_MAX_AGE_MS) return null;
+  return normalizeInviteCode(entry.code);
 }
 
 /** After the sign-up sent it (or the user signed in anyway): forget it. */

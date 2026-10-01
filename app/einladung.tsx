@@ -141,7 +141,7 @@ function AndroidWaitlist({ code }: { code: string | null }) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState<string | null>(null);
+  const [sent, setSent] = useState<{ email: string; mailDelayed: boolean } | null>(null);
 
   const submit = async () => {
     const address = email.trim();
@@ -152,8 +152,8 @@ function AndroidWaitlist({ code }: { code: string | null }) {
     setError(null);
     setBusy(true);
     try {
-      await joinAndroidWaitlist(address, code);
-      setSent(address);
+      const { mailDelayed } = await joinAndroidWaitlist(address, code);
+      setSent({ email: address, mailDelayed });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Gerade klappt es nicht. Versuch es gleich noch einmal.');
     } finally {
@@ -168,7 +168,10 @@ function AndroidWaitlist({ code }: { code: string | null }) {
       </AppText>
       {sent ? (
         <AppText variant="caption" color={colors.textSecondary} center style={{ marginTop: spacing.sm }}>
-          Fast geschafft! Wir haben dir eine Mail an {sent} geschickt. Bestätige deine Adresse, dann sagen wir dir Bescheid, sobald es die App für Android gibt.
+          {sent.mailDelayed
+            ? // The sign-up is kept; the mail follows as soon as sending works again (same as the landing)
+              `Du bist eingetragen! Die Bestätigungsmail an ${sent.email} kommt in den nächsten Minuten. Bestätige deine Adresse, dann sagen wir dir Bescheid, sobald es die App für Android gibt. Schau auch im Spam-Ordner nach.`
+            : `Fast geschafft! Wir haben dir eine Mail an ${sent.email} geschickt. Bestätige deine Adresse, dann sagen wir dir Bescheid, sobald es die App für Android gibt.`}
         </AppText>
       ) : (
         <>

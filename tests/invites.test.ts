@@ -3,6 +3,7 @@ import {
   clearInviteCode,
   downloadLink,
   inviteCampaign,
+  joinAndroidWaitlist,
   normalizeInviteCode,
   pendingInviteCode,
   platformFromUserAgent,
@@ -52,4 +53,54 @@ test('a code from an invite link waits on the device until the sign-up clears it
   // Something broken in storage is not a code
   await AsyncStorage.setItem('pendingInviteCode', 'nope');
   expect(await pendingInviteCode()).toBeNull();
+  await AsyncStorage.setItem('pendingInviteCode', JSON.stringify({ code: 'ABCD0145', at: Date.now() }));
+  expect(await pendingInviteCode()).toBeNull();
+});
+
+test('a pending code is dropped after 30 days', async () => {
+  const day = 24 * 60 * 60 * 1000;
+  const tapped = Date.UTC(2026, 9, 1);
+  await rememberInviteCode('ABCD2345', tapped);
+  expect(await pendingInviteCode(tapped + 29 * day)).toBe('ABCD2345');
+  expect(await pendingInviteCode(tapped + 31 * day)).toBeNull();
+  // An entry without a timestamp never attributes
+  await AsyncStorage.setItem('pendingInviteCode', JSON.stringify({ code: 'ABCD2345' }));
+  expect(await pendingInviteCode()).toBeNull();
+});
+
+describe('joinAndroidWaitlist', () => {
+  const fetchMock = jest.fn();
+  beforeEach(() => {
+    fetchMock.mockReset();
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+  });
+
+  const reply = (status: number, body: unknown) =>
+    fetchMock.mockResolvedValue({ ok: status < 400, status, json: async () => body });
+
+  test('sends the landing fields with the inviter campaign and passes mailDelayed on', async () => {
+    reply(200, { ok: true });
+    await expect(joinAndroidWaitlist('a@b.de', 'ABCD2345')).resolves.toEqual({ mailDelayed: false });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toMatch(/\/waitlist$/);
+    expect(JSON.parse(init.body)).toEqual({
+      email: 'a@b.de',
+      website: '',
+      platform: 'android',
+      source: 'einladung',
+      campaign: 'invite-ABCD2345',
+    });
+    reply(200, { ok: true, mailDelayed: true });
+    await expect(joinAndroidWaitlist('a@b.de', null)).resolves.toEqual({ mailDelayed: true });
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).campaign).toBeNull();
+  });
+
+  test('turns the backend errors into messages the form can show', async () => {
+    reply(400, { error: 'invalid_email' });
+    await expect(joinAndroidWaitlist('a@b', null)).rejects.toThrow('gültige E-Mail-Adresse');
+    reply(429, {});
+    await expect(joinAndroidWaitlist('a@b.de', null)).rejects.toThrow('Zu viele Versuche');
+    fetchMock.mockRejectedValue(new Error('network'));
+    await expect(joinAndroidWaitlist('a@b.de', null)).rejects.toThrow('Keine Verbindung');
+  });
 });
