@@ -54,7 +54,7 @@ npm run check      # typecheck + lint, same as CI
 | `services/` | Call state, CallKit/CallKeep, notifications, PushKit token |
 | `config/` | Runtime configuration |
 | `ios/` | Native iOS project (committed; contains the PushKit/CallKit AppDelegate) |
-| `docs/` | Dev setup and historical fix notes |
+| `docs/` | Dev setup, release checklist, historical fix notes, and [`SCALE-PLAN.md`](docs/SCALE-PLAN.md): the 12-month plan for the processes and automation that turn the app into a company |
 
 ## Calls on iOS
 
