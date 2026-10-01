@@ -124,4 +124,5 @@ Video und Ton der Anrufe werden nicht gespeichert.
    annehmen, ablehnen (Vordergrund und Sperrbildschirm), verpassen,
    abbrechen; Erreichbarkeits-Push bei geschlossener App; Moment teilen;
    Konto löschen mit einem Testkonto.
-3. Nach dem Deploy `/api/push-health` prüfen, ob `version` stimmt.
+3. Nach dem Deploy `/api/push-health` prüfen, ob `version` stimmt, und
+   `/healthz` muss 200 antworten (Backend-README, Abschnitt Health check).
