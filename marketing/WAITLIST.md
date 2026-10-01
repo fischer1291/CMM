@@ -54,11 +54,16 @@ der Besuch kam. TikTok schickt diese Angabe oft nicht mit, solche Besuche landen
 
 ## Release-Tag
 
-1. **App-Store-Link setzen:** `public/download.html` → `STORE_URL`. Alle Links auf
-   `/download` führen dann in den App Store.
-2. **Landing Page umschalten:** in Netlify unter *Site configuration → Environment
-   variables* `LANDING_MODE=live` setzen und neu deployen. Statt des Formulars
-   erscheinen die App-Store-Buttons.
+1. **App-Store-Link setzen:** in Netlify unter *Site configuration → Environment
+   variables* `STORE_URL` (`https://apps.apple.com/app/id…`) und `PROVIDER_TOKEN`
+   (App Store Connect → Kampagnen) eintragen, dazu `LANDING_MODE=live`, und neu
+   deployen. Der Build schreibt die Werte in `/download`; alle Links darauf
+   (`/k/…`, Flyer-QR, Launch-Mail) führen dann mit `ct`/`pt` in den App Store.
+   Ohne `STORE_URL` bricht der Build im Live-Modus ab. `public/download.html`
+   bleibt im Repo unverändert (`null`).
+2. **Landing Page umschalten:** passiert mit `LANDING_MODE=live` aus Schritt 1.
+   Statt des Formulars erscheinen die App-Store-Buttons; jeder Klick darauf zählt
+   als Store-Klick in der Konsole (Warteliste → Landing Page).
 3. **Launch-Mail:** Konsole → Warteliste → erst „Testmail schicken“, prüfen, dann
    „Launch-Mail an alle …“ und `STARTEN` eingeben. Der Versand läuft im Hintergrund,
    der Fortschritt steht in der Konsole.

@@ -52,8 +52,10 @@ const FAQ = [
 
 module.exports = function landing({ logoSvg, siteUrl, legalUrl, downloadUrl, ogImage, mode = 'live', apiUrl = 'https://api.wannayap.app', preorder = false }) {
   const waiting = mode === 'waitlist';
-  const storeCta = `<a class="cta" href="${downloadUrl}">${ICON.phone}<span>Im App Store laden</span></a>`;
-  const preorderLink = preorder ? `<a class="ghost" href="${downloadUrl}">Im App Store vorbestellen</a>` : '';
+  // data-store: the script at the end counts the click and adds ?ct= (the
+  // store switch itself stays in one place, /download)
+  const storeCta = `<a class="cta" href="${downloadUrl}" data-store>${ICON.phone}<span>Im App Store laden</span></a>`;
+  const preorderLink = preorder ? `<a class="ghost" href="${downloadUrl}" data-store>Im App Store vorbestellen</a>` : '';
   /** Waitlist sign-up (the script at the end sends it to the backend). */
   const waitForm = (id) => `
     <form class="wl" data-waitlist novalidate>
@@ -287,7 +289,7 @@ dialog.wl-dialog::backdrop { background: rgba(5,5,10,0.78); backdrop-filter: blu
       <a href="#so-gehts">So geht’s</a>
       <a href="#features">Features</a>
       <a href="#faq">FAQ</a>
-      ${waiting ? '<a class="mini" href="#warteliste">Warteliste</a>' : `<a class="mini" href="${downloadUrl}">Laden</a>`}
+      ${waiting ? '<a class="mini" href="#warteliste">Warteliste</a>' : `<a class="mini" href="${downloadUrl}" data-store>Laden</a>`}
     </nav>
   </div>
 </header>
@@ -401,16 +403,27 @@ ${waiting ? waitlistScript({ apiUrl, siteUrl }) : ''}
 /**
  * Counts the visit (Admin console → Warteliste → Landing Page): one POST with
  * where it came from, no cookie, nothing stored on the device; then, once
- * each, whether the page was read and whether someone typed an address. Source is
- * utm_source, else the platform in the referrer (e.g. the link in the Instagram
- * bio). Reloads, back/forward, clicks within our own pages, the links from
- * our own mails and browsers switched off with ?nichtzaehlen=1 don't count.
- * Also leaves the source in window.wyVisitSource for the sign-up.
+ * each, whether the page was read, whether someone typed an address and whether
+ * a store button was clicked. Source is utm_source, else the platform in the
+ * referrer (e.g. the link in the Instagram bio). Reloads, back/forward, clicks
+ * within our own pages, the links from our own mails and browsers switched off
+ * with ?nichtzaehlen=1 don't count. Also leaves the source in
+ * window.wyVisitSource for the sign-up.
  */
 function visitScript({ apiUrl, siteUrl }) {
   return `<script>
 (() => {
   const q = new URLSearchParams(location.search);
+  // The campaign travels on to /download (and from there as ct into the App
+  // Store), same cleaning as there
+  const ct = (q.get('ct') || q.get('utm_campaign') || '').replace(/[^\\w-]/g, '').slice(0, 40);
+  if (ct) {
+    for (const a of document.querySelectorAll('a[data-store]')) {
+      const url = new URL(a.getAttribute('href'), location.href);
+      url.searchParams.set('ct', ct);
+      a.href = url.toString();
+    }
+  }
   const PLATFORMS = [
     ['instagram', /(^|\\.)instagram\\.com$/], ['tiktok', /(^|\\.)tiktok\\.com$/], ['facebook', /(^|\\.)(facebook\\.com|fb\\.com|fb\\.me)$/],
     ['youtube', /(^|\\.)(youtube\\.com|youtu\\.be)$/], ['x', /(^|\\.)(x\\.com|twitter\\.com|t\\.co)$/], ['linkedin', /(^|\\.)(linkedin\\.com|lnkd\\.in)$/],
@@ -448,10 +461,12 @@ function visitScript({ apiUrl, siteUrl }) {
   if (nav && nav.type !== 'navigate') return;
   if (own) return;
   if (q.has('bestaetigen') || q.has('abmelden') || navigator.webdriver) return;
+  // ?ct= (the store campaign) counts as the campaign too, so visits and store
+  // clicks line up per campaign in the console
   const send = (path, extra) => fetch(${JSON.stringify(apiUrl)} + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...extra, source, campaign: q.get('utm_campaign'), ref: q.has('ref') }),
+    body: JSON.stringify({ ...extra, source, campaign: q.get('utm_campaign') || q.get('ct'), ref: q.has('ref') }),
     keepalive: true,
   }).catch(() => {});
   send('/waitlist/visit', {});
@@ -474,6 +489,14 @@ function visitScript({ apiUrl, siteUrl }) {
     if (typed || !e.target || e.target.type !== 'email') return;
     typed = true;
     send('/waitlist/event', { step: 'form' });
+  });
+  // The store buttons (live mode, and pre-order): reported before the page
+  // leaves, keepalive keeps the request alive through the navigation
+  let clicked = false;
+  document.addEventListener('click', (e) => {
+    if (clicked || !e.target || !e.target.closest || !e.target.closest('a[data-store]')) return;
+    clicked = true;
+    send('/waitlist/event', { step: 'store' });
   });
 })();
 </script>`;
