@@ -4,6 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import PushTokenService from '../services/PushTokenService';
 import { session } from '../services/session';
+import type { Research } from '../services/researchApi';
 import { apiFetch, apiPostJson } from '../utils/api';
 
 export type UserProfile = {
@@ -13,6 +14,8 @@ export type UserProfile = {
   momentActiveUntil: string | null;
   /** Personal code in the invite link (content/links.ts); null on older servers */
   inviteCode: string | null;
+  /** Invitation to the research call (features/status/ResearchCard); null on older servers */
+  research: Research | null;
 };
 
 type AuthContextType = {
@@ -59,7 +62,7 @@ async function storeSecure(key: string, value: string | null) {
   if (value) await SecureStore.setItemAsync(key, value, KEYCHAIN_OPTIONS);
 }
 
-const EMPTY_PROFILE: UserProfile = { name: '', avatarUrl: '', lastOnline: '', momentActiveUntil: null, inviteCode: null };
+const EMPTY_PROFILE: UserProfile = { name: '', avatarUrl: '', lastOnline: '', momentActiveUntil: null, inviteCode: null, research: null };
 
 /** True when the backend issues tokens, so a token-less login must be re-verified. */
 async function backendRequiresTokens(): Promise<boolean> {
@@ -98,6 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               lastOnline: data.user.lastOnline || '',
               momentActiveUntil: data.user.momentActiveUntil || null,
               inviteCode: data.user.inviteCode || null,
+              research: data.user.research || null,
             }
           : EMPTY_PROFILE
       );

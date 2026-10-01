@@ -2,12 +2,15 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useContacts } from '../../contexts/ContactsContext';
 import { useNewCall } from '../../contexts/NewCallContext';
 import { StatusView } from '../../features/status/StatusView';
 import { ReferralCard } from '../../features/plus/ReferralCard';
+import { ResearchCard, researchCardVisible } from '../../features/status/ResearchCard';
+import { answerResearch, ResearchAnswer } from '../../services/researchApi';
+import { researchUrl } from '../../content/links';
 import { usePlan } from '../../contexts/PlanContext';
 import { showReferral } from '../../services/planApi';
 import { useCountdown } from '../../hooks/useCountdown';
@@ -58,6 +61,33 @@ export default function StatusScreen() {
   const { daily, join: joinDaily } = useDailyMoment();
   const { album, celebrate, check: checkBadges, celebrated } = useBadgeAlbum();
   const { config: appConfig } = useAppConfig();
+  // The research card: "Termin wählen" opens the calendar first and reports
+  // booked only once the page opened (otherwise the card stays and nobody has
+  // booked); a failed request must not stop a booking, so it is only reported.
+  // The card disappears with the reloaded profile.
+  const [researchBusy, setResearchBusy] = useState(false);
+  const answerResearchCard = useCallback(
+    async (action: ResearchAnswer) => {
+      setResearchBusy(true);
+      try {
+        if (action === 'booked') {
+          try {
+            await Linking.openURL(researchUrl(userProfile?.name));
+          } catch {
+            Alert.alert('Die Buchungsseite ließ sich nicht öffnen', 'Bitte versuch es später noch einmal.');
+            return;
+          }
+        }
+        await answerResearch(action);
+        reloadProfile();
+      } catch {
+        Alert.alert('Das hat nicht geklappt', 'Bitte versuch es gleich noch einmal.');
+      } finally {
+        setResearchBusy(false);
+      }
+    },
+    [reloadProfile, userProfile?.name]
+  );
   const missed = useMissedCalls();
   const { circles, invites: circleInvites, reload: reloadCircles, setInvites: setCircleInvites } = useCircles();
 
@@ -233,6 +263,11 @@ export default function StatusScreen() {
         onOpenSchedule={() => router.push('/schedule')}
         onOpenProfile={() => router.push('/(tabs)/settings')}
         onDismissNudges={() => dismissNudges()}
+        research={
+          researchCardVisible(userProfile?.research) ? (
+            <ResearchCard onBook={() => answerResearchCard('booked')} onLater={() => answerResearchCard('dismissed')} busy={researchBusy} />
+          ) : null
+        }
         lonely={
           lonely
             ? {

@@ -22,6 +22,10 @@ test('the policy names what the invite link brings: the inviter, the device lang
   expect(contacts).toContain('sie sieht nur die Anzahl');
   const usage = PRIVACY_SECTIONS.find((s) => s.title === 'Nutzungsstatistik, Support und Moderation')!.paragraphs.join(' ');
   expect(usage).toContain('Sprache deines Geräts');
+  // plan 1.13: User.research (invited, booked, dismissed, done) and the cal.com booking page with ?name=
+  expect(usage).toContain('Gespräch mit dem Gründer');
+  expect(usage).toContain('cal.com');
+  expect(usage).toContain('Profilnamen vorbelegt');
   const waitlist = PRIVACY_SECTIONS.find((s) => s.title === 'Warteliste auf wannayap.app')!.paragraphs.join(' ');
   expect(waitlist).toContain('iPhone oder ein Android-Gerät');
 });

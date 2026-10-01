@@ -8,6 +8,21 @@
 export const WEB_URL = 'https://wannayap.app';
 export const INVITE_URL = `${WEB_URL}/einladung`;
 export const DOWNLOAD_URL: string | null = `${WEB_URL}/download`;
+/**
+ * Booking page for the 15-minute research call with the founder (docs/RESEARCH.md,
+ * card after the second talk). Placeholder: the owner sets the real cal.com link.
+ */
+export const RESEARCH_URL = 'https://cal.com/wannayap/15min';
+
+/**
+ * The booking page with the person's name filled in (cal.com reads `?name=`), so the
+ * owner can match the booking to the user in the console; without a name the plain page.
+ * The number is not passed along: cal.com asks for what it needs itself.
+ */
+export const researchUrl = (name?: string | null) => {
+  const trimmed = name?.trim();
+  return trimmed ? `${RESEARCH_URL}?name=${encodeURIComponent(trimmed)}` : RESEARCH_URL;
+};
 
 /** The personal invite link; without a code (older servers) the plain page. */
 export const inviteUrl = (code?: string | null) => (code ? `${INVITE_URL}?von=${encodeURIComponent(code)}` : INVITE_URL);

@@ -56,6 +56,8 @@ type Props = {
   onDismissNudges: () => void;
   /** None of your contacts has the app yet: invite instead of waiting */
   lonely?: { onInvite: () => void; referral?: React.ReactNode } | null;
+  /** After the second talk: the invitation to a research call (features/status/ResearchCard) */
+  research?: React.ReactNode;
   /** Explain notifications before the system asks */
   showNotificationPrompt?: boolean;
   onAllowNotifications?: () => void;
@@ -180,6 +182,7 @@ export function StatusView({
   onOpenProfile,
   onDismissNudges,
   lonely,
+  research,
   circlesStrip,
   daily,
   showNotificationPrompt,
@@ -246,6 +249,8 @@ export function StatusView({
       {circlesStrip}
 
       {showNotificationPrompt && <NotificationPrompt onAllow={onAllowNotifications} onDismiss={onDismissNotifications} />}
+
+      {research}
 
       {missedCalls > 0 && onOpenCalls ? (
         <View style={{ marginTop: spacing.xl }}>

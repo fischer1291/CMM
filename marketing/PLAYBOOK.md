@@ -102,6 +102,52 @@ sich bezahlte Reichweite.
 - Aktion für Erstis: „Dein erster Anruf nach Hause“. In der ersten Uni-Woche vermissen
   viele ihre Leute, genau da ist die App am wertvollsten.
 
+### Seed-Cluster: die erste Hochschule mit Namen und Zahl
+
+Ein Cluster ist eine Hochschule plus zehn benannte Freundeskreise oder
+WhatsApp-Gruppen, in denen sich die Leute ohnehin anrufen würden. Dichte
+schlägt Reichweite (Abschnitt 2), deshalb bekommt jeder Kreis eine
+verantwortliche Person und einen Termin, nicht nur einen Link. Gezählt wird
+über den Kampagnenlink `/k/seed-<name>` (Landing `LandingVisit.campaign`,
+Warteliste `WaitlistEntry.campaign`), bis Plan 2.10 `User.acquisition`
+liefert. Fülle die Vorlage aus, bevor der erste Flyer hängt; leere Felder
+sind leer, nicht geraten.
+
+**Zielgröße (Annahme):** Das Cluster liefert bis Ende Phase 1
+**30 Registrierungen pro Woche** über seinen Link. Liegt es zwei Wochen in
+Folge darunter, obwohl alle zehn Kreise angesprochen wurden, ändert sich die
+Seed-Strategie (anderer Cluster-Typ, z. B. Sportverein oder Firma), nicht nur
+der Flyer.
+
+| Feld | Wert |
+|---|---|
+| Hochschule | |
+| Stadt | |
+| Kampagnenlink | `/k/seed-` |
+| Start (Datum) | |
+| Ende Phase 1 (Datum) | |
+| Ziel Registrierungen/Woche | 30 (Annahme) |
+| Verantwortlich gesamt | |
+
+| # | Freundeskreis / Gruppe | Wo (Studiengang, Wohnheim, Verein) | Größe | Verantwortliche Person | Termin Ansprache | Status |
+|---|---|---|---|---|---|---|
+| 1 | | | | | | |
+| 2 | | | | | | |
+| 3 | | | | | | |
+| 4 | | | | | | |
+| 5 | | | | | | |
+| 6 | | | | | | |
+| 7 | | | | | | |
+| 8 | | | | | | |
+| 9 | | | | | | |
+| 10 | | | | | | |
+
+Wöchentlich eintragen (aus der Konsole, Reiter Warteliste/Metriken):
+
+| Woche | Besuche über den Link | Registrierungen | Davon mit erstem Gespräch | Notiz |
+|---|---|---|---|---|
+| | | | | |
+
 ### Woche 4 – Communities & Creator
 - 10–20 Micro-Creator (5k–50k Follower) aus Studi-Life, WG-Life, Fernbeziehung,
   Long-Distance-Friendship anschreiben. Kein bezahlter Werbespot, sondern „Probier es
