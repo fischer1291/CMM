@@ -16,12 +16,12 @@ test('progress follows activated, the line shows joined and activated apart', ()
     stats: '2 beigetreten · 1 hat schon telefoniert',
   });
   expect(referralLines({ ...base, joined: 4, activated: 2, toNext: 1 }).stats).toBe('4 beigetreten · 2 haben schon telefoniert');
-  expect(referralLines({ ...base, joined: 1, activated: 0, toNext: 3 }).stats).toBe('1 beigetreten · 0 haben schon telefoniert');
+  expect(referralLines({ ...base, joined: 1, activated: 0, toNext: 3 }).stats).toBe('1 beigetreten · noch niemand hat telefoniert');
 });
 
 test('older servers without activated: joined counts', () => {
   expect(referralLines({ ...base, joined: 2, toNext: 1 })).toEqual({
     text: 'Noch 1 Person bis zu 1 Monat Wanna yap+.',
-    stats: '2 beigetreten · 2 haben schon telefoniert',
+    stats: '2 beigetreten',
   });
 });

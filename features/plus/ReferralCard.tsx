@@ -11,15 +11,20 @@ type Props = { referral: Referral; onPress?: () => void; compact?: boolean };
  * already. Warm, no pressure: a friend who has not talked yet is just "dabei".
  */
 export function referralLines(referral: Referral): { text: string; stats: string | null } {
-  const { step, rewardDays, joined, toNext } = referral;
-  const activated = referral.activated ?? joined;
+  const { step, rewardDays, joined, toNext, activated } = referral;
   const months = rewardDays === 30 ? '1 Monat' : `${rewardDays} Tage`;
   if (joined === 0) {
     return { text: `Für je ${step} Leute, die über deine Einladung dazukommen und einmal telefonieren: ${months} Wanna yap+ geschenkt.`, stats: null };
   }
   return {
     text: `Noch ${toNext} ${toNext === 1 ? 'Person' : 'Leute'} bis zu ${months} Wanna yap+.`,
-    stats: `${joined} beigetreten · ${activated} ${activated === 1 ? 'hat' : 'haben'} schon telefoniert`,
+    // An older server leaves activated out: then only say who joined
+    stats:
+      activated === undefined
+        ? `${joined} beigetreten`
+        : activated === 0
+          ? `${joined} beigetreten · noch niemand hat telefoniert`
+          : `${joined} beigetreten · ${activated} ${activated === 1 ? 'hat' : 'haben'} schon telefoniert`,
   };
 }
 
