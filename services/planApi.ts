@@ -71,6 +71,14 @@ export async function fetchPlan(): Promise<Plan> {
   return ok(await apiFetch('/me/plan', {}, 10000));
 }
 
+/**
+ * Right after a purchase or restore: the backend asks RevenueCat and sets Plus
+ * without waiting for the webhook. Answers like fetchPlan.
+ */
+export async function syncPlus(): Promise<Plan> {
+  return ok(await apiPostJson('/me/plus/sync', {}, 10000));
+}
+
 export async function sendInterest(features: string[]): Promise<void> {
   await ok(await apiPostJson('/me/plus-interest', { features }, 10000));
 }

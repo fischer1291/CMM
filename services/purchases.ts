@@ -2,9 +2,11 @@
  * Store purchases through RevenueCat. Off until EXPO_PUBLIC_REVENUECAT_IOS_KEY
  * is set and the build contains the native module; until then the paywall
  * shows "Interesse zeigen". The backend learns about purchases from the
- * RevenueCat webhook; the app only shows the result right away.
+ * RevenueCat webhook; after a purchase or restore the app also asks it to
+ * sync right away (POST /me/plus/sync), so Plus is there before the webhook.
  */
 import { Platform } from 'react-native';
+import { syncPlus } from './planApi';
 
 const IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || '';
 export const ENTITLEMENT = 'plus';
@@ -61,13 +63,24 @@ export async function loadOffers(): Promise<Offer[]> {
 
 const hasPlus = (info: any) => !!info?.entitlements?.active?.[ENTITLEMENT];
 
+/** Best effort: the webhook or the next plan refresh catches up when this fails. */
+async function syncBackend(): Promise<void> {
+  try {
+    await syncPlus();
+  } catch {
+    // not configured, offline, or RevenueCat slow: the webhook still arrives
+  }
+}
+
 /** Buy; true when Plus is active afterwards. Cancelling returns false. */
 export async function buy(offer: Offer): Promise<boolean> {
   const Purchases = sdk();
   if (!Purchases) return false;
   try {
     const { customerInfo } = await Purchases.purchasePackage(offer.pkg);
-    return hasPlus(customerInfo);
+    if (!hasPlus(customerInfo)) return false;
+    await syncBackend();
+    return true;
   } catch (error: any) {
     if (error?.userCancelled) return false;
     throw error;
@@ -77,5 +90,7 @@ export async function buy(offer: Offer): Promise<boolean> {
 export async function restore(): Promise<boolean> {
   const Purchases = sdk();
   if (!Purchases) return false;
-  return hasPlus(await Purchases.restorePurchases());
+  if (!hasPlus(await Purchases.restorePurchases())) return false;
+  await syncBackend();
+  return true;
 }

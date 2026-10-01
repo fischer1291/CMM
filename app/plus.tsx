@@ -40,7 +40,8 @@ export default function PlusScreen() {
     try {
       if (await buy(offer)) {
         Alert.alert('Willkommen bei Plus ✨', 'Danke, dass du Wanna yap? unterstützt.');
-        // The webhook needs a moment; ask again shortly
+        // buy() synced with the backend; ask again shortly in case only the webhook gets through
+        refresh();
         setTimeout(refresh, 2500);
       }
     } catch {
@@ -63,7 +64,10 @@ export default function PlusScreen() {
         try {
           const ok = await restore();
           Alert.alert(ok ? 'Wiederhergestellt' : 'Nichts gefunden', ok ? 'Dein Plus ist wieder aktiv.' : 'Zu deinem Apple-Konto gibt es kein aktives Plus.');
-          if (ok) setTimeout(refresh, 2500);
+          if (ok) {
+            refresh();
+            setTimeout(refresh, 2500);
+          }
         } catch {
           Alert.alert('Hat nicht geklappt', 'Bitte versuche es erneut.');
         } finally {

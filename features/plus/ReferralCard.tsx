@@ -6,20 +6,28 @@ import { AppText, colors, GlassCard, spacing } from '../../ui';
 
 type Props = { referral: Referral; onPress?: () => void; compact?: boolean };
 
-/** Invite reward: progress towards the next free Plus days (a friend counts after the first call). */
-export function ReferralCard({ referral, onPress, compact }: Props) {
+/**
+ * The card's two lines: what the reward is or how far it is, and who is in
+ * already. Warm, no pressure: a friend who has not talked yet is just "dabei".
+ */
+export function referralLines(referral: Referral): { text: string; stats: string | null } {
   const { step, rewardDays, joined, toNext } = referral;
   const activated = referral.activated ?? joined;
-  const done = step - (toNext ?? step);
   const months = rewardDays === 30 ? '1 Monat' : `${rewardDays} Tage`;
-  const waiting = joined - activated;
-  const text =
-    joined === 0
-      ? `Für je ${step} Leute, die über deine Einladung dazukommen und einmal telefonieren: ${months} Wanna yap+ geschenkt.`
-      : `Noch ${toNext} ${toNext === 1 ? 'Person' : 'Leute'} bis zu ${months} Wanna yap+.` +
-        (waiting > 0
-          ? ` ${waiting === 1 ? 'Eine Person ist' : `${waiting} sind`} schon dabei und ${waiting === 1 ? 'zählt' : 'zählen'} nach dem ersten Gespräch.`
-          : '');
+  if (joined === 0) {
+    return { text: `Für je ${step} Leute, die über deine Einladung dazukommen und einmal telefonieren: ${months} Wanna yap+ geschenkt.`, stats: null };
+  }
+  return {
+    text: `Noch ${toNext} ${toNext === 1 ? 'Person' : 'Leute'} bis zu ${months} Wanna yap+.`,
+    stats: `${joined} beigetreten · ${activated} ${activated === 1 ? 'hat' : 'haben'} schon telefoniert`,
+  };
+}
+
+/** Invite reward: progress towards the next free Plus days (a friend counts after the first call). */
+export function ReferralCard({ referral, onPress, compact }: Props) {
+  const { step, toNext } = referral;
+  const done = step - (toNext ?? step);
+  const { text, stats } = referralLines(referral);
   const body = (
     <GlassCard glow={compact ? undefined : colors.pink}>
       <View style={styles.row}>
@@ -29,6 +37,11 @@ export function ReferralCard({ referral, onPress, compact }: Props) {
           <AppText variant="caption" color={colors.textSecondary}>
             {text}
           </AppText>
+          {stats ? (
+            <AppText variant="caption" color={colors.textSecondary}>
+              {stats}
+            </AppText>
+          ) : null}
         </View>
       </View>
       <View style={styles.dots} accessibilityLabel={`${done} von ${step}`}>
