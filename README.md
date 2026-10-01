@@ -54,7 +54,7 @@ npm run check      # typecheck + lint, same as CI
 | `services/` | Call state, CallKit/CallKeep, notifications, PushKit token |
 | `config/` | Runtime configuration |
 | `ios/` | Native iOS project (committed; contains the PushKit/CallKit AppDelegate) |
-| `docs/` | Dev setup, release checklist, historical fix notes, [`RUNBOOK.md`](docs/RUNBOOK.md) (alarms, backup and restore, rollback, deploy window) and [`SCALE-PLAN.md`](docs/SCALE-PLAN.md): the 12-month plan for the processes and automation that turn the app into a company |
+| `docs/` | Index in [`docs/README.md`](docs/README.md): dev setup, release checklist, [`RUNBOOK.md`](docs/RUNBOOK.md) (alarms, backup and restore, rollback, deploy window), [`SERVICES.md`](docs/SERVICES.md) (every service and how to hand over access), [`EMERGENCY.md`](docs/EMERGENCY.md) (if the founder is out), [`RESEARCH.md`](docs/RESEARCH.md) (user research), [`PRIVACY-CHANGE.md`](docs/PRIVACY-CHANGE.md) (privacy change process), historical fix notes and [`SCALE-PLAN.md`](docs/SCALE-PLAN.md): the 12-month plan for the processes and automation that turn the app into a company |
 
 ## Calls on iOS
 
