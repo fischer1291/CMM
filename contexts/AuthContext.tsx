@@ -11,6 +11,8 @@ export type UserProfile = {
   avatarUrl: string;
   lastOnline: string;
   momentActiveUntil: string | null;
+  /** Personal code in the invite link (content/links.ts); null on older servers */
+  inviteCode: string | null;
 };
 
 type AuthContextType = {
@@ -57,7 +59,7 @@ async function storeSecure(key: string, value: string | null) {
   if (value) await SecureStore.setItemAsync(key, value, KEYCHAIN_OPTIONS);
 }
 
-const EMPTY_PROFILE: UserProfile = { name: '', avatarUrl: '', lastOnline: '', momentActiveUntil: null };
+const EMPTY_PROFILE: UserProfile = { name: '', avatarUrl: '', lastOnline: '', momentActiveUntil: null, inviteCode: null };
 
 /** True when the backend issues tokens, so a token-less login must be re-verified. */
 async function backendRequiresTokens(): Promise<boolean> {
@@ -95,6 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               avatarUrl: data.user.avatarUrl || '',
               lastOnline: data.user.lastOnline || '',
               momentActiveUntil: data.user.momentActiveUntil || null,
+              inviteCode: data.user.inviteCode || null,
             }
           : EMPTY_PROFILE
       );

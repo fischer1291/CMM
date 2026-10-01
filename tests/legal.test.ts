@@ -16,6 +16,16 @@ test('the privacy policy covers purchases, mail, the contact hashes and the mini
   }
 });
 
+test('the policy names what the invite link brings: the inviter, the device language and the waitlist platform', () => {
+  const contacts = PRIVACY_SECTIONS.find((s) => s.title === 'Kontakte')!.paragraphs.join(' ');
+  expect(contacts).toContain('wer dich eingeladen hat');
+  expect(contacts).toContain('sie sieht nur die Anzahl');
+  const usage = PRIVACY_SECTIONS.find((s) => s.title === 'Nutzungsstatistik, Support und Moderation')!.paragraphs.join(' ');
+  expect(usage).toContain('Sprache deines Geräts');
+  const waitlist = PRIVACY_SECTIONS.find((s) => s.title === 'Warteliste auf wannayap.app')!.paragraphs.join(' ');
+  expect(waitlist).toContain('iPhone oder ein Android-Gerät');
+});
+
 test('the policy date and the terms version are the October 2026 revision', () => {
   expect(PRIVACY_UPDATED).toBe('1. Oktober 2026');
   expect(PRIVACY_SECTIONS.find((s) => s.title === 'Stand')!.paragraphs).toEqual([PRIVACY_UPDATED]);

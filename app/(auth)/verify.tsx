@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import { PRIVACY_UPDATED, TERMS_VERSION } from '../../content/legal';
 import { useAuth } from '../../contexts/AuthContext';
 import { VerifyView } from '../../features/auth/VerifyView';
+import { clearInviteCode, pendingInviteCode } from '../../services/invites';
 import { apiFetch, apiPostJson } from '../../utils/api';
 import { deviceRegion, toE164 } from '../../utils/phone';
 
@@ -62,13 +63,21 @@ export default function VerifyScreen() {
     if (!sentTo || entered.length < 6 || loading) return;
     setLoading(true);
     try {
-      const res = await apiPostJson('/verify/check', { phone: sentTo, code: entered, ...consent }, 10000);
+      // Opened through an invite link (app/einladung.tsx): the backend connects
+      // both people and credits the inviter
+      const inviteCode = await pendingInviteCode();
+      const res = await apiPostJson(
+        '/verify/check',
+        { phone: sentTo, code: entered, ...consent, ...(inviteCode ? { inviteCode } : {}) },
+        10000
+      );
       const data = await res.json();
       if (!data.success) {
         setCode('');
         Alert.alert('Falscher Code', data.error || 'Bitte prüfe den Code aus der SMS.');
         return;
       }
+      if (inviteCode) await clearInviteCode();
 
       const token: string | null = data.token ?? null;
       if (!token) {

@@ -121,7 +121,7 @@ export default function ProfileScreen() {
       onOpenSupport={() => router.push('/support')}
       onRedeemWaitlist={showWaitlist ? redeemWaitlist : null}
       onOpenSchedule={() => router.push('/schedule')}
-      onInvite={() => Share.share({ message: inviteText(userProfile?.name?.split(' ')[0]) })}
+      onInvite={() => Share.share({ message: inviteText(userProfile?.name?.split(' ')[0], userProfile?.inviteCode) })}
       onExportData={exportData}
       onOpenPrivacy={() => router.push('/datenschutz')}
       onOpenImprint={() => router.push('/impressum')}
