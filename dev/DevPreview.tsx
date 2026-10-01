@@ -630,7 +630,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       available={false}
       availableContacts={[]}
       nudges={[]}
-      lonely={{ onInvite: () => {}, referral: <ReferralCard referral={{ step: 3, rewardDays: 30, maxRewards: 6, joined: 1, earned: 0, toNext: 2 }} /> }}
+      lonely={{ onInvite: () => {}, referral: <ReferralCard referral={{ step: 3, rewardDays: 30, maxRewards: 6, joined: 2, activated: 1, earned: 0, toNext: 2 }} /> }}
     />
   ),
   'contacts-referral': () => (
@@ -650,7 +650,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       nudged={() => false}
       onOpenCalls={() => {}}
       missedCalls={0}
-      referral={<ReferralCard referral={{ step: 3, rewardDays: 30, maxRewards: 6, joined: 0, earned: 0, toNext: 3 }} compact />}
+      referral={<ReferralCard referral={{ step: 3, rewardDays: 30, maxRewards: 6, joined: 0, activated: 0, earned: 0, toNext: 3 }} compact />}
     />
   ),
   'status-missed': () => <StatusView {...statusProps} available={false} availableContacts={[]} nudges={[{ from: '+491', name: 'Anna Berg', avatarUrl: PHOTO }]} missedCalls={2} onOpenCalls={() => {}} />,

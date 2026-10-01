@@ -32,11 +32,14 @@ export type Plan = {
 };
 
 export type Referral = {
-  /** Every `step` people who join through your invites give `rewardDays` of Plus */
+  /** Every `step` invited people who had their first talk give `rewardDays` of Plus */
   step: number;
   rewardDays: number;
   maxRewards: number;
+  /** People who came in through your invites */
   joined: number;
+  /** Of those, who had their first talk already (what counts); missing on older servers */
+  activated?: number;
   earned: number;
   /** People still needed for the next reward; null when all are earned */
   toNext: number | null;
