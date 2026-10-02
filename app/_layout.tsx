@@ -27,6 +27,7 @@ import { NotificationRouter } from '../components/NotificationRouter';
 import { fetchPreviewState } from '../dev/previewControl';
 import { setupNotifications } from '../services/notifications';
 import { installErrorReporting } from '../services/diagnostics';
+import { startUpdateWatcher } from '../services/updates';
 import { colors } from '../ui/theme';
 
 installErrorReporting();
@@ -53,6 +54,11 @@ function InnerLayout() {
     fetchPreviewState().then((state) => setShowPreview(!!state?.open));
   }, []);
   const ready = !isLoading && fontsLoaded;
+
+  // OTA updates: look for a new bundle when the app comes back to the
+  // foreground (throttled in services/updates.ts, the launch is checked
+  // natively) and offer a restart, never force it and never during a call
+  useEffect(() => startUpdateWatcher(), []);
 
   // Animated launch screen on top until the app is ready (then it zooms away).
   // The key keeps it the same instance while the content around it changes.

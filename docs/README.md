@@ -13,7 +13,7 @@ CI sie gegen die Modelle prüft.
 | [`SERVICES.md`](SERVICES.md) | Jeder Dienst mit Zweck, Kontoinhaber, Vault-Eintrag, Kosten, Ablauf und wie man Zugang gewährt oder entzieht | | 2026-10-01 |
 | [`EMERGENCY.md`](EMERGENCY.md) | Fällt der Gründer aus: 30 Tage weiterführen oder geordnet einstellen; Checkliste für Vollmacht und Notfallzugang | | 2026-10-01 |
 | [`SCALE-PLAN.md`](SCALE-PLAN.md) | Der 12-Monats-Plan: Phasen, Punkte, Kennzahlen, Unit Economics | | 2026-10-01 |
-| [`RELEASE.md`](RELEASE.md) | Checkliste für TestFlight und App Store, Testmatrix vor jedem Release | | |
+| [`RELEASE.md`](RELEASE.md) | Checkliste für TestFlight und App Store, OTA oder Store-Build (Rollback, Tags, Phased Release), Testmatrix vor jedem Release | | 2026-10-02 |
 | [`APPSTORE.md`](APPSTORE.md) | Texte und Screenshots für App Store Connect zum Kopieren | | |
 | [`DEV_SETUP.md`](DEV_SETUP.md) | Dev- und Prod-Variante der App parallel auf einem Gerät | | |
 | [`PRIVACY-CHANGE.md`](PRIVACY-CHANGE.md) | Datenschutz-Änderungsprozess: was jede neue Datenart im PR mitbringt | | 2026-10-01 |
@@ -23,7 +23,8 @@ CI sie gegen die Modelle prüft.
 | [`history/`](history/) | Historische Fix-Notizen (Anruf-Architektur, Crashes, Migration); nur zum Nachlesen, nicht gepflegt | | n. a. |
 
 Außerhalb dieses Ordners: `../CLAUDE.md` (Konventionen für die Arbeit im
-App-Repo), `../README.md` (Setup), `../marketing/AGENT.md` (Marketing-Agent),
+App-Repo), `../README.md` (Setup), `../CHANGELOG.md` (was Nutzer je Version
+merken; Quelle der GitHub-Releases), `../marketing/AGENT.md` (Marketing-Agent),
 `CMM-backend-new/README.md` (Umgebungsvariablen, Health Check, Backup,
 Alarme, Team), `CMM-backend-new/COMPLIANCE.md` (Verarbeitungsverzeichnis,
 Auftragsverarbeiter), `CMM-backend-new/CLAUDE.md`.

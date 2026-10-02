@@ -5,7 +5,7 @@
  */
 import { API_BASE_URL } from '../config/env';
 import { fetchWithTimeout } from '../utils/apiUtils';
-import { appInfo } from './appInfo';
+import { appHeaders, appInfo } from './appInfo';
 
 // Per app start: the same error at most this often, all errors at most 20
 const MAX_SAME = 3;
@@ -24,12 +24,15 @@ export function reportError(error: unknown, fatal = false): void {
     `${API_BASE_URL}/diagnostics/errors`,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      // Same version headers as every other request (X-App-Version/Build/Update)
+      headers: { ...appHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message,
         stack: (err.stack ?? '').slice(0, 4000),
         fatal,
         version: `${appInfo.version} (${appInfo.build})`,
+        // Which JavaScript ran: the OTA update id or "embedded" (docs/RELEASE.md)
+        update: appInfo.update,
         platform: appInfo.platform,
       }),
     },

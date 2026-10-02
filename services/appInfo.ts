@@ -1,21 +1,34 @@
 /**
  * This build's version, sent with every request (support and the admin's
  * version overview) and compared with the minimum version from /app-config.
+ * Since OTA updates (docs/RELEASE.md) one build can run different JavaScript,
+ * so the update id travels along: X-App-Update is the EAS update id or
+ * "embedded" for the bundle that shipped with the build.
  */
 import * as Application from 'expo-application';
+import * as Updates from 'expo-updates';
 import { Platform } from 'react-native';
+import { describeUpdate } from './updates';
 
 export const APP_VERSION = Application.nativeApplicationVersion ?? '0.0.0';
 export const APP_BUILD = Application.nativeBuildVersion ?? '0';
+export const APP_UPDATE = describeUpdate(Updates);
 
 export const appHeaders: Record<string, string> = {
   'X-App-Version': APP_VERSION,
   'X-App-Build': APP_BUILD,
+  'X-App-Update': APP_UPDATE,
   'X-Platform': Platform.OS,
   'X-OS-Version': String(Platform.Version),
 };
 
-export const appInfo = { version: APP_VERSION, build: APP_BUILD, platform: Platform.OS, os: String(Platform.Version) };
+export const appInfo = {
+  version: APP_VERSION,
+  build: APP_BUILD,
+  update: APP_UPDATE,
+  platform: Platform.OS,
+  os: String(Platform.Version),
+};
 
 /** -1, 0 or 1 for "1.2.3"-style versions. */
 export function compareVersions(a: string, b: string): number {

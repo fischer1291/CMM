@@ -216,9 +216,11 @@ Restore-Test ≤ 90.
 - **App:** Einen Store-Build nimmst du nicht zurück. Was geht: in der
   Konsole unter "App" ein Hinweis-Banner für alle setzen und, falls ein
   Build gefährlich ist, den Mindest-Build hochsetzen; die App zeigt dann den Update-Hinweis
-  (`services/appInfo.ts` isOutdated). JS-Fehler per OTA ab Plan 2.16
-  (`eas update:republish`); bis dahin Hotfix-Build über den Weg in
-  [`RELEASE.md`](RELEASE.md).
+  (`services/appInfo.ts` isOutdated). JS-Fehler: OTA-Rollback oder
+  OTA-Hotfix, Store-Build nur bei nativen Änderungen. Die Regeln dafür
+  (OTA oder Store-Build, `eas update:republish`, Phased Release, minBuild)
+  stehen genau einmal in [`RELEASE.md`](RELEASE.md), Abschnitt "OTA oder
+  Store-Build".
 
 ## Deploy-Fenster
 

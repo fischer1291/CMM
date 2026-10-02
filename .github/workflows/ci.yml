@@ -17,6 +17,15 @@ jobs:
       - name: Versionsnummern
         run: node scripts/version.js
       - run: npm ci
+      # Native changes without a higher runtimeVersion would break OTA updates (docs/RELEASE.md)
+      - name: Native Fingerprint zu runtimeVersion
+        run: node scripts/fingerprint.js
+      # Every app screen needs its .web.tsx stub, or it renders on the website
+      - name: Web-Routen begrenzt
+        run: node scripts/check-web-stubs.js
+      # An OTA bundle gets its EXPO_PUBLIC_* from eas.json (ota-update.yml); both profiles must be complete
+      - name: Build-Umgebung in eas.json vollständig
+        run: node scripts/eas-env.js --check
       - name: Typecheck
         run: npm run typecheck
       - name: Lint

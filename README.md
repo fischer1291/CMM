@@ -31,6 +31,7 @@ Set via environment variables when starting Metro (see `config/env.ts`):
 |---|---|
 | `EXPO_PUBLIC_API_URL` | `https://api.wannayap.app` |
 | `EXPO_PUBLIC_AGORA_APP_ID` | production Agora App ID |
+| `EXPO_PUBLIC_REVENUECAT_IOS_KEY` | none: purchases stay off. Store builds and OTA updates take it from `eas.json` (`scripts/eas-env.js`) |
 
 ### Local machine notes
 

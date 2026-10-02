@@ -2,7 +2,10 @@
 # EAS builds the production app from main on its Macs, counts the build number
 # and uploads it to App Store Connect. The run waits for both and is green only
 # when the build really is at Apple; its summary shows the build number and
-# links. One-time setup (already done): docs/RELEASE.md.
+# links. After a finished build the run tags the commit ios/v<version>-b<build>
+# and publishes a GitHub release with this version's CHANGELOG.md section, so
+# every Store build is findable by tag (change-failure rate, rollback target).
+# One-time setup (already done): docs/RELEASE.md.
 name: iOS-Build
 run-name: iOS-Build ${{ inputs.submit && 'nach TestFlight' || 'ohne Upload' }}
 
@@ -30,6 +33,9 @@ jobs:
     runs-on: ubuntu-latest
     # Build (about 15–25 min on EAS, longer when EAS is busy) plus upload
     timeout-minutes: 120
+    outputs:
+      version: ${{ steps.result.outputs.version }}
+      build: ${{ steps.result.outputs.build }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup vorhanden?
@@ -71,3 +77,42 @@ jobs:
           set -e
           node scripts/ios-build-summary.js "$RUNNER_TEMP/build.json" | tee -a "$GITHUB_STEP_SUMMARY"
           exit $status
+      # Also when only the upload failed: a finished build exists at EAS, can be
+      # uploaded by hand later and still gets its tag (empty when none finished)
+      - name: Version und Build-Nummer
+        id: result
+        if: always()
+        run: node scripts/ios-build-summary.js "$RUNNER_TEMP/build.json" --outputs >> "$GITHUB_OUTPUT"
+
+  # Only this job may write: the tag and the release (docs/RELEASE.md, "Tags")
+  tag:
+    needs: build
+    if: always() && needs.build.outputs.build != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Same Node as the build job; the changelog script needs no npm ci
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tag ios/v<version>-b<build> und GitHub-Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+          BUILD: ${{ needs.build.outputs.build }}
+        run: |
+          tag="ios/v${VERSION}-b${BUILD}"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "Tag $tag gibt es schon"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" -m "Wanna yap? $VERSION (Build $BUILD)"
+          git push origin "$tag"
+          node scripts/changelog-section.js "$VERSION" > "$RUNNER_TEMP/notes.md"
+          gh release create "$tag" --title "Wanna yap? $VERSION (Build $BUILD)" --notes-file "$RUNNER_TEMP/notes.md"
+          echo "Tag und Release: $tag" >> "$GITHUB_STEP_SUMMARY"
