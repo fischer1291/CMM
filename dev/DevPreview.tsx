@@ -250,9 +250,11 @@ const SAMPLE_PLAN: Plan = {
   interest: null,
 };
 const STORE_OFFERS: Offer[] = [
-  { id: '$rc_annual', title: 'Jährlich', price: '24,99 €', period: 'year', pkg: null },
-  { id: '$rc_monthly', title: 'Monatlich', price: '2,99 €', period: 'month', pkg: null },
+  { id: '$rc_annual', title: 'Jährlich', price: '24,99 €', period: 'year', intro: null, pkg: null },
+  { id: '$rc_monthly', title: 'Monatlich', price: '2,99 €', period: 'month', intro: null, pkg: null },
 ];
+// With the App Store intro offer (plan 2.6a): the account is eligible for 7 days free
+const TRIAL_OFFERS: Offer[] = STORE_OFFERS.map((o) => ({ ...o, intro: { eligible: true, periodText: '7 Tage', priceText: 'gratis', free: true } }));
 const plusProps = {
   plan: SAMPLE_PLAN,
   offers: [],
@@ -266,6 +268,8 @@ const plusProps = {
   onToggleInterest: () => {},
   onSendInterest: () => {},
   interestSent: false,
+  // Flag plus_interest on, so the gallery keeps showing the interest mode
+  interestMode: true,
   onBack: () => {},
   onOpenLegal: () => {},
 };
@@ -603,6 +607,16 @@ const SCREENS: Record<string, () => React.ReactElement> = {
         </View>
       ),
     ])
+  ),
+  'plus-trial-bottom': () => (
+    <View style={{ height: 2600, transform: [{ translateY: -1150 }] }}>
+      <PlusView {...plusProps} offers={TRIAL_OFFERS} selected="$rc_annual" interest={new Set()} />
+    </View>
+  ),
+  'plus-soon-bottom': () => (
+    <View style={{ height: 2600, transform: [{ translateY: -1150 }] }}>
+      <PlusView {...plusProps} interestMode={false} interest={new Set()} />
+    </View>
   ),
   'plus-store': () => (
     <PlusView

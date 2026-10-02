@@ -29,6 +29,21 @@ wann als OTA und was als Store-Build rausgeht: `docs/RELEASE.md`.
   nach eurem ersten Gespräch beide 7 Tage Plus bekommt.
 - Datenschutzerklärung ergänzt: welche Berechtigungen dein Gerät erlaubt
   (Mitteilungen, Kontakte) und welche Erinnerungen wir dir geschickt haben.
+- Plus: Bietet der App Store eine Probezeit an und kannst du sie nutzen,
+  steht sie direkt am Angebot („7 Tage gratis, dann …“, Preis aus dem App
+  Store). Kurz vor ihrem Ende sagt dir die App, dass du nichts tun musst.
+- Hinweise zu Grenzen (Kreise, Rituale, volle Kreise, Rundenlänge) haben
+  jetzt einen Knopf „Mehr zu Plus“; in einer Runde läuft das Gespräch dabei
+  weiter. Sind die Moments für heute aufgebraucht, sagt dir die App das
+  freundlich, statt einen Fehler zu zeigen.
+
+### Geändert
+
+- Ohne App-Store-Angebot zeigt die Plus-Seite nur „Plus kommt bald.“; die
+  Umfrage „Interesse zeigen“ gibt es nur noch, wenn wir sie einschalten.
+- Hast du bei einer Grenze schon alles, was Plus erlaubt, sagt der Hinweis
+  das einfach, ohne Plus zu bewerben. Ohne Verbindung zeigt die Plus-Seite
+  einen Hinweis zum erneuten Versuchen statt eines endlosen Ladekreises.
 
 ## [1.0.0] – noch nicht freigegeben
 

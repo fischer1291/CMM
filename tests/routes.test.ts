@@ -26,6 +26,7 @@ test('lifecycle pushes: every data.url of the backend contract opens', () => {
     '/plus?from=plus_winback_3',
     '/plus?from=plus_winback_30',
     '/plus?from=cancel', // cancel_survey
+    '/plus?from=trial_ending', // trial_ending (plan 2.6a)
   ];
   for (const url of urls) expect(safeRoute(url)).toBe(url);
   expect(safeRoute('/plus?from=x&y=1')).toBeNull();

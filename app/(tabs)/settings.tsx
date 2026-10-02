@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ProfileView } from '../../features/profile/ProfileView';
 import { inviteText } from '../../content/links';
 import { deleteAccount, exportAccountData } from '../../services/account';
+import { paywallHref } from '../../services/paywall';
 import { pickAvatarImage, uploadAvatar } from '../../services/avatar';
 import { redeemWaitlistCode, waitlistRedeemed } from '../../services/waitlistApi';
 
@@ -115,7 +116,7 @@ export default function ProfileScreen() {
       onOpenNotifications={() => router.push('/notifications')}
       onOpenStats={() => router.push('/stats')}
       onOpenAlbum={() => router.push('/album')}
-      onOpenPlus={() => router.push('/plus')}
+      onOpenPlus={() => router.push(paywallHref('settings'))}
       onOpenAppIcon={() => router.push('/appicon')}
       isPlus={isPlus}
       onOpenSupport={() => router.push('/support')}

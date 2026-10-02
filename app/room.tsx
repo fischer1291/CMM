@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, PermissionsAndroid, Platform, StyleSheet } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { usePlan } from '../contexts/PlanContext';
@@ -7,9 +7,11 @@ import { applyVideoQuality } from '../services/videoQuality';
 import { socket } from '../services/socket';
 import { useContacts } from '../contexts/ContactsContext';
 import { RoomTile, RoomView } from '../features/circles/RoomView';
+import { roomExit } from '../features/circles/roomExit';
 import { AGORA_APP_ID } from '../config/env';
 import { ChannelProfileType, ClientRoleType, createAgoraRtcEngine, IRtcEngine, RtcSurfaceView } from '../lib/agora';
 import { fetchCircle, leaveRoom } from '../services/circlesApi';
+import { paywallHref } from '../services/paywall';
 import { apiPostJson } from '../utils/api';
 
 type Remote = { uid: number; account: string | null; video: boolean };
@@ -43,6 +45,15 @@ export default function RoomScreen() {
   const { plan } = usePlan();
   const [endsAt, setEndsAt] = useState<number | null>(null);
   const warnedRef = useRef(false);
+  // The paywall may sit on top of the round: close the round only while it is in front
+  const [exit] = useState(() => roomExit(() => router.back()));
+
+  useFocusEffect(
+    useCallback(() => {
+      exit.focus();
+      return () => exit.blur();
+    }, [exit])
+  );
 
   // Names of circle members who aren't in the address book
   useEffect(() => {
@@ -66,16 +77,35 @@ export default function RoomScreen() {
     if (!endsAt || warnedRef.current) return;
     if (endsAt - Date.now() <= 5 * 60 * 1000) {
       warnedRef.current = true;
-      Alert.alert('Noch 5 Minuten', 'Runden in diesem Kreis dauern bis zu 60 Minuten. Mit Wanna yap+ gibt es kein Zeitlimit.');
+      // "Mehr zu Plus" opens the paywall above the round; the round goes on underneath
+      Alert.alert('Noch 5 Minuten', 'Runden in diesem Kreis dauern bis zu 60 Minuten. Mit Wanna yap+ gibt es kein Zeitlimit.', [
+        { text: 'OK', style: 'cancel' },
+        { text: 'Mehr zu Plus', onPress: () => router.push(paywallHref('room')) },
+      ]);
     }
-  }, [endsAt, seconds]);
+  }, [endsAt, seconds, router]);
 
   // The server ended the round (time limit)
   useEffect(() => {
     const onUpdated = (data: { roomId?: string; ended?: boolean; reason?: string }) => {
       if (data.roomId !== roomId || !data.ended) return;
+      if (!exit.isFocused()) {
+        // The paywall is on top: no note above it; the round closes once it is in front again
+        leave();
+        return;
+      }
       if (data.reason === 'time_limit') {
-        Alert.alert('Die Runde ist zu Ende', 'Die Zeit für diese Runde ist um. Startet einfach eine neue, oder spart euch das Limit mit Wanna yap+.', [{ text: 'OK', onPress: () => leave() }]);
+        Alert.alert('Die Runde ist zu Ende', 'Die Zeit für diese Runde ist um. Startet einfach eine neue, oder spart euch das Limit mit Wanna yap+.', [
+          { text: 'OK', onPress: () => leave() },
+          {
+            text: 'Mehr zu Plus',
+            onPress: () => {
+              // The round is over anyway: leave it, the paywall takes its place
+              leave(false);
+              router.replace(paywallHref('room'));
+            },
+          },
+        ]);
       } else {
         leave();
       }
@@ -155,7 +185,7 @@ export default function RoomScreen() {
       }
       if (roomId) leaveRoom(roomId).catch(() => {});
     }
-    if (navigate) router.back();
+    if (navigate) exit.close();
   };
 
   const personFor = (acc: string | null) => {

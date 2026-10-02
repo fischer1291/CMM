@@ -4,6 +4,7 @@ import { Share } from 'react-native';
 import { useContacts } from '../contexts/ContactsContext';
 import { YearReviewView } from '../features/plus/YearReviewView';
 import { fetchYearReview, YearReview } from '../services/planApi';
+import { paywallHref } from '../services/paywall';
 import { WEB_URL } from '../content/links';
 
 export default function YearScreen() {
@@ -31,7 +32,7 @@ export default function YearScreen() {
       error={error}
       person={person}
       onClose={() => router.back()}
-      onPlus={() => router.push('/plus')}
+      onPlus={() => router.push(paywallHref('year'))}
       onRetry={load}
       onShare={() => {
         if (!review) return;

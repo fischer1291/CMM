@@ -2,6 +2,8 @@
  * Wanna yap+ plan (backend lib/plan.js, routes/plus.js).
  */
 import { apiFetch, apiPostJson } from '../utils/api';
+import type { FunnelStep, PaywallSource } from './paywall';
+import { session } from './session';
 
 export type Limits = {
   circles: number;
@@ -84,6 +86,19 @@ export async function syncPlus(): Promise<Plan> {
 
 export async function sendInterest(features: string[]): Promise<void> {
   await ok(await apiPostJson('/me/plus-interest', { features }, 10000));
+}
+
+/**
+ * One step on the paywall for the backend's day counters (plan 2.6a). Only
+ * signed in, and silent: a lost count must never bother anyone.
+ */
+export async function reportFunnel(step: FunnelStep, from: PaywallSource): Promise<void> {
+  if (!session.getToken()) return;
+  try {
+    await apiPostJson('/me/plus/funnel', { step, from }, 5000);
+  } catch {
+    // offline or an older server: the count is lost, nothing else
+  }
 }
 
 type Person = { phone: string; name: string | null; avatarUrl: string | null } | null;

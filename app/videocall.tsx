@@ -30,7 +30,8 @@ import CallNotificationService from '../services/CallNotificationService';
 import CallStateManager from '../services/CallStateManager';
 import { apiFetch, apiPostJson } from '../utils/api';
 import { AGORA_APP_ID } from '../config/env';
-import { uploadMomentImage } from '../services/moments';
+import { planLimitOf, uploadMomentImage } from '../services/moments';
+import { explainLimit } from '../features/plus/upsell';
 import { noteTalk } from '../services/reviewPrompt';
 
 // Client-side cap, below the backend's 1 MB data URI limit
@@ -704,7 +705,15 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing, startWit
   const handlePostCallMoment = async (draft: MomentDraft) => {
     if (!capturedScreenshot) return;
     try {
-      const screenshot = (await uploadMomentImage(capturedScreenshot)) ?? momentFallbackRef.current;
+      const upload = await uploadMomentImage(capturedScreenshot);
+      // Daily limit (momentsPerDay): the inline fallback would be refused too
+      if (upload.limit) {
+        explainLimit(upload.limit, router, true);
+        setShowCallMomentModal(false);
+        setCapturedScreenshot(null);
+        return;
+      }
+      const screenshot = upload.url ?? momentFallbackRef.current;
       if (!screenshot) throw new Error('No picture to post');
       const response = await apiPostJson(
         '/moment/callmoment',
@@ -717,6 +726,10 @@ function VideoCallScreen({ channel, userPhone, targetPhone, isOutgoing, startWit
           'Moment gesendet ✨',
           `${getContactName(targetPhone).split(' ')[0]} muss noch zustimmen. Dann sehen ihn eure Kontakte 24 Stunden lang.`
         );
+        setShowCallMomentModal(false);
+        setCapturedScreenshot(null);
+      } else if (explainLimit(planLimitOf(response.status, result), router, true)) {
+        // The daily limit, reached between upload and post: explained, nothing to retry
         setShowCallMomentModal(false);
         setCapturedScreenshot(null);
       } else {

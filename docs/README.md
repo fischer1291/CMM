@@ -11,6 +11,7 @@ CI sie gegen die Modelle prüft.
 |---|---|---|---|
 | [`RUNBOOK.md`](RUNBOOK.md) | Alarmliste mit Gegenmaßnahmen (seit Phase 2 auch `gift_days`, `pepper_changed`), Quittung und Dead-Man-Regel, Kill-Switch, Phased Release, Twilio gesperrt, Datenpanne, Backup und Restore, Rollback, Deploy-Fenster, genau eine Instanz | | 2026-10-02 |
 | [`FINANCE.md`](FINANCE.md) | Unit Economics: Datenquellen (`MetricsDaily.costs`, `AppConfig.prices`/`fixedCosts`, `GET /admin/economics`, CSV-Exporte), Definitionen wie das Backend rechnet, Beispielrechnung und Cash-Plan (Annahmen), offene Entscheidung Video- vs. Audio-Default, Monatsroutine am 5., Steuerberater-Antworten | | 2026-10-02 |
+| [`PLUS.md`](PLUS.md) | Wanna yap+: Produkt-IDs, Entitlement, Offerings `default`/`winback`, wo die Preise stehen, Webhooks, Einrichtung in App Store Connect (Trial 7 Tage, Grace Period 16 Tage, Family Sharing, Win-back), Paywall-Funnel und Quellen (`?from=`), Flag `plus_interest`, Checkliste "Preis ändern" | | 2026-10-02 |
 | [`SERVICES.md`](SERVICES.md) | Jeder Dienst mit Zweck, Kontoinhaber, Vault-Eintrag, Kosten, Ablauf und wie man Zugang gewährt oder entzieht (seit 2.1a auch Sentry) | | 2026-10-02 |
 | [`EMERGENCY.md`](EMERGENCY.md) | Fällt der Gründer aus: 30 Tage weiterführen oder geordnet einstellen; Checkliste für Vollmacht und Notfallzugang | | 2026-10-01 |
 | [`SCALE-PLAN.md`](SCALE-PLAN.md) | Der 12-Monats-Plan: Phasen, Punkte, Kennzahlen, Unit Economics | | 2026-10-01 |
