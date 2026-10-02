@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, Linking } from 'react-native';
 import { usePlan } from '../contexts/PlanContext';
@@ -8,8 +8,12 @@ import { buy, loadOffers, Offer, purchasesAvailable, restore } from '../services
 import { TERMS_URL } from '../content/legal';
 import { WEB_URL } from '../content/links';
 
+const BILLING_URL = 'https://apps.apple.com/account/billing';
+
 export default function PlusScreen() {
   const router = useRouter();
+  // Which push or screen led here (/plus?from=…, plan 2.3)
+  const { from } = useLocalSearchParams<{ from?: string }>();
   const { plan, refresh } = usePlan();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -96,6 +100,9 @@ export default function PlusScreen() {
         }
       }}
       interestSent={interestSent}
+      from={from}
+      onFixBilling={() => Linking.openURL(BILLING_URL)}
+      onAnswerSurvey={() => router.push('/support?topic=cancel')}
       onBack={() => router.back()}
       onOpenLegal={(which) => Linking.openURL(which === 'terms' ? TERMS_URL : `${WEB_URL}/datenschutz`)}
     />

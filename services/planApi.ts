@@ -43,6 +43,9 @@ export type Referral = {
   earned: number;
   /** People still needed for the next reward; null when all are earned */
   toNext: number | null;
+  /** Experiment (flag referral_two_sided, plan 2.12): after the first talk both get `pairDays` of Plus; missing on older servers */
+  twoSided?: boolean;
+  pairDays?: number;
 };
 
 /** Worth showing the invite reward: not all earned, and no store subscription. */

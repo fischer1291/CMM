@@ -44,6 +44,16 @@ function Field({ value, onChange, placeholder }: { value: string; onChange: (t: 
   );
 }
 
+/**
+ * Where the form starts when another screen sends someone here
+ * (/support?topic=…). cancel: the answer to the cancel_survey push
+ * (/plus?from=cancel, plan 2.3), lands as a normal ticket under "Sonstiges".
+ */
+export function supportPrefill(topic: string | undefined): { category: SupportCategory; placeholder: string | null } {
+  if (topic === 'cancel') return { category: 'other', placeholder: 'Was hat bei Plus nicht gepasst? Ein Satz reicht.' };
+  return { category: 'bug', placeholder: null };
+}
+
 type Props = {
   tickets: SupportTicket[] | null;
   sending: boolean;
@@ -51,11 +61,14 @@ type Props = {
   onSend: (category: SupportCategory, message: string) => Promise<boolean>;
   onOpen: (ticket: SupportTicket) => void;
   version: string;
+  /** /support?topic=… (supportPrefill) */
+  topic?: string;
 };
 
 /** Write to us, and see the answers. */
-export function SupportView({ tickets, sending, onBack, onSend, onOpen, version }: Props) {
-  const [category, setCategory] = useState<SupportCategory>('bug');
+export function SupportView({ tickets, sending, onBack, onSend, onOpen, version, topic }: Props) {
+  const prefill = supportPrefill(topic);
+  const [category, setCategory] = useState<SupportCategory>(prefill.category);
   const [message, setMessage] = useState('');
 
   return (
@@ -82,7 +95,13 @@ export function SupportView({ tickets, sending, onBack, onSend, onOpen, version 
         <Field
           value={message}
           onChange={setMessage}
-          placeholder={category === 'bug' ? 'Was ist passiert? Was hast du gerade gemacht?' : 'Erzähl uns davon …'}
+          placeholder={
+            prefill.placeholder && category === prefill.category
+              ? prefill.placeholder
+              : category === 'bug'
+                ? 'Was ist passiert? Was hast du gerade gemacht?'
+                : 'Erzähl uns davon …'
+          }
         />
         <Button
           title="Senden"

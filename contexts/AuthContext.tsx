@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import PushTokenService from '../services/PushTokenService';
+import { forgetDeviceState } from '../services/deviceState';
 import { setUser as setSentryUser } from '../services/sentry';
 import { session } from '../services/session';
 import type { Research } from '../services/researchApi';
@@ -153,6 +154,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // or the account no longer exists.
     if (session.getToken() && !options?.local) await PushTokenService.unregister();
     session.setToken(null);
+    // The next login reports the device permissions at once (services/deviceState)
+    await forgetDeviceState();
     await storeSecure('authToken', null);
     await storeSecure('userPhone', null);
     setUserPhoneState(null);

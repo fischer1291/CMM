@@ -5,6 +5,8 @@ export type NotificationPrefs = {
   nudges: boolean;
   moments: boolean;
   dailyMoment: boolean;
+  /** "Erinnerungen und Tipps", the lifecycle pushes (backend lib/lifecycle.js); missing on older servers, which means on */
+  lifecycle?: boolean;
   quietHours: { enabled: boolean; start: number; end: number };
 };
 

@@ -28,7 +28,47 @@ type Props = {
   onInvite?: () => void;
   onBack: () => void;
   onOpenLegal: (which: 'terms' | 'privacy') => void;
+  /** Which push led here (/plus?from=…): billing_issue and cancel bring their own note */
+  from?: string;
+  /** billing_issue: Apple's payment method page */
+  onFixBilling?: () => void;
+  /** cancel (cancel_survey push): write us a line through Hilfe & Feedback */
+  onAnswerSurvey?: () => void;
 };
+
+export type PlusNotice = {
+  kind: 'billing' | 'survey';
+  title: string;
+  text: string;
+  button: string;
+  icon: 'card-outline' | 'chatbubble-ellipses-outline';
+};
+
+/**
+ * The note on top of /plus for pushes that ask for something (plan 2.3):
+ * billing_issue (check the payment method at Apple) and cancel_survey
+ * (/plus?from=cancel, the push asks why; answered as a support message).
+ * Everything else, win-back included, shows the normal page.
+ */
+export function plusNotice(from: string | undefined): PlusNotice | null {
+  if (from === 'billing_issue')
+    return {
+      kind: 'billing',
+      title: 'Zahlung bei Apple prüfen',
+      text: 'Apple konnte dein Plus gerade nicht abbuchen. Schau kurz nach deiner Zahlungsmethode, dann läuft alles einfach weiter.',
+      button: 'Zahlungsmethode ansehen',
+      icon: 'card-outline',
+    };
+  if (from === 'cancel')
+    return {
+      kind: 'survey',
+      title: 'Magst du uns sagen, warum?',
+      text: 'Du hast dein Plus gekündigt. Wenn du magst, schreib uns kurz, was nicht gepasst hat. Ein Satz reicht, ganz freiwillig.',
+      button: 'Kurz schreiben',
+      icon: 'chatbubble-ellipses-outline',
+    };
+  return null;
+}
 
 const unlimited = (v: number | null, unit: string) => (v == null ? 'unbegrenzt' : `${v} ${unit}`);
 
@@ -74,7 +114,9 @@ function Compare({ free, plus }: { free: Limits; plus: Limits }) {
 
 /** Wanna yap+: what it adds, and either the store or "Interesse zeigen". */
 export function PlusView(props: Props) {
-  const { plan, offers, selected, onSelect, busy, onBuy, onRestore, onManage, interest, onToggleInterest, onSendInterest, interestSent, onBack, onOpenLegal, onInvite } = props;
+  const { plan, offers, selected, onSelect, busy, onBuy, onRestore, onManage, interest, onToggleInterest, onSendInterest, interestSent, onBack, onOpenLegal, onInvite, from, onFixBilling, onAnswerSurvey } = props;
+  const notice = plusNotice(from);
+  const onNotice = notice?.kind === 'billing' ? onFixBilling : notice?.kind === 'survey' ? onAnswerSurvey : undefined;
   const isPlus = plan?.plan === 'plus';
   const storeLive = offers.length > 0;
   const yearly = offers.find((o) => o.period === 'year');
@@ -101,6 +143,16 @@ export function PlusView(props: Props) {
           </View>
         ) : null}
       </View>
+
+      {notice && onNotice ? (
+        <GlassCard glow={notice.kind === 'billing' ? colors.warning : colors.violet} style={{ marginTop: spacing.lg }}>
+          <AppText variant="bodyStrong">{notice.title}</AppText>
+          <AppText variant="caption" color={colors.textSecondary} style={{ marginTop: spacing.xs }}>
+            {notice.text}
+          </AppText>
+          <Button title={notice.button} icon={notice.icon} variant="secondary" onPress={onNotice} style={{ marginTop: spacing.md }} />
+        </GlassCard>
+      ) : null}
 
       <SectionHeader title="Das bekommst du" />
       <View style={{ gap: spacing.sm }}>

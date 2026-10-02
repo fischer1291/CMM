@@ -19,6 +19,16 @@ wann als OTA und was als Store-Build rausgeht: `docs/RELEASE.md`.
   oder Inhalte gehen an Sentry (EU). Was genau drinsteht, erklärt der neue
   Abschnitt „Absturzberichte“ in der Datenschutzerklärung (Stand 2. Oktober
   2026).
+- Neuer Schalter „Erinnerungen und Tipps“ unter Mitteilungen: höchstens zwei
+  Hinweise pro Woche, zum Beispiel wenn dein Plus bald endet. Jederzeit
+  ausschaltbar.
+- Plus: Klappt eine Zahlung nicht, zeigt dir die App einen ruhigen Hinweis mit
+  direktem Weg zu Apple. Nach einer Kündigung kannst du uns freiwillig sagen,
+  warum.
+- Läuft gerade die Aktion für beide, sagt dir die Einladungskarte, dass ihr
+  nach eurem ersten Gespräch beide 7 Tage Plus bekommt.
+- Datenschutzerklärung ergänzt: welche Berechtigungen dein Gerät erlaubt
+  (Mitteilungen, Kontakte) und welche Erinnerungen wir dir geschickt haben.
 
 ## [1.0.0] – noch nicht freigegeben
 

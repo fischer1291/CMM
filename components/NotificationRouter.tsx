@@ -1,16 +1,18 @@
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
+import { Linking } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
 import { useNewCall } from '../contexts/NewCallContext';
 import { startSession } from '../services/gamificationApi';
 import { joinDaily } from '../services/dailyApi';
-import { safeRoute } from '../services/notifications';
+import { safeExternalUrl, safeRoute } from '../services/notifications';
 
 /**
  * Opens the right screen for a tapped push, also when the tap launched the
  * app (cold start), and handles the action buttons. Incoming calls are
- * handled by CallNotificationService.
+ * handled by CallNotificationService. Only allowed app routes are opened
+ * (safeRoute), outside the app only Apple's pages (safeExternalUrl).
  */
 export function NotificationRouter() {
   const router = useRouter();
@@ -47,7 +49,13 @@ export function NotificationRouter() {
       return;
     }
     const route = safeRoute(data.url);
-    if (route) router.push(route as any);
+    if (route) {
+      router.push(route as any);
+      return;
+    }
+    // Apple's account pages (e.g. payment method); every other URL is ignored
+    const external = safeExternalUrl(data.url);
+    if (external) Linking.openURL(external).catch(() => {});
   }, [response, userPhone, router, startVideoCall]);
 
   return null;

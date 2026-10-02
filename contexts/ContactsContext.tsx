@@ -2,11 +2,15 @@
  * Address book contacts matched against registered users, shared by all
  * screens. Loads once after login (without a permission prompt) and keeps
  * availability live through the backend's "statusUpdate" socket events.
+ * Also reports this device's permissions to the backend (services/deviceState)
+ * after login and on every return to the foreground.
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { contactJoinedEvents } from '../services/appEvents';
 import { ContactsPermissionError, matchContacts } from '../services/contactsService';
+import { reportDeviceState } from '../services/deviceState';
 import { fetchBlocked } from '../services/socialApi';
 import { socket } from '../services/socket';
 import { useAuth } from './AuthContext';
@@ -101,10 +105,24 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
       } finally {
         loadingRef.current = false;
         setLoading(false);
+        // The system dialog may just have changed the contacts permission
+        if (askPermission) reportDeviceState(userPhone);
       }
     },
     [userPhone]
   );
+
+  // Permissions for the backend's lifecycle pushes: after login and on every
+  // return to the foreground (the service sends at most every two hours
+  // unless a value changed)
+  useEffect(() => {
+    if (!userPhone) return;
+    reportDeviceState(userPhone);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') reportDeviceState(userPhone);
+    });
+    return () => sub.remove();
+  }, [userPhone]);
 
   // Load after login; clear on logout
   useEffect(() => {

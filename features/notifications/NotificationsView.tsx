@@ -29,6 +29,20 @@ const TYPE_TEXT: Record<string, (name: string) => string> = {
   circle_invite: (name) => `${name} hat dich in einen Kreis eingeladen`,
   room_open: (name) => `${name} hat eine Runde gestartet`,
   circle_ritual: () => 'Euer Kreis-Ritual',
+  // Lifecycle pushes, "Erinnerungen und Tipps" (backend lib/lifecycle.js)
+  invite_reminder: () => 'Erinnerung: Freunde einladen',
+  first_call_hint: (name) => `Tipp: ${name} anrufen`,
+  yap_moment_invite: () => 'Einladung zum Yap Moment',
+  friends_were_available: () => 'Deine Leute waren erreichbar',
+  come_back: () => 'Deine Leute sind noch da',
+  come_back_30: () => 'Deine Leute sind noch da',
+  week_open: () => 'Deine Wochen-Serie',
+  plus_expiring: () => 'Dein Plus endet bald',
+  billing_issue: () => 'Zahlung bei Apple prüfen',
+  plus_winback_3: () => 'Plus wieder holen',
+  plus_winback_30: () => 'Plus wieder holen',
+  cancel_survey: () => 'Kurze Frage zu Plus',
+  referral_pair_reward: () => 'Plus für euch beide',
 };
 
 const RESULT_TEXT: Record<string, { text: string; color: string }> = {
@@ -40,6 +54,9 @@ const RESULT_TEXT: Record<string, { text: string; color: string }> = {
   opted_out: { text: 'Von dir ausgeschaltet', color: colors.textMuted },
   daily_cap: { text: 'Tageslimit erreicht', color: colors.warning },
   no_token: { text: 'Mitteilungen nicht erlaubt', color: colors.warning },
+  lifecycle_cap: { text: 'Schon zwei Tipps diese Woche', color: colors.textMuted },
+  lifecycle_spacing: { text: 'Kurz davor schon ein Tipp', color: colors.textMuted },
+  contact_available_first: { text: 'Erreichbar-Meldung hatte Vorrang', color: colors.textMuted },
 };
 
 const APP_TEXT: Record<string, string> = {
@@ -134,6 +151,12 @@ export function NotificationsView({ permission, prefs, onBack, onAllow, onOpenSe
                 description="Wenn jemand einen Moment aus eurem Gespräch teilt, und abends, wenn Moments auf dich warten"
                 value={prefs.moments}
                 onChange={(moments) => onChange({ moments })}
+              />
+              <Toggle
+                label="Erinnerungen und Tipps"
+                description="Zum Beispiel, wenn ein Kontakt lange nicht erreichbar war oder dein Plus bald endet. Höchstens zweimal pro Woche."
+                value={prefs.lifecycle !== false}
+                onChange={(lifecycle) => onChange({ lifecycle })}
               />
             </View>
           </GlassCard>

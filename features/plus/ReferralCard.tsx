@@ -7,16 +7,20 @@ import { AppText, colors, GlassCard, spacing } from '../../ui';
 type Props = { referral: Referral; onPress?: () => void; compact?: boolean };
 
 /**
- * The card's two lines: what the reward is or how far it is, and who is in
- * already. Warm, no pressure: a friend who has not talked yet is just "dabei".
+ * The card's lines: what the reward is or how far it is, who is in already,
+ * and, while the two-sided experiment runs (plan 2.12), that both of a pair
+ * get Plus after their first talk. Warm, no pressure: a friend who has not
+ * talked yet is just "dabei".
  */
-export function referralLines(referral: Referral): { text: string; stats: string | null } {
+export function referralLines(referral: Referral): { text: string; stats: string | null; pair: string | null } {
   const { step, rewardDays, joined, toNext, activated } = referral;
   const months = rewardDays === 30 ? '1 Monat' : `${rewardDays} Tage`;
+  const pair = referral.twoSided ? `Nach eurem ersten Gespräch bekommt ihr beide ${referral.pairDays ?? 7} Tage Plus geschenkt.` : null;
   if (joined === 0) {
-    return { text: `Für je ${step} Leute, die über deine Einladung dazukommen und einmal telefonieren: ${months} Wanna yap+ geschenkt.`, stats: null };
+    return { text: `Für je ${step} Leute, die über deine Einladung dazukommen und einmal telefonieren: ${months} Wanna yap+ geschenkt.`, stats: null, pair };
   }
   return {
+    pair,
     text: `Noch ${toNext} ${toNext === 1 ? 'Person' : 'Leute'} bis zu ${months} Wanna yap+.`,
     // An older server leaves activated out: then only say who joined
     stats:
@@ -32,7 +36,7 @@ export function referralLines(referral: Referral): { text: string; stats: string
 export function ReferralCard({ referral, onPress, compact }: Props) {
   const { step, toNext } = referral;
   const done = step - (toNext ?? step);
-  const { text, stats } = referralLines(referral);
+  const { text, stats, pair } = referralLines(referral);
   const body = (
     <GlassCard glow={compact ? undefined : colors.pink}>
       <View style={styles.row}>
@@ -45,6 +49,11 @@ export function ReferralCard({ referral, onPress, compact }: Props) {
           {stats ? (
             <AppText variant="caption" color={colors.textSecondary}>
               {stats}
+            </AppText>
+          ) : null}
+          {pair ? (
+            <AppText variant="caption" color={colors.textSecondary}>
+              {pair}
             </AppText>
           ) : null}
         </View>

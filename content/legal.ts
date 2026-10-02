@@ -118,6 +118,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     paragraphs: [
       'Für Mitteilungen speichern wir ein Push-Token deines Geräts und versenden über den Expo Push Service (650 Industries, Inc., USA) sowie Apple (Apple Push Notification Service, auch für eingehende Anrufe). Welche Mitteilungen du bekommst, stellst du in der App ein.',
       'Welche Mitteilungen wir dir geschickt oder aus welchem Grund nicht geschickt haben, speichern wir 3 Tage; du siehst das unter „Mitteilungen → Zuletzt“.',
+      'Für „Erinnerungen und Tipps“ (zum Beispiel wenn du noch niemanden eingeladen hast oder dein geschenktes Plus bald endet) meldet die App unserem Server beim Start und bei der Rückkehr in den Vordergrund, höchstens alle zwei Stunden, ob du Mitteilungen und den Zugriff auf deine Kontakte erlaubt hast. Wir speichern davon nur den letzten Stand mit Zeitpunkt und außerdem, welche Erinnerung wir dir wann geschickt haben, damit jede nur einmal kommt; beides bis zur Löschung deines Kontos. Höchstens zwei solcher Mitteilungen kommen pro Woche, und du kannst sie unter „Mitteilungen“ ausschalten (Art. 6 Abs. 1 lit. b DSGVO).',
     ],
   },
   {
@@ -125,7 +126,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     paragraphs: [
       'Wanna yap+ kaufst du über Apple (App Store, In-App-Kauf). Die Zahlung wickelt Apple ab; Zahlungsdaten wie Karten- oder Kontonummern bekommen wir nicht zu sehen und speichern sie nicht.',
       'Den Abo-Status verwaltet in unserem Auftrag RevenueCat (RevenueCat, Inc., USA; Art. 28 DSGVO). Als Kennung nutzen wir dort die interne Nummer deines Kontos, nicht deine Telefonnummer. RevenueCat meldet uns jede Änderung deines Abos; wir speichern davon das Produkt, den Status (z. B. aktiv, gekündigt, Zahlungsproblem, abgelaufen), die Laufzeit, den Preis und die Währung des Ereignisses, den Kündigungsgrund, das dir angezeigte Angebot, ob es sich um einen Testkauf handelt und bei einem Gerätewechsel die betroffenen internen Kontokennungen, um dir Wanna yap+ freizuschalten und unsere Einnahmen zu berechnen (Art. 6 Abs. 1 lit. b DSGVO).',
-      'Diese Abo-Ereignisse bleiben als Nachweis gespeichert, auch wenn du dein Konto löschst; sie sind dann nur noch über die interne Kennung bezeichnet und keiner Nummer mehr zuzuordnen. Wanna yap+ kannst du auch geschenkt bekommen (Einladungen, Warteliste); dann speichern wir nur, bis wann es gilt und woher es kommt.',
+      'Diese Abo-Ereignisse bleiben als Nachweis gespeichert, auch wenn du dein Konto löschst; sie sind dann nur noch über die interne Kennung bezeichnet und keiner Nummer mehr zuzuordnen. Wanna yap+ kannst du auch geschenkt bekommen (Einladungen, Warteliste); dann speichern wir nur, bis wann es gilt und woher es kommt. Kaufst du danach selbst ein Abo, merken wir uns die frühere Geschenk-Quelle, um zu messen, ob Geschenke zu Käufen führen. Bekommt ihr nach einem ersten Gespräch beide Plus geschenkt (Einladung für beide), speichern wir bei der eingeladenen Person, von welcher einladenden Nummer das kam, damit jedes Paar das nur einmal bekommt; löscht eine der beiden Personen ihr Konto, verschwindet der Eintrag.',
     ],
   },
   {
