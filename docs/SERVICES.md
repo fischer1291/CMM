@@ -10,7 +10,7 @@ zu welchem Dienst gehört, steht in der README des Backend-Repos
 (Abschnitt "Environment"); welche Daten ein Dienst sieht, in
 `CMM-backend-new/COMPLIANCE.md` (Auftragsverarbeiter).
 
-**Zuletzt geprüft:** 2026-10-01
+**Zuletzt geprüft:** 2026-10-02
 
 | Dienst | Zweck | Kontoinhaber | Vault-Eintrag | Kosten/Monat | Ablauf / Kündigungsfrist | Zugang gewähren / entziehen |
 |---|---|---|---|---|---|---|
@@ -26,6 +26,7 @@ zu welchem Dienst gehört, steht in der README des Backend-Repos
 | Domain / DNS (`wannayap.app`) | Apex → Netlify, `api.` → Render, SPF/DKIM für den Mailanbieter, Universal Links hängen daran | | | | Domain-Verlängerung (Datum eintragen; läuft sie aus, sind App-Links, API und Mail tot) | Registrar-Konto mit 2FA; Zweitzugang über den Passwort-Manager; entziehen: Passwort und 2FA neu, API-Tokens des Registrars löschen |
 | Mailanbieter (`SMTP_URL`, `MAIL_FROM`) | Wartelisten-, Alarm-, Einladungs- und Dead-Man-Mails (`lib/mailer.js`); Anbieter in `content/legal.ts` `MAIL_PROVIDER` eintragen, sobald gewählt | | | Free-Tier | | Konto beim Anbieter; entziehen: SMTP-Passwort drehen, `SMTP_URL` auf Render nachziehen |
 | Backup-Bucket (Backblaze B2 oder Cloudflare R2) | Wöchentlicher age-verschlüsselter Dump (`db-backup.yml`, README "Backup"); der private age-Schlüssel liegt nur im Passwort-Manager | | | Free-Tier | | Application Key je Bucket (read, write, delete); entziehen: Key löschen, neuen Key als GitHub-Secrets (`BACKUP_S3_*`) hinterlegen; age-Schlüsselpaar drehen heißt alle alten Dumps neu verschlüsseln oder verwerfen |
+| Sentry | Crash-Telemetrie der App (`@sentry/react-native`, `services/sentry.ts`; DSN als EAS-Umgebungsvariable `EXPO_PUBLIC_SENTRY_DSN` je Umgebung und als GitHub-Secret für OTA-Bundles; dSYMs über die App-Store-Connect-Integration; Backend-Teil und Webhook `POST /webhooks/sentry` in Plan 2.1b). Region **EU (Frankfurt)**, AVV in der Organisation akzeptieren, Aufbewahrung 90 Tage (Default, steht so in der Datenschutzerklärung). Einrichtung: `RELEASE.md`, Abschnitt "Crash-Telemetrie" | | | Free-Tier (5.000 Errors, 500 Replays nicht genutzt; Deckel in Sentry → Quotas setzen, kein On-Demand-Budget) | | Organization → Members (Rolle Member für Vertretung); entziehen: Member entfernen, DSN neu erzeugen (Project → Client Keys), EAS-Variable und GitHub-Secret nachziehen, App-Store-Connect-API-Key der Integration widerrufen |
 | Anthropic | Texte des Marketing-Agenten (`marketing/agent/*`, `ANTHROPIC_API_KEY` als GitHub-Secret in `CMM`) | | | nutzungsabhängig, Deckel über `lib/marketingBudget.js` | | Console → Organization → Members; entziehen: Member entfernen, API-Key drehen (GitHub-Secret) |
 | Google AI (Gemini / Veo) | Hero-Videos des Marketing-Agenten (`GEMINI_API_KEY` als GitHub-Secret in `CMM`) | | | nutzungsabhängig, Deckel über `lib/marketingBudget.js` | | Google-Cloud-Projekt bzw. AI Studio → IAM; entziehen: Key drehen (GitHub-Secret) |
 | Meta / Instagram | Firmenkonto für Auto-Posting (`lib/socialPosting.js`, `MarketingChannel`), verbunden in Konsole → Freigabe → Kanäle | | | Free-Tier | Token läuft ab, Alarm `social_token` 7 Tage vorher | Meta Business Suite → Nutzer; Developer-App → Rollen; entziehen: Kanal in der Konsole trennen, Rollen entfernen |
@@ -35,6 +36,7 @@ zu welchem Dienst gehört, steht in der README des Backend-Repos
 | Passwort-Manager (Bitwarden oder 1Password) | Alle Zugänge oben, der private age-Schlüssel, Vollmachten; Notfallzugang für die Vertrauensperson (Bitwarden Emergency Access bzw. 1Password Family) | | | | | Notfallzugang einrichten und einmal testen (Datum in [`EMERGENCY.md`](EMERGENCY.md)); entziehen: Notfallkontakt entfernen, Master-Passwort neu |
 | Admin-Konsole (eigene, `admin-ui/`) | Betrieb: Team, Freigaben, Support, Moderation, App-Config, Alarme | | n. a. | n. a. | n. a. | Konsole → Team → einladen (`owner`/`support`/`viewer`, Mail mit Setup-Link, 7 Tage gültig); entziehen: deaktivieren (sofort abgemeldet). Mindestens zwei Owner mit Passkey (Plan 1.8) |
 
-Noch kein Konto, aber im Plan vorgesehen (Punkt 1.7, 2.1): Gewerbe,
-Geschäftskonto, Steuerberater, D-U-N-S, Sentry. Sie bekommen hier eine
-Zeile, sobald sie existieren.
+Noch kein Konto, aber im Plan vorgesehen (Punkt 1.7): Gewerbe,
+Geschäftskonto, Steuerberater, D-U-N-S. Sie bekommen hier eine Zeile,
+sobald sie existieren. Sentry (2.1) hat seine Zeile, das Konto legt der
+Owner nach `RELEASE.md` an und trägt Inhaber und Vault-Eintrag nach.

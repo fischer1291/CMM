@@ -401,12 +401,12 @@ class PlatformCallAdapter {
         );
         console.log('✅ CallKit incoming call displayed:', callId);
       } catch (nativeError: any) {
+        // Only the id, message and code: console.error lines become crash
+        // report breadcrumbs, the number and name of the caller must not
         console.error('❌ Native CallKeep.displayIncomingCall failed:', {
-          error: nativeError,
           message: nativeError?.message,
           code: nativeError?.code,
           callId,
-          callerPhone,
         });
 
         // Log detailed error for debugging
@@ -421,9 +421,9 @@ class PlatformCallAdapter {
       }
     } catch (error: any) {
       console.error('❌ Failed to display CallKit incoming call:', {
-        error: error,
         message: error?.message,
-        callData,
+        code: error?.code,
+        callId: callData?.callId,
       });
       // CRITICAL: Do NOT rethrow - return gracefully to prevent TurboModule crash
       return;

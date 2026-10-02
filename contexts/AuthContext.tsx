@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import PushTokenService from '../services/PushTokenService';
+import { setUser as setSentryUser } from '../services/sentry';
 import { session } from '../services/session';
 import type { Research } from '../services/researchApi';
 import { apiFetch, apiPostJson } from '../utils/api';
@@ -139,6 +140,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const reloadProfile = useCallback(() => {
     if (userPhone) loadProfile();
   }, [userPhone, loadProfile]);
+
+  // Crash reports carry the hash of the own number as user key, never the
+  // number (services/sentry.ts); signing out clears it
+  useEffect(() => {
+    setSentryUser(userPhone);
+  }, [userPhone]);
 
   const signOut = useCallback(async (options?: { local?: boolean }) => {
     // While the auth token still works: this device stops getting pushes/calls.

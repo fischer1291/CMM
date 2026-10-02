@@ -19,6 +19,12 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const SOURCE_DIRS = ['app', 'components', 'config', 'contexts', 'hooks', 'lib', 'services', 'utils', 'features', 'ui'];
 const OTA_PROFILES = ['preview', 'production'];
+// Variables that come from a secret store, not from eas.json: EAS environment
+// variables for builds, a GitHub Actions secret for OTA bundles
+// (ota-update.yml). Missing means the feature stays off, the bundle still runs.
+const SECRET_KEYS = { EXPO_PUBLIC_SENTRY_DSN: 'ohne DSN bleibt Sentry aus' };
+// Variables that are meant to differ between preview and production
+const PROFILE_SPECIFIC = ['EXPO_PUBLIC_SENTRY_ENV'];
 
 /** Env block of one build profile in eas.json. */
 function profileEnv(profile, eas = readEas()) {
@@ -67,7 +73,7 @@ function listSources(dir) {
 function check(eas, referenced) {
   const problems = [];
   const envs = OTA_PROFILES.map((p) => [p, eas.build?.[p]?.env ?? {}]);
-  const required = [...referenced].filter(([, hasDefault]) => !hasDefault).map(([k]) => k);
+  const required = [...referenced].filter(([k, hasDefault]) => !hasDefault && !(k in SECRET_KEYS)).map(([k]) => k);
   for (const [profile, env] of envs) {
     for (const key of required) {
       if (!env[key]) problems.push(`eas.json build.${profile}.env: ${key} fehlt (der Code hat dafür keinen Produktionswert)`);
@@ -77,7 +83,7 @@ function check(eas, referenced) {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
   for (const key of keys) {
     if (!(key in a) || !(key in b)) problems.push(`eas.json: ${key} steht nur in einem der Profile preview/production`);
-    else if (key.startsWith('EXPO_PUBLIC_') && a[key] !== b[key]) problems.push(`eas.json: ${key} unterscheidet sich zwischen preview und production`);
+    else if (key.startsWith('EXPO_PUBLIC_') && !PROFILE_SPECIFIC.includes(key) && a[key] !== b[key]) problems.push(`eas.json: ${key} unterscheidet sich zwischen preview und production`);
   }
   return problems;
 }
@@ -92,7 +98,10 @@ function main() {
       for (const p of problems) console.error(`  - ${p}`);
       process.exit(1);
     }
-    console.log(`✔ eas.json: ${OTA_PROFILES.join(' und ')} setzen ${[...referenced.keys()].filter((k) => !referenced.get(k)).join(', ')}`);
+    console.log(`✔ eas.json: ${OTA_PROFILES.join(' und ')} setzen ${[...referenced.keys()].filter((k) => !referenced.get(k) && !(k in SECRET_KEYS)).join(', ')}`);
+    for (const [k, note] of Object.entries(SECRET_KEYS)) {
+      if (referenced.has(k)) console.log(`  ${k} kommt aus einem Secret (${note})`);
+    }
     return;
   }
   if (!arg || !OTA_PROFILES.includes(arg)) {
@@ -105,5 +114,5 @@ function main() {
   }
 }
 
-module.exports = { profileEnv, referencedKeys, check, OTA_PROFILES };
+module.exports = { profileEnv, referencedKeys, check, OTA_PROFILES, SECRET_KEYS, PROFILE_SPECIFIC };
 if (require.main === module) main();

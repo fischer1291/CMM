@@ -15,6 +15,10 @@ wann als OTA und was als Store-Build rausgeht: `docs/RELEASE.md`.
 
 - Kleine Updates kommen ohne App Store an: Die App holt sie beim Öffnen und
   fragt, ob du kurz neu starten magst. Nichts ist Pflicht.
+- Stürzt die App ab, erfahren wir davon: Fehlerberichte ohne Nummer, Namen
+  oder Inhalte gehen an Sentry (EU). Was genau drinsteht, erklärt der neue
+  Abschnitt „Absturzberichte“ in der Datenschutzerklärung (Stand 2. Oktober
+  2026).
 
 ## [1.0.0] – noch nicht freigegeben
 

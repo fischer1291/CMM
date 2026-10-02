@@ -10,12 +10,12 @@ CI sie gegen die Modelle prüft.
 | Datei | Zweck | Owner | Zuletzt geprüft |
 |---|---|---|---|
 | [`RUNBOOK.md`](RUNBOOK.md) | Alarmliste mit Gegenmaßnahmen, Quittung und Dead-Man-Regel, Kill-Switch, Phased Release, Twilio gesperrt, Datenpanne, Backup und Restore, Rollback, Deploy-Fenster, genau eine Instanz | | 2026-10-01 |
-| [`SERVICES.md`](SERVICES.md) | Jeder Dienst mit Zweck, Kontoinhaber, Vault-Eintrag, Kosten, Ablauf und wie man Zugang gewährt oder entzieht | | 2026-10-01 |
+| [`SERVICES.md`](SERVICES.md) | Jeder Dienst mit Zweck, Kontoinhaber, Vault-Eintrag, Kosten, Ablauf und wie man Zugang gewährt oder entzieht (seit 2.1a auch Sentry) | | 2026-10-02 |
 | [`EMERGENCY.md`](EMERGENCY.md) | Fällt der Gründer aus: 30 Tage weiterführen oder geordnet einstellen; Checkliste für Vollmacht und Notfallzugang | | 2026-10-01 |
 | [`SCALE-PLAN.md`](SCALE-PLAN.md) | Der 12-Monats-Plan: Phasen, Punkte, Kennzahlen, Unit Economics | | 2026-10-01 |
-| [`RELEASE.md`](RELEASE.md) | Checkliste für TestFlight und App Store, OTA oder Store-Build (Rollback, Tags, Phased Release), Testmatrix vor jedem Release | | 2026-10-02 |
+| [`RELEASE.md`](RELEASE.md) | Checkliste für TestFlight und App Store, OTA oder Store-Build (Rollback, Tags, Phased Release), Crash-Telemetrie mit Sentry (DSN, dSYMs, Datenschutz), Testmatrix vor jedem Release | | 2026-10-02 |
 | [`APPSTORE.md`](APPSTORE.md) | Texte und Screenshots für App Store Connect zum Kopieren | | |
-| [`DEV_SETUP.md`](DEV_SETUP.md) | Dev- und Prod-Variante der App parallel auf einem Gerät | | |
+| [`DEV_SETUP.md`](DEV_SETUP.md) | Dev- und Prod-Variante der App parallel auf einem Gerät; Pods nach neuen nativen Modulen (`npx pod-install`) | | 2026-10-02 |
 | [`PRIVACY-CHANGE.md`](PRIVACY-CHANGE.md) | Datenschutz-Änderungsprozess: was jede neue Datenart im PR mitbringt | | 2026-10-01 |
 | [`RESEARCH.md`](RESEARCH.md) | Nutzerforschung als Prozess: Rekrutierung, Leitfaden, Ablage | | 2026-10-01 |
 | [`adr/`](adr/) | Architekturentscheidungen, eine Datei je Entscheidung (`0001-i18n.md`: keine Übersetzung, Locale nur messen) | | 2026-10-01 |

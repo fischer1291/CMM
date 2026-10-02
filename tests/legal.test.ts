@@ -30,8 +30,33 @@ test('the policy names what the invite link brings: the inviter, the device lang
   expect(waitlist).toContain('iPhone oder ein Android-Gerät');
 });
 
+test('the policy names the crash reports: Sentry, pseudonymous key, EU, 90 days (plan 2.1a)', () => {
+  const crashes = PRIVACY_SECTIONS.find((s) => s.title === 'Absturzberichte')!.paragraphs.join(' ');
+  for (const named of ['Sentry', 'Prüfwert (Hash)', 'Europäischen Union', '90 Tage', 'keine Telefonnummern', 'Art. 6 Abs. 1 lit. f']) {
+    expect(crashes).toContain(named);
+  }
+  // only what the code backs: no deletion at Sentry on account deletion (there is no such path)
+  expect(crashes).not.toContain('bei der Löschung deines Kontos');
+  expect(crashes).toContain('schreib uns');
+  // the key is an unsalted hash of the number: pseudonymous, never claimed irreversible
+  expect(crashes).not.toContain('nicht zu deiner Nummer zurückrechnen');
+  expect(crashes).not.toContain('nicht lesbar');
+  expect(crashes).toContain('pseudonym, nicht anonym');
+  expect(crashes).toContain('durch Durchprobieren');
+  // sessions are sent without an error (enableAutoSessionTracking), TestFlight builds send too
+  expect(crashes).toContain('bei jedem Start');
+  expect(crashes).toContain('ohne Absturz');
+  expect(crashes).toContain('App Store und TestFlight');
+  // crash reports are no tracking: the statement in the usage section still holds
+  const usage = PRIVACY_SECTIONS.find((s) => s.title === 'Nutzungsstatistik, Support und Moderation')!.paragraphs.join(' ');
+  expect(usage).toContain('kein Tracking-SDK');
+  // the summary does not promise "no outside service at all" (session pings go to Sentry)
+  const summary = PRIVACY_SECTIONS.find((s) => s.title === 'Kurz gesagt')!.paragraphs.join(' ');
+  expect(summary).toContain('Absturzberichte');
+});
+
 test('the policy date and the terms version are the October 2026 revision', () => {
-  expect(PRIVACY_UPDATED).toBe('1. Oktober 2026');
+  expect(PRIVACY_UPDATED).toBe('2. Oktober 2026');
   expect(PRIVACY_SECTIONS.find((s) => s.title === 'Stand')!.paragraphs).toEqual([PRIVACY_UPDATED]);
   expect(TERMS_VERSION).toBe('2026-10-01');
   expect(MIN_AGE).toBe(16);

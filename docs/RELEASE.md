@@ -107,7 +107,8 @@ der Plan verweisen hierher.
 | Nur JavaScript/TypeScript, Texte, Bilder, die schon im Build sind | **OTA** im Kanal `production` (GitHub → Actions → **OTA-Update** → *Run workflow*, Kanal und Nachricht). Erreicht alle Builds mit derselben `runtimeVersion`; die App holt es beim nächsten Öffnen und fragt, ob sie neu starten soll (`services/updates.ts`, kein Zwang) |
 | Native Änderung: neues Modul, `ios/`-Projekt, Info.plist, Expo-SDK, neuer Push-Typ, Berechtigungen | **Store-Build** über *iOS-Build* mit höherer Version **und** höherer `runtimeVersion` (`app.config.js` und `ios/CallMeMaybe/Supporting/Expo.plist`, dann `node scripts/version.js` und `node scripts/fingerprint.js --write`) |
 
-`runtimeVersion` bleibt eine feste Zeichenkette (heute `1.0.0`), weil das
+`runtimeVersion` bleibt eine feste Zeichenkette (heute `1.0.1`, erhöht mit
+dem nativen Sentry-Modul aus Plan 2.1a), weil das
 iOS-Projekt committet ist. Dass niemand vergisst, sie zu erhöhen, prüft
 `scripts/fingerprint.js` in CI und vor jedem OTA: Es berechnet den nativen
 Fingerprint (`expo-updates fingerprint:generate`, Optionen in
@@ -161,8 +162,11 @@ und alte Builds trotzdem auslaufen.
 
 **Erst breit bewerben nach 48 Stunden ohne neuen fatalen Fehler:** Eine
 neue Version (Store oder OTA) wird erst in Posts, Mails und bezahlter
-Reichweite genannt, wenn die Konsole (Fehler) 48 Stunden lang keinen
-neuen fatalen Fehler-Key dieser Version zeigt. Die Konsole unterscheidet
+Reichweite genannt, wenn die Konsole (Fehler) **und** Sentry (Issues,
+Filter `release:<bundleId>@<version>+<build>`, Level fatal; Abschnitt 2b)
+48 Stunden lang keinen neuen fatalen Fehler-Key dieser Version zeigen.
+Sentry sieht dabei auch native Abstürze (CallKit, Agora, PushKit), die
+die Konsole nie erreichen. Die Konsole unterscheidet
 heute nach Version und Build; die App schickt im Fehlerbericht schon die
 Update-ID mit (`X-App-Update`, `update` im Report; `embedded` ist das
 Bundle aus dem Build), das Backend speichert sie aber noch nicht (Batch 2,
@@ -185,6 +189,131 @@ Backend ein Ablaufdatum `REVIEW_UNTIL`; danach gilt der Zugang nicht mehr
 und ein Alarm erinnert daran, ihn zu entfernen oder zu verlängern (Backend,
 `routes/verify.js`; Alarmliste im RUNBOOK).
 
+## 2b. Crash-Telemetrie (Sentry)
+
+Native Abstürze (CallKit, Agora, PushKit) erreichen unseren eigenen
+Fehlerkanal nicht; dafür läuft `@sentry/react-native` im Release-Build
+(`services/sentry.ts`, Plan 2.1a). Es gibt **kein** Sentry-Config-Plugin in
+`app.config.js`: Das `ios/`-Projekt ist committet, ohne Prebuild greift ein
+Plugin nicht und würde das Projekt verändern wollen. Die Pods verlinkt
+`use_native_modules!` im `Podfile` beim EAS-Build von selbst; lokale
+Dev-Builds brauchen einmal `npx pod-install` (`DEV_SETUP.md`).
+
+**Was die App macht:** `init()` nur, wenn `EXPO_PUBLIC_SENTRY_DSN` gesetzt
+ist und der Build kein Development-Build ist; sonst läuft alles wie ohne
+Sentry. Kein Tracing, keine Navigation-Integration, `sendDefaultPii: false`,
+Sessions an (Crash-free Sessions je Build: jeder Start und jede Rückkehr in
+den Vordergrund schickt ein Session-Envelope mit Release, Environment,
+Gerätemodell, iOS-Version und dem Nutzerschlüssel; so steht es in der
+Datenschutzerklärung), App-Hang-Erkennung aus (`enableAppHangTracking:
+false`: Hänger erzeugt sentry-cocoa nativ am `beforeSend` vorbei und sie
+zählen gegen die 5.000 Events des Free-Tiers; bei Bedarf später gezielt
+an). Release = `<bundleId>@<version>+<build>`,
+`dist` = Build-Nummer, `environment` = `EXPO_PUBLIC_SENTRY_ENV` aus `eas.json`
+(`preview` oder `production`). Vor dem Senden entfernt die App
+Telefonnummern, E-Mail-Adressen, Query-Parameter von URLs, Nummern im
+URL-Pfad (`/friends/%2B49…`, `/stats/…`, `/blocks/…`: der Pfad wird vor
+dem Scrubbing dekodiert), `request`, `extra` und den Gerätenamen (`services/sentryScrub.ts`, Tests in
+`tests/sentry.test.ts`); Konsolen-Breadcrumbs mit einer Nummer oder
+E-Mail-Adresse, auch tief in geloggten Objekten (`console.error` bleibt im
+Release-Build), fallen ganz weg, alle anderen werden bis in verschachtelte
+Felder gesäubert; Touch-Breadcrumbs (`Sentry.wrap`) verlieren ihre Beschriftung (Text,
+`accessibilityLabel`, `testID`: in dieser App oft ein Name) und behalten
+nur Komponentennamen; die Text-Extraktion der Touch-Boundary ist aus.
+Maschinen-IDs (UUIDs wie Call-IDs und die OTA-`update_id`, Hex-Trace-IDs,
+ISO-Daten) nimmt das Scrubbing vorher aus dem Nummernmuster heraus; die
+Kontexte und Tags des SDK (`trace`, `app`, `os`, `device`, `ota_updates`,
+`expo.*` …) gehen ungefiltert durch, damit ein OTA im Release-Gate
+filterbar bleibt.
+Native Abstürze erzeugt und sendet sentry-cocoa an unserem `beforeSend`
+vorbei. Damit dort keine Anfrage-URL mit `?phone=` landet, sind die nativen
+Netzwerk-Breadcrumbs aus (`enableNetworkBreadcrumbs: false`; die
+JS-Breadcrumbs von fetch/xhr decken dieselben Aufrufe ab, ohne Query und
+ohne Nummer im Pfad gesäubert und erst danach in den nativen Scope
+gespiegelt); App-Start-, Frame- und Stall-Tracking sind
+ebenfalls aus (`tracesSampleRate: 0` zählt für das SDK sonst als Tracing).
+Für den Rest greift das serverseitige Scrubbing aus Schritt 1; Gerätename
+und IP fehlen durch `sendDefaultPii: false`. Nutzer = `{ id: phoneHash }`
+(SHA-256 der E.164-Nummer wie bei `/contacts/match`), gesetzt beim
+Anmelden, gelöscht beim Abmelden. Der Schlüssel ist bewusst **ohne** den
+Server-Pepper aus Plan 2.8 (die App kennt ihn nicht). Er schützt deshalb
+kaum: Telefonnummern lassen sich in Minuten durchprobieren, wer den Hash
+hat (auch Sentry), kann die Nummer zurückrechnen. Wir behandeln ihn wie die
+Nummer selbst (pseudonym, nicht anonym, Sentry nur als Auftragsverarbeiter);
+die Datenschutzerklärung sagt genau das und nicht mehr.
+`services/diagnostics.ts` meldet behandelte Fehler weiter an unser Backend
+**und** an Sentry (fatal bleibt fatal); unbehandelte Fehler fängt Sentrys
+eigener Handler, unser Handler schickt sie nur ans Backend (keine Doppel).
+
+**Einrichtung (einmalig, Owner):**
+
+1. Sentry-Konto in der **EU-Region** anlegen (Organisation → Region
+   "EU (Frankfurt)" bei der Erstellung; später nicht änderbar), Projekt
+   "React Native", Free-Tier. In den Organisationseinstellungen den **AVV**
+   (Data Processing Addendum) akzeptieren; Ablage im Firmenordner, Verweis
+   in `CMM-backend-new/COMPLIANCE.md` (Zeile "Sentry", Plan 2.1b).
+   Spam-Schutz und Datenlöschung: Settings → Security & Privacy →
+   "Prevent Storing of IP Addresses" an; Aufbewahrung bleibt beim
+   Sentry-Default 90 Tage (steht so in der Datenschutzerklärung).
+   Project Settings → Security & Privacy → **Advanced Data Scrubbing**:
+   Regel "Email addresses" sowie eine Regex-Regel für Telefonnummern
+   (`\+?\d[\d\s\-/()]{6,13}\d`, Methode Replace, Quelle
+   `$error.value || $message || $logentry.formatted`, **nicht** `$string`:
+   sonst zerschneidet die Regel UUIDs, Trace-IDs und die `update_id` in
+   Tags und Kontexten). Das deckt die Fehlertexte nativer Crash-Events ab,
+   die das `beforeSend` der App nie sehen. Als zweite Absicherung dieselbe
+   Regex-Regel noch einmal mit der Quelle
+   `$breadcrumb.message || $breadcrumb.data.url` anlegen (Breadcrumbs
+   nativer Crash-Events; den Selektor im Regel-Dialog mit einem
+   Beispiel-Event prüfen, Sentry schlägt passende Pfade vor). Sie kann
+   Ziffernfolgen einer Call-ID in einer URL treffen; das nehmen wir für
+   die Breadcrumbs in Kauf, die App säubert sie ohnehin schon selbst. Es gibt keine Löschung je Nutzer über eine API: wer Berichte zu
+   seinem Prüfwert früher weg haben will, schreibt uns; der Owner stellt
+   die Anfrage an den Sentry-Support (die Datenschutzerklärung verspricht
+   genau das, nicht mehr).
+2. **DSN** als EAS-Umgebungsvariable, nicht in `eas.json` und nicht im Repo:
+   `npx eas-cli env:create --environment production --name EXPO_PUBLIC_SENTRY_DSN --value <DSN> --visibility sensitive --scope project`
+   und dasselbe für `--environment preview`. Die Build-Profile `preview`
+   und `production` in `eas.json` pinnen ihre Umgebung (`"environment"`),
+   damit der Build die Variablen der passenden EAS-Umgebung sicher bekommt
+   und nicht vom CLI-Default abhängt. Das Feld kennt eas-cli erst ab
+   13.4.0; `eas.json` verlangt deshalb `cli.version >= 13.4.0` (die
+   Workflows nutzen `latest`, lokal `npx eas-cli@latest`).
+   Für OTA-Bundles liest `ota-update.yml` den DSN aus dem **GitHub-Secret**
+   `EXPO_PUBLIC_SENTRY_DSN` (CMM → Settings → Secrets and variables →
+   Actions); fehlt es, warnt der Lauf und das Bundle meldet nichts an Sentry.
+   `scripts/eas-env.js --check` kennt den DSN als Secret-Variable und
+   verlangt ihn nicht in `eas.json`.
+3. **dSYMs** (Symbole für native Stacks): Sentry → Project Settings →
+   Debug Files → **App Store Connect**-Integration verbinden (App Store
+   Connect API-Key mit Rolle Developer). Sentry lädt die dSYMs jedes
+   Builds dann selbst von Apple; kein Build-Schritt in `ios-build.yml`
+   nötig. Ohne das sind native Stacks unleserlich, der Crash-Typ aber
+   trotzdem sichtbar.
+4. **JavaScript-Source-Maps** (optional): nur über den Xcode-Build-Phase-
+   Patch von `npx @sentry/wizard -i reactNative` einmal auf einem Mac
+   (ändert `ios/`, danach `node scripts/fingerprint.js --write` und ein
+   Store-Build mit höherer `runtimeVersion`). Ohne ihn sind JS-Stacks
+   unsymbolisiert; die Konsole (Fehler) zeigt sie weiterhin, native
+   Abstürze bleiben lesbar. Vor dem Patch: Sentry Auth-Token nur als
+   EAS-Secret (`SENTRY_AUTH_TOKEN`), nie in `ios/`.
+5. **Alarm:** Sentry → Alerts → "New issue" für Level fatal → Webhook an
+   `POST /webhooks/sentry` (Backend, Plan 2.1b; Alarm-Tag `sentry_fatal`
+   in der RUNBOOK-Alarmliste). Bis dahin: Mail-Alert an den Owner in Sentry.
+6. **Datenschutz:** Abschnitt „Absturzberichte“ in `content/legal.ts`
+   (`PRIVACY_SECTIONS`, Stand 2. Oktober 2026) ist der Text; App-Datenschutz
+   in App Store Connect um **Diagnose → Absturzdaten** und **Sonstige
+   Diagnosedaten** ergänzen (Abschnitt 3).
+   Jede Änderung an dem, was Sentry sieht, läuft über `PRIVACY-CHANGE.md`.
+
+**Prüfen nach dem ersten Build mit DSN:** Sentry → Releases zeigt den
+Release `<bundleId>@<version>+<build>` mit einer Session, sobald der
+TestFlight-Build einmal gestartet wurde; ein Fehler muss dafür nicht
+provoziert werden. Erscheint er nicht, fehlt der DSN im Build
+(`npx eas-cli env:list --environment production`). Ein neues natives Modul
+ändert den Fingerprint: dieser Punkt kommt nur als Store-Build mit höherer
+`runtimeVersion` raus (Abschnitt 2a), nie als OTA.
+
 ## 3. App Store Connect: App-Datenschutz
 
 Keine Daten werden zum Tracking verwendet. Anzugeben (alle „mit der
@@ -196,10 +325,15 @@ Identität verknüpft“, Zweck „App-Funktionalität“):
 - **Kennungen:** Geräte-ID (Push-Tokens)
 - **Käufe:** Kaufhistorie (Abo-Ereignisse von RevenueCat: Produkt, Status, Laufzeit, Preis, Währung, Kündigungsgrund; keine Zahlungsdaten)
 - **Sonstige Daten:** Erreichbarkeit, Zeitplan, Gesprächsdauer
+- **Diagnose:** Absturzdaten und Sonstige Diagnosedaten (Sentry, Abschnitt 2b:
+  Fehlerberichte und Session-Meldungen bei jedem Start; mit der Identität
+  verknüpft, weil der pseudonyme Nutzerschlüssel ein Hash der Nummer ist;
+  kein Tracking)
 
-Video und Ton der Anrufe werden nicht gespeichert. Die Kategorie **Käufe** muss
-in App Store Connect → App-Datenschutz eingetragen sein, bevor der nächste Build
-in die Prüfung geht (Wanna yap+ speichert Abo-Ereignisse je Konto).
+Video und Ton der Anrufe werden nicht gespeichert. Die Kategorien **Käufe** und
+**Diagnose** müssen in App Store Connect → App-Datenschutz eingetragen sein,
+bevor der nächste Build in die Prüfung geht (Wanna yap+ speichert Abo-Ereignisse
+je Konto; Sentry bekommt Absturzberichte, sobald der DSN im Build ist).
 
 ## 4. Hinweise für App Review
 

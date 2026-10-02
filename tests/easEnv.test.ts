@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { check, profileEnv, referencedKeys, OTA_PROFILES } from '../scripts/eas-env.js';
+import { check, profileEnv, referencedKeys, OTA_PROFILES, PROFILE_SPECIFIC, SECRET_KEYS } from '../scripts/eas-env.js';
 
 const root = path.join(__dirname, '..');
 const eas = JSON.parse(fs.readFileSync(path.join(root, 'eas.json'), 'utf8'));
@@ -41,4 +41,21 @@ test('the OTA profiles in eas.json carry the RevenueCat key the bundle needs', (
     expect(profileEnv(profile, eas).EXPO_PUBLIC_REVENUECAT_IOS_KEY).toMatch(/^appl_/);
     expect(profileEnv(profile, eas).APP_VARIANT).toBe('production');
   }
+});
+
+test('the Sentry DSN comes from a secret, the Sentry environment may differ per profile', () => {
+  expect(Object.keys(SECRET_KEYS)).toContain('EXPO_PUBLIC_SENTRY_DSN');
+  expect(PROFILE_SPECIFIC).toContain('EXPO_PUBLIC_SENTRY_ENV');
+  // the DSN is read without a default (plan 2.1a) but is not required in eas.json
+  const sentry = fs.readFileSync(path.join(root, 'services/sentry.ts'), 'utf8');
+  const referenced = referencedKeys([sentry]);
+  expect(referenced.get('EXPO_PUBLIC_SENTRY_DSN')).toBe(false);
+  expect(referenced.get('EXPO_PUBLIC_SENTRY_ENV')).toBe(true);
+  expect(check(eas, referenced)).toEqual([]);
+  expect(profileEnv('preview', eas).EXPO_PUBLIC_SENTRY_ENV).toBe('preview');
+  expect(profileEnv('production', eas).EXPO_PUBLIC_SENTRY_ENV).toBe('production');
+  expect(profileEnv('production', eas)).not.toHaveProperty('EXPO_PUBLIC_SENTRY_DSN');
+  // any other key still has to match
+  const differs = { build: { preview: { env: { EXPO_PUBLIC_X: 'a' } }, production: { env: { EXPO_PUBLIC_X: 'b' } } } };
+  expect(check(differs, new Map())).toEqual(['eas.json: EXPO_PUBLIC_X unterscheidet sich zwischen preview und production']);
 });

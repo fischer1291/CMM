@@ -23,7 +23,7 @@ const addressLines = (o: Operator) => [o.name, ...(o.careOf ? [o.careOf] : []), 
  */
 export const MAIL_PROVIDER: string | null = null;
 
-export const PRIVACY_UPDATED = '1. Oktober 2026';
+export const PRIVACY_UPDATED = '2. Oktober 2026';
 /**
  * Version of the terms a new user accepts in onboarding. Until our own terms
  * exist (plan 2.7) Apple's standard EULA applies; the version still records
@@ -58,7 +58,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     title: 'Kurz gesagt',
     paragraphs: [
       'Wanna yap? zeigt dir, wann Menschen aus deinem Adressbuch Zeit für ein Gespräch haben. Dafür verarbeiten wir nur, was die App zum Funktionieren braucht.',
-      'Keine Werbung, kein Tracking, keine Analyse-Tools, kein Verkauf von Daten.',
+      'Keine Werbung, kein Tracking, keine Analyse-Tools, kein Verkauf von Daten. Nur Abstürze und die Stabilität der App melden wir an einen Dienstleister (siehe „Absturzberichte“).',
     ],
   },
   {
@@ -136,6 +136,13 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
       'Schreibst du uns über „Hilfe & Feedback“, speichern wir deine Nachrichten, die Kategorie und die App-Version, bis du dein Konto löschst.',
       'Nach deinem zweiten Gespräch laden wir dich in der App zu einem 15-minütigen Gespräch mit dem Gründer ein. Wir speichern dazu nur, wann wir dich eingeladen haben, ob du einen Termin gewählt oder abgelehnt hast und ob das Gespräch stattfand (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO); mit deinem Konto wird das gelöscht. Tippst du auf „Termin wählen“, öffnet sich die Buchungsseite unseres Terminanbieters cal.com (Cal.com, Inc., USA) mit deinem Profilnamen vorbelegt; was du dort eingibst, verarbeitet cal.com nach seiner eigenen Datenschutzerklärung.',
       'Für Support und Moderation hat ein kleiner Kreis berechtigter Personen Zugriff auf ein geschütztes Admin-Werkzeug (Anmeldung mit Zwei-Faktor). Nummern sind dort maskiert; jeder Zugriff auf Daten einer Person wird protokolliert (1 Jahr). Bei Verstößen gegen die Regeln kann ein Konto gesperrt werden; bei einer dauerhaften Sperre speichern wir einen Prüfwert (Hash) der Nummer, damit sie sich nicht erneut registrieren kann.',
+    ],
+  },
+  {
+    title: 'Absturzberichte',
+    paragraphs: [
+      'Stürzt die App ab oder tritt ein technischer Fehler auf, schickt sie einen Fehlerbericht an unseren Server und an den Dienst Sentry (Functional Software, Inc., USA), den wir in der Region Europäische Union nutzen; die Berichte werden dort auf Servern in der Europäischen Union verarbeitet, im Auftrag und nach unseren Weisungen (Art. 28 DSGVO). Ein Bericht enthält die Fehlermeldung, die Stelle im Programmcode, die App-Version, das Gerätemodell, die iOS-Version, ob die App gerade im Vordergrund war und die letzten Bedienschritte in technischer Form (zum Beispiel „Schaltfläche angetippt“ oder „Anfrage an den Server gesendet“). Statt deiner Nummer steht im Bericht nur ein Prüfwert (Hash) davon, damit wir sehen, ob viele oder immer dieselbe Person betroffen ist; Telefonnummern, E-Mail-Adressen und Adressparameter von Anfragen entfernt die App vor dem Senden, bei nativen Abstürzen Sentry vor der Speicherung; Beschriftungen angetippter Elemente (etwa Namen) werden nicht übertragen. Es werden keine Telefonnummern, keine Namen, keine Bilder und keine Gesprächsinhalte übertragen, auch keine Werbe-IDs oder Standortdaten. Außerdem meldet die App bei jedem Start und jeder Rückkehr in den Vordergrund kurz an Sentry, dass sie läuft (App-Version, Gerätemodell, iOS-Version, Prüfwert), damit wir sehen, welcher Anteil der Sitzungen ohne Absturz bleibt.',
+      'Rechtsgrundlage ist unser berechtigtes Interesse an einer funktionierenden App (Art. 6 Abs. 1 lit. f DSGVO). Sentry löscht die Berichte spätestens nach 90 Tagen. Sentry erhält deine Nummer nicht im Klartext, sondern nur den Prüfwert. Weil sich Telefonnummern durch Durchprobieren aus einem Prüfwert zurückrechnen ließen, behandeln wir ihn wie die Nummer selbst (pseudonym, nicht anonym); Sentry verarbeitet ihn nur in unserem Auftrag. Möchtest du Berichte zu deinem Prüfwert früher entfernt haben, schreib uns, wir veranlassen das bei Sentry. Berichte senden nur Release-Versionen (App Store und TestFlight); in Entwicklungsversionen ist die Übertragung abgeschaltet.',
     ],
   },
   {
