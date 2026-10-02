@@ -9,9 +9,10 @@ Backend-Repos, Dienste und Zugänge in [`SERVICES.md`](SERVICES.md), der
 Ausfall des Gründers in [`EMERGENCY.md`](EMERGENCY.md).
 
 Das Gerüst stammt aus Plan-Punkt 1.9, die Alarmliste aus 1.10, Quittung,
-Kill-Switch, Phased Release, Twilio und Datenpanne aus 1.8.
+Kill-Switch, Phased Release, Twilio und Datenpanne aus 1.8; die Zeilen
+`gift_days` (2.12) und `pepper_changed` (2.8) aus Phase 2.
 
-**Zuletzt geprüft:** 2026-10-01
+**Zuletzt geprüft:** 2026-10-02
 
 ## Alarme
 
@@ -41,6 +42,8 @@ Schlüssel in `lib/alerts.js` `RULES` (Titel der Mitteilung = `title` dort).
 | `no_talks` | error | Gestern über 20 aktive Nutzer, aber kein einziges Gespräch (`talks.count == 0`). Die Anrufzustellung ist wahrscheinlich kaputt. | 1. `GET /api/push-health`: `voipConfigured` und `authRequired` müssen `true` sein. 2. Testanruf zwischen zwei Geräten (Testmatrix in [`RELEASE.md`](RELEASE.md)). 3. Agora-Zertifikat und `AGORA_*` auf Render prüfen; bei neuem Deploy zurückrollen. |
 | `backup_stale` | warn | `AppConfig.ops.lastBackupAt` ist über 8 Tage alt: der wöchentliche Dump hat sich nicht gemeldet. | 1. GitHub → CMM-backend-new → Actions → DB-Backup: pausiert → aktivieren, fehlgeschlagen → Log (meist Atlas Network Access oder ein Secret). 2. "Run workflow" von Hand. 3. Secrets nach Abschnitt "Backup und Restore" prüfen. 4. Lauf grün, aber Alarm → Ping-Schritt im Log prüfen (`BACKUP_PING_URL`, `BACKUP_PING_KEY`; nur er setzt `ops.lastBackupAt`). |
 | `sms_cap` | warn | Heute sind 80 % des SMS-Tagesdeckels (`ops.smsPerDay`) erreicht. | 1. Echter Andrang (Konsole → Heute, Anmeldungen passen dazu) → Deckel unter App → Betrieb erhöhen. 2. Sonst SMS-Pumping: `smsRegions` enger oder `smsPaused`. 3. Twilio Fraud Guard prüfen. |
+| `gift_days` | warn | Verschenkte Plus-Tage der letzten 7 Tage (heute und die sechs davor; Tageszähler `giftDays_referral`, `giftDays_waitlist`, `giftDays_admin`: Einladungen, Warteliste, Konsolen-Grants mit Enddatum) liegen über `AppConfig.goals.giftDaysPerWeek` (Standard 200, Annahme; Faustregel: Geschenk-Plus unter 20 % der MRR). Der Text nennt die Tage je Quelle. | 1. Konsole → Plus, Kachel "Geschenk-Tage 7 Tage": aus welcher Quelle kommen die Tage? 2. Echte Einladungswelle → Budget anheben (Konsole → App → Ziele, "Geschenk-Plus-Tage je Woche"). 3. Eine Quelle läuft davon (ein Einladender, Konsolen-Grants) → ansehen, bei Missbrauch Plus entziehen. 4. Versuch `referral_two_sided` zu teuer → Flag aus (Konsole → App → Feature-Flags). |
+| `pepper_changed` | warn | Keine Regel in `RULES`, sondern `lib/pseudonyms.js` beim Start: gespeicherte `User.phoneHmac` passten nicht zum aktuellen Pepper (`PHONE_HASH_PEPPER`, ohne ihn ein Wert aus `JWT_SECRET`) und wurden samt ihrer `ActiveDay`-Zeilen umgeschlüsselt. Einmal, und nur wenn sich der Pepper geändert hat. | 1. Erwartet genau einmal: direkt nachdem `PHONE_HASH_PEPPER` auf Render gesetzt wurde (erster Deploy lief noch ohne). Dann nichts tun. 2. Sonst wurde die Variable oder `JWT_SECRET` geändert, oder etwas lief mit fremder Umgebung gegen die Produktions-DB: alten Wert auf Render wiederherstellen, der nächste Start schlüsselt zurück. 3. Den Pepper nie drehen, ohne das zu wollen (Backend-README "Pseudonymous data"). |
 | `owner_silent` | warn | Keine Regel in `lib/alerts.js`, sondern die Dead-Man-Prüfung in `lib/adminPush.js` (stündlich): 7 Tage lang hat kein Owner den Morgen-Push quittiert oder sich angemeldet. Mail an den Notfallkontakt, sonst Push an die Owner; einmal je 7 Tage. | Owner: Konsole öffnen, Morgen-Push quittieren (unten). Notfallkontakt: [`EMERGENCY.md`](EMERGENCY.md). |
 | `mail-failing` | – (Push, keine Stufe) | Push-Kind `alerts` direkt aus `lib/waitlist.js`: der Mail-Anbieter lehnt Wartelisten-Mails ab (höchstens einmal pro Stunde). Anmeldungen bleiben gespeichert. | 1. Status und Guthaben beim Mail-Anbieter prüfen. 2. `SMTP_URL` und `MAIL_FROM` auf Render prüfen. 3. Sobald das Senden klappt, schickt `resendMissing()` die offenen Mails alle 10 Minuten von selbst. |
 | `post-<kampagne>-<kanal>` | – (Push, keine Stufe) | Push-Kind `posting` aus `lib/socialPosting.js` mit `urgency: high`: Auto-Posting auf Instagram oder TikTok ist nach dem letzten Versuch fehlgeschlagen; der Text nennt den Fehler. Gleicher Tag ohne `high` ist nur ein Hinweis (gepostet, TikTok-Entwurf wartet). | 1. Konsole → Freigabe → Kanäle: Token prüfen, bei Ablauf neu verbinden. 2. Entwurf von Hand posten oder verwerfen. |
@@ -51,11 +54,12 @@ Keine Alarme, sondern Arbeitshinweise über eigene Push-Kinds: `approvals`
 aber keinen Eingriff im Betrieb.
 
 **Geplant, noch ohne Tag** (kommen mit ihrer Regel und ihrer Zeile hier,
-Plan 1.10): Phase 2: Kauf-Fehler > 3/Tag, Geschenk-Tage über der
-Wochenschwelle, neuer nativer Crash-Typ (Sentry, 2.1), KI-Modell
-deprecated, nutzersichtbares Banner aktiv. Phase 3: Bewertung ≤ 3,
-Moderations-SLA, Reconciliation-Abweichung > 5 %, VoIP-Push ohne Register
-binnen 10 s.
+Plan 1.10): Phase 2: Kauf-Fehler > 3/Tag, neuer nativer Crash-Typ
+(Sentry-Webhook, Tag `sentry_fatal`, Plan 2.1b; bis dahin Mail-Alert in
+Sentry, siehe [`RELEASE.md`](RELEASE.md)), Demo-Login nach `REVIEW_UNTIL`
+abgelaufen (2.16), KI-Modell deprecated, nutzersichtbares Banner aktiv.
+Phase 3: Bewertung ≤ 3, Moderations-SLA, Reconciliation-Abweichung > 5 %,
+VoIP-Push ohne Register binnen 10 s.
 
 ## Quittung und Vertretung
 
