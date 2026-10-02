@@ -162,16 +162,22 @@ und alte Builds trotzdem auslaufen.
 
 **Erst breit bewerben nach 48 Stunden ohne neuen fatalen Fehler:** Eine
 neue Version (Store oder OTA) wird erst in Posts, Mails und bezahlter
-Reichweite genannt, wenn die Konsole (Fehler) **und** Sentry (Issues,
-Filter `release:<bundleId>@<version>+<build>`, Level fatal; Abschnitt 2b)
-48 Stunden lang keinen neuen fatalen Fehler-Key dieser Version zeigen.
-Sentry sieht dabei auch native Abstürze (CallKit, Agora, PushKit), die
-die Konsole nie erreichen. Die Konsole unterscheidet
-heute nach Version und Build; die App schickt im Fehlerbericht schon die
-Update-ID mit (`X-App-Update`, `update` im Report; `embedded` ist das
-Bundle aus dem Build), das Backend speichert sie aber noch nicht (Batch 2,
-Backend-Repo: `update` in `ClientError` ablegen). Bis dahin gilt die
-48-Stunden-Regel je Version, OTA-Updates eingeschlossen.
+Reichweite genannt, wenn diese drei Quellen 48 Stunden lang keinen neuen
+fatalen Fehler dieser Version zeigen:
+
+1. Konsole → Fehler (JavaScript-Fehler, "Absturz" markiert).
+2. Sentry (Issues, Filter `release:<bundleId>@<version>+<build>`, Level
+   fatal; Abschnitt 2b). Sentry sieht die meisten nativen Abstürze
+   (CallKit, Agora, PushKit), die die Konsole nie erreichen.
+3. Xcode → Organizer → Crashes bzw. App Store Connect → TestFlight /
+   App Analytics → Abstürze, für das, was Sentry nicht sehen kann (blinde
+   Flecken in Abschnitt 2b). Apples Zahlen kommen mit einem Tag
+   Verzögerung; das Gate wartet darauf.
+
+Die Konsole unterscheidet nach Version, Build und Update-ID: die App
+schickt die Update-ID mit (`X-App-Update`, `update` im Report; `embedded`
+ist das Bundle aus dem Build), das Backend legt sie je Fehler unter
+"Updates" ab. Für ein OTA-Update gilt die 48-Stunden-Regel je Update-ID.
 
 **Tags und Changelog:** Jeder fertige iOS-Build taggt den Commit
 `ios/v<version>-b<build>` und legt ein GitHub-Release mit dem Abschnitt
@@ -193,7 +199,21 @@ und ein Alarm erinnert daran, ihn zu entfernen oder zu verlängern (Backend,
 
 Native Abstürze (CallKit, Agora, PushKit) erreichen unseren eigenen
 Fehlerkanal nicht; dafür läuft `@sentry/react-native` im Release-Build
-(`services/sentry.ts`, Plan 2.1a). Es gibt **kein** Sentry-Config-Plugin in
+(`services/sentry.ts`, Plan 2.1a).
+
+**Blinde Flecken:** Sentry startet erst, wenn das JavaScript-Bundle
+`app/_layout.tsx` auswertet. Was davor nativ läuft, sieht es nicht:
+`AppDelegate.swift` legt in `didFinishLaunching` die `PKPushRegistry` an,
+und ein VoIP-Push bei beendeter App meldet den Anruf nativ über
+`RNCallKeep.reportNewIncomingCall`, bevor JavaScript läuft. Ein Absturz
+auf diesem Weg (Kaltstart über einen eingehenden Anruf) und Kills durch
+das System (PushKit-Regel "jeder VoIP-Push muss einen Anruf melden",
+Watchdog, Speicher) stehen nur in Xcode → Organizer → Crashes und App
+Store Connect. Deshalb ist der Organizer die dritte Quelle im
+48-Stunden-Gate (Abschnitt 2, "Erst breit bewerben"). Wer den
+Kaltstart-Pfad abdecken will, muss sentry-cocoa nativ in
+`AppDelegate.swift` vor der `PKPushRegistry` starten; das ist ein eigener
+Schritt mit Store-Build, nicht Teil von Plan 2.1a. Es gibt **kein** Sentry-Config-Plugin in
 `app.config.js`: Das `ios/`-Projekt ist committet, ohne Prebuild greift ein
 Plugin nicht und würde das Projekt verändern wollen. Die Pods verlinkt
 `use_native_modules!` im `Podfile` beim EAS-Build von selbst; lokale

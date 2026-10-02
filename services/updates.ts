@@ -27,7 +27,7 @@ export function isCheckDue(now: number, lastCheckedAt: number | null, interval =
   return now - lastCheckedAt >= interval;
 }
 
-/** The id the backend groups errors by: the OTA update, or the bundle shipped with the build. */
+/** The update id the backend keeps per error (ClientError.updates): the OTA update, or "embedded" for the bundle shipped with the build. */
 export function describeUpdate(u: { isEmbeddedLaunch: boolean; updateId: string | null }): string {
   return !u.isEmbeddedLaunch && u.updateId ? u.updateId : 'embedded';
 }
