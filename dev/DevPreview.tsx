@@ -20,7 +20,7 @@ import { NudgeSheet } from '../components/NudgeSheet';
 import type { Plan } from '../services/planApi';
 import { MomentsView } from '../features/moments/MomentsView';
 import { UnlockCelebration } from '../features/moments/UnlockCelebration';
-import { ProfileSetupView } from '../features/profile/ProfileSetupView';
+import { AcquisitionStepView, ProfileSetupView } from '../features/profile/ProfileSetupView';
 import { ProfileView } from '../features/profile/ProfileView';
 import { MomentComposer } from '../features/moments/MomentComposer';
 import { StatusView } from '../features/status/StatusView';
@@ -730,6 +730,9 @@ const SCREENS: Record<string, () => React.ReactElement> = {
   ),
   'profile-setup': () => (
     <ProfileSetupView name="Leroy" onNameChange={() => {}} avatarUri={null} onPickAvatar={() => {}} onSave={() => {}} onSkip={() => {}} saving={false} />
+  ),
+  'profile-acquisition': () => (
+    <AcquisitionStepView choice={{ source: 'friend', android: 2 }} onChange={() => {}} canContinue onContinue={() => {}} onSkip={() => {}} />
   ),
   'call-ringing': () => <CallView {...callProps} phase="ringing" hasRemoteVideo={false} />,
   'call-connected': () => <CallView {...callProps} phase="connected" hasRemoteVideo videoLayer={<FakeVideo />} />,

@@ -82,3 +82,11 @@ test('onboarding only starts with the age box ticked', () => {
   expect(canStart(false)).toBe(false);
   expect(canStart(true)).toBe(true);
 });
+
+test('the policy names the question where people heard of us (plan 2.10)', () => {
+  const section = PRIVACY_SECTIONS.find((s) => s.title === 'Woher du uns kennst')!.paragraphs.join(' ');
+  for (const named of ['freiwillig', 'Überspringen', 'Android-Handy', 'Einladungscode', 'Kampagne', 'Art. 6 Abs. 1 lit. f', 'nicht an Dritte', 'mit deinem Konto gelöscht']) {
+    expect(section).toContain(named);
+  }
+  expect(section).toContain('kein Tracking-SDK');
+});

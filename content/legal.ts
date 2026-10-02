@@ -149,6 +149,14 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     ],
   },
   {
+    title: 'Woher du uns kennst',
+    paragraphs: [
+      'Nach dem Einrichten deines Profils fragen wir einmal, woher du Wanna yap? kennst (Freund·in, TikTok, Instagram, Flyer, Presse oder Sonstiges) und wie viele deiner fünf engsten Freunde ein Android-Handy haben (0 bis 5 oder „Weiß ich nicht“). Beides ist freiwillig; tippst du auf „Überspringen“, speichern wir nichts.',
+      'Antwortest du, speichern wir deine Antworten und den Zeitpunkt bei deinem Konto. Bist du über den Einladungslink einer Person gekommen, ergänzt unser Server den Einladungscode aus diesem Link; kennt er die Kampagne, über die du gekommen bist (etwa aus deinem Wartelisten-Eintrag oder einer gerade laufenden Aktion, zu der deine Antwort passt), ihren Kurznamen. Innerhalb von 24 Stunden kann eine neue Antwort die erste ersetzen, danach bleibt sie.',
+      'Wir nutzen das nur, um zu messen, über welche Wege Menschen zu uns finden und wie viele Freundeskreise Android nutzen; ausgewertet wird es nur als Gesamtzahlen je Weg oder Kampagne (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO). Es gibt dafür kein Tracking-SDK und keine Werbe-ID, und wir geben die Angaben nicht an Dritte weiter. Sie sind in deinem Datenexport enthalten und werden mit deinem Konto gelöscht.',
+    ],
+  },
+  {
     title: 'Absturzberichte',
     paragraphs: [
       'Stürzt die App ab oder tritt ein technischer Fehler auf, schickt sie einen Fehlerbericht an unseren Server und an den Dienst Sentry (Functional Software, Inc., USA), den wir in der Region Europäische Union nutzen; die Berichte werden dort auf Servern in der Europäischen Union verarbeitet, im Auftrag und nach unseren Weisungen (Art. 28 DSGVO). Ein Bericht enthält die Fehlermeldung, die Stelle im Programmcode, die App-Version, das Gerätemodell, die iOS-Version, ob die App gerade im Vordergrund war und die letzten Bedienschritte in technischer Form (zum Beispiel „Schaltfläche angetippt“ oder „Anfrage an den Server gesendet“). Statt deiner Nummer steht im Bericht nur ein Prüfwert (Hash) davon, damit wir sehen, ob viele oder immer dieselbe Person betroffen ist; Telefonnummern, E-Mail-Adressen und Adressparameter von Anfragen entfernt die App vor dem Senden, bei nativen Abstürzen Sentry vor der Speicherung; Beschriftungen angetippter Elemente (etwa Namen) werden nicht übertragen. Es werden keine Telefonnummern, keine Namen, keine Bilder und keine Gesprächsinhalte übertragen, auch keine Werbe-IDs oder Standortdaten. Außerdem meldet die App bei jedem Start und jeder Rückkehr in den Vordergrund kurz an Sentry, dass sie läuft (App-Version, Gerätemodell, iOS-Version, Prüfwert), damit wir sehen, welcher Anteil der Sitzungen ohne Absturz bleibt.',

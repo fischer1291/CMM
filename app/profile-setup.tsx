@@ -1,18 +1,33 @@
 import React, { useState } from 'react';
 import { Alert } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
-import { ProfileSetupView } from '../features/profile/ProfileSetupView';
+import {
+  type AcquisitionChoice,
+  acquisitionAnswer,
+  acquisitionStepVisible,
+  initialAcquisitionChoice,
+} from '../features/profile/acquisitionStep';
+import { AcquisitionStepView, ProfileSetupView } from '../features/profile/ProfileSetupView';
+import { sendAcquisition } from '../services/acquisitionApi';
 import { pickAvatarImage, uploadAvatar } from '../services/avatar';
 
 export default function ProfileSetupScreen() {
-  const { userPhone, updateUserProfile, completeProfileSetup } = useAuth();
+  const { userPhone, userProfile, updateUserProfile, completeProfileSetup, reloadProfile } = useAuth();
   const [name, setName] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Plan 2.10: after the name, optionally where they heard of us
+  const [step, setStep] = useState<'name' | 'acquisition'>('name');
+  const [choice, setChoice] = useState<AcquisitionChoice>(() => initialAcquisitionChoice(userProfile));
 
   const saveProfile = async (avatarUrl: string) => {
     await updateUserProfile({ name: name.trim(), avatarUrl });
-    completeProfileSetup();
+    if (acquisitionStepVisible(userProfile)) {
+      setChoice(initialAcquisitionChoice(userProfile));
+      setStep('acquisition');
+    } else {
+      completeProfileSetup();
+    }
   };
 
   const onSave = async () => {
@@ -38,6 +53,23 @@ export default function ProfileSetupScreen() {
       setSaving(false);
     }
   };
+
+  if (step === 'acquisition') {
+    const answer = acquisitionAnswer(choice);
+    return (
+      <AcquisitionStepView
+        choice={choice}
+        onChange={setChoice}
+        canContinue={!!answer}
+        onContinue={() => {
+          // Sent in the background: a failure stays silent, the app opens either way
+          if (answer) sendAcquisition(answer).then(reloadProfile, () => {});
+          completeProfileSetup();
+        }}
+        onSkip={completeProfileSetup}
+      />
+    );
+  }
 
   return (
     <ProfileSetupView

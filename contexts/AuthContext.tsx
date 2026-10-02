@@ -7,6 +7,7 @@ import { forgetDeviceState } from '../services/deviceState';
 import { setUser as setSentryUser } from '../services/sentry';
 import { session } from '../services/session';
 import { reconnectSocket } from '../services/socket';
+import type { Acquisition } from '../services/acquisitionApi';
 import type { Research } from '../services/researchApi';
 import { apiFetch, apiPostJson } from '../utils/api';
 
@@ -19,6 +20,13 @@ export type UserProfile = {
   inviteCode: string | null;
   /** Invitation to the research call (features/status/ResearchCard); null on older servers */
   research: Research | null;
+  /**
+   * The answer to "Woher kennst du Wanna yap?" (plan 2.10): null before an
+   * answer, undefined on older servers or before the profile loaded
+   */
+  acquisition?: Acquisition | null;
+  /** Joined through someone's invite link (preselects "Freund·in") */
+  joinedViaInvite?: boolean;
 };
 
 type AuthContextType = {
@@ -111,6 +119,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               momentActiveUntil: data.user.momentActiveUntil || null,
               inviteCode: data.user.inviteCode || null,
               research: data.user.research || null,
+              acquisition: data.user.acquisition,
+              joinedViaInvite: data.user.joinedViaInvite === true,
             }
           : EMPTY_PROFILE
       );

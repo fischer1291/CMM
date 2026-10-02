@@ -347,7 +347,11 @@ Identität verknüpft“, Zweck „App-Funktionalität“):
   für die Geräteliste und „Überall abmelden“, Zweck „App-Funktionalität“;
   keine Werbe-ID)
 - **Käufe:** Kaufhistorie (Abo-Ereignisse von RevenueCat: Produkt, Status, Laufzeit, Preis, Währung, Kündigungsgrund; keine Zahlungsdaten)
-- **Sonstige Daten:** Erreichbarkeit, Zeitplan, Gesprächsdauer
+- **Sonstige Daten:** Erreichbarkeit, Zeitplan, Gesprächsdauer; seit Plan
+  2.10 außerdem die freiwillige Antwort „Woher kennst du Wanna yap?“ mit der
+  Zahl der Android-Freunde (0–5 oder unbekannt), zusätzlicher Zweck
+  „Analysen“ (Reichweite je Kanal, nur als Summen ausgewertet; kein Tracking,
+  keine Weitergabe)
 - **Diagnose:** Absturzdaten und Sonstige Diagnosedaten (Sentry, Abschnitt 2b:
   Fehlerberichte und Session-Meldungen bei jedem Start; mit der Identität
   verknüpft, weil der pseudonyme Nutzerschlüssel ein Hash der Nummer ist;
@@ -383,5 +387,10 @@ je Konto; Sentry bekommt Absturzberichte, sobald der DSN im Build ist).
    weiter an. Die Frage „Ist das dein Konto?“ braucht ein Konto, das 180
    Tage ruht; sie ist durch die Backend-Tests (`test/verify.test.js`) und
    die App-Tests (`tests/signInFlow.test.ts`) abgedeckt.
+   Seit Plan 2.10: ein neues Konto über einen Einladungslink anlegen; nach
+   „Fertig“ kommt „Woher kennst du Wanna yap?“ mit „Freund·in“ vorausgewählt,
+   „Weiter“ öffnet die App, beim nächsten Start (oder Profil-Setup) fragt sie
+   nicht noch einmal. Ein zweites neues Konto ohne Einladung: nichts ist
+   vorausgewählt, „Überspringen“ öffnet die App ohne Antwort.
 3. Nach dem Deploy `/api/push-health` prüfen, ob `version` stimmt, und
    `/healthz` muss 200 antworten (Backend-README, Abschnitt Health check).

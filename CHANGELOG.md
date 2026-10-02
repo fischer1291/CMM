@@ -43,6 +43,11 @@ wann als OTA und was als Store-Build rausgeht: `docs/RELEASE.md`.
   die App bei der Anmeldung „Ist das dein Konto?“, statt dich in ein fremdes
   Konto zu lassen. Die Datenschutzerklärung erklärt beides im neuen
   Abschnitt „Angemeldete Geräte und neu vergebene Nummern“.
+- Nach dem Einrichten deines Profils fragen wir einmal, woher du Wanna yap?
+  kennst und wie viele deiner fünf engsten Freunde ein Android-Handy haben.
+  Beides ist freiwillig, „Überspringen“ speichert nichts; kommst du über
+  einen Einladungslink, ist „Freund·in“ schon ausgewählt. Die
+  Datenschutzerklärung erklärt das im neuen Abschnitt „Woher du uns kennst“.
 
 ### Geändert
 
