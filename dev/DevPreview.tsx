@@ -9,6 +9,7 @@ import { Image } from 'expo-image';
 import { CallView, localPreviewStyle } from '../features/call/CallView';
 import { OnboardingView } from '../features/auth/OnboardingView';
 import { VerifyView } from '../features/auth/VerifyView';
+import { AccountCheckView } from '../features/auth/AccountCheckView';
 import { ContactsView } from '../features/contacts/ContactsView';
 import { CallsView } from '../features/calls/CallsView';
 import { PlusView } from '../features/plus/PlusView';
@@ -534,6 +535,12 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpenCircles={() => {}}
       onOpenBlocked={() => {}}
       onRedeemWaitlist={async (code) => (code.replace(/[^A-Z0-9]/g, '') === 'ABCD2345' ? null : 'Diesen Code kennen wir nicht. Prüf ihn in deiner Mail, er sieht so aus: ABCD-1234.')}
+      devices={[
+        { id: 'A', model: 'iPhone 15 Pro', platform: 'ios', appVersion: '1.0.1', appBuild: '31', lastSeenAt: new Date().toISOString(), current: true },
+        { id: 'B', model: 'iPad Air', platform: 'ios', appVersion: '1.0.0', appBuild: '28', lastSeenAt: new Date(Date.now() - 3 * 86400000).toISOString(), current: false },
+      ]}
+      onSignOutEverywhere={() => {}}
+      signingOutEverywhere={false}
       onSignOut={() => {}}
       onDeleteAccount={() => {}}
       version="1.0.0"
@@ -711,6 +718,16 @@ const SCREENS: Record<string, () => React.ReactElement> = {
   onboarding: () => <OnboardingView onStart={() => {}} />,
   'verify-phone': () => <VerifyView {...verifyProps} step="phone" reverify />,
   'verify-code': () => <VerifyView {...verifyProps} step="code" />,
+  'account-check': () => (
+    <AccountCheckView
+      name="Lea"
+      avatarUrl="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&fit=crop"
+      lastActive="März 2026"
+      busy={null}
+      onMine={() => {}}
+      onNotMine={() => {}}
+    />
+  ),
   'profile-setup': () => (
     <ProfileSetupView name="Leroy" onNameChange={() => {}} avatarUri={null} onPickAvatar={() => {}} onSave={() => {}} onSkip={() => {}} saving={false} />
   ),

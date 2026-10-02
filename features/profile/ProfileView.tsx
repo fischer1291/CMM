@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { AppText, Avatar, Button, colors, GlassCard, glow, radius, Screen, SectionHeader, spacing, TAB_BAR_SPACE, TextField } from '../../ui';
+import { deviceLabel, type SignedInDevice } from '../../services/devices';
+import { formatLastSeen } from '../../utils/time';
 
 type Row = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -34,10 +36,45 @@ type Props = {
   onOpenBlocked: () => void;
   /** Code from the waitlist launch mail; returns an error to show, or null. Hidden once redeemed. */
   onRedeemWaitlist?: ((code: string) => Promise<string | null>) | null;
+  /** Devices signed in to the account (plan 2.9); null while loading or when the backend has no list */
+  devices: SignedInDevice[] | null;
+  /** "Überall abmelden": every other device is signed out */
+  onSignOutEverywhere: () => void;
+  signingOutEverywhere: boolean;
   onSignOut: () => void;
   onDeleteAccount: () => void;
   version: string;
 };
+
+/** The device list in the settings: model, "Dieses Gerät" or when it was last seen. */
+function DeviceList({ devices, onSignOutEverywhere, busy }: { devices: SignedInDevice[] | null; onSignOutEverywhere: () => void; busy: boolean }) {
+  return (
+    <GlassCard padded={false}>
+      {(devices ?? []).map((device, i) => (
+        <View key={device.id} style={[styles.row, i > 0 && styles.rowDivider]}>
+          <Ionicons name="phone-portrait-outline" size={20} color={device.current ? colors.cyan : colors.textSecondary} />
+          <View style={{ flex: 1, paddingVertical: spacing.sm }}>
+            <AppText variant="bodyStrong">{deviceLabel(device)}</AppText>
+            <AppText variant="caption" color={device.current ? colors.cyan : colors.textMuted}>
+              {device.current ? 'Dieses Gerät' : `zuletzt aktiv ${formatLastSeen(device.lastSeenAt) ?? 'unbekannt'}`}
+            </AppText>
+          </View>
+        </View>
+      ))}
+      <Pressable
+        onPress={onSignOutEverywhere}
+        disabled={busy}
+        accessibilityRole="button"
+        style={({ pressed }) => [styles.row, (devices?.length ?? 0) > 0 && styles.rowDivider, pressed && { backgroundColor: colors.surface }]}
+      >
+        <Ionicons name={busy ? 'hourglass-outline' : 'exit-outline'} size={20} color={colors.textSecondary} />
+        <AppText variant="bodyStrong" style={{ flex: 1 }}>
+          Überall abmelden
+        </AppText>
+      </Pressable>
+    </GlassCard>
+  );
+}
 
 function RowGroup({ rows }: { rows: Row[] }) {
   return (
@@ -176,6 +213,9 @@ export function ProfileView(props: Props) {
           { icon: 'document-text-outline', label: 'Impressum', onPress: props.onOpenImprint },
         ]}
       />
+
+      <SectionHeader title="Geräte" />
+      <DeviceList devices={props.devices} onSignOutEverywhere={props.onSignOutEverywhere} busy={props.signingOutEverywhere} />
 
       <View style={{ marginTop: spacing.xl }}>
         <RowGroup

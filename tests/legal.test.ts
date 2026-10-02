@@ -55,6 +55,22 @@ test('the policy names the crash reports: Sentry, pseudonymous key, EU, 90 days 
   expect(summary).toContain('Absturzberichte');
 });
 
+test('the policy names the device list and the question for recycled numbers (plan 2.9)', () => {
+  const devices = PRIVACY_SECTIONS.find((s) => s.title === 'Angemeldete Geräte und neu vergebene Nummern')!.paragraphs.join(' ');
+  // what User.devices and User.lastVerifiedAt keep, and what never goes there
+  for (const named of ['IDFV', 'Modell', 'Plattform', 'App-Version', 'zuletzt aktiv', 'bis zu 10 Geräte', 'zuletzt per SMS bestätigt', 'Eine Werbe-ID nutzen wir nicht']) {
+    expect(devices).toContain(named);
+  }
+  expect(devices).toContain('Überall abmelden');
+  expect(devices).toContain('Neue Anmeldung');
+  // the question: after 180 days, first name, picture, month; "no" deletes and keeps a copy 30 days for support
+  for (const named of ['180 Tagen', 'Vornamen', 'Profilbild', 'Monat der letzten Aktivität', 'Ist das dein Konto?', '30 Tage', 'Support']) {
+    expect(devices).toContain(named);
+  }
+  const usage = PRIVACY_SECTIONS.find((s) => s.title === 'Nutzungsstatistik, Support und Moderation')!.paragraphs.join(' ');
+  expect(usage).toContain('Gerätekennung und das Modell');
+});
+
 test('the policy date and the terms version are the October 2026 revision', () => {
   expect(PRIVACY_UPDATED).toBe('2. Oktober 2026');
   expect(PRIVACY_SECTIONS.find((s) => s.title === 'Stand')!.paragraphs).toEqual([PRIVACY_UPDATED]);

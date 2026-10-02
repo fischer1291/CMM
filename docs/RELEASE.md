@@ -342,7 +342,10 @@ Identität verknüpft“, Zweck „App-Funktionalität“):
 - **Kontaktinformationen:** Telefonnummer, Name
 - **Kontakte:** Abgleich per Hash; gespeichert werden nur Treffer mit registrierten Nutzern
 - **Nutzerinhalte:** Fotos (Profilbild, Moments)
-- **Kennungen:** Geräte-ID (Push-Tokens)
+- **Kennungen:** Geräte-ID (Push-Tokens; seit Plan 2.9 außerdem die
+  Gerätekennung des Herstellers für Apps eines Anbieters, IDFV, mit Modell
+  für die Geräteliste und „Überall abmelden“, Zweck „App-Funktionalität“;
+  keine Werbe-ID)
 - **Käufe:** Kaufhistorie (Abo-Ereignisse von RevenueCat: Produkt, Status, Laufzeit, Preis, Währung, Kündigungsgrund; keine Zahlungsdaten)
 - **Sonstige Daten:** Erreichbarkeit, Zeitplan, Gesprächsdauer
 - **Diagnose:** Absturzdaten und Sonstige Diagnosedaten (Sentry, Abschnitt 2b:
@@ -373,5 +376,12 @@ je Konto; Sentry bekommt Absturzberichte, sobald der DSN im Build ist).
    annehmen, ablehnen (Vordergrund und Sperrbildschirm), verpassen,
    abbrechen; Erreichbarkeits-Push bei geschlossener App; Moment teilen;
    Konto löschen mit einem Testkonto.
+   Seit Plan 2.9 außerdem: auf Gerät B mit der Nummer von Gerät A anmelden
+   (A bekommt „Neue Anmeldung“, der Tipp öffnet die Einstellungen), dann auf
+   A „Überall abmelden“: B fällt bei der nächsten Anfrage auf die Anmeldung
+   zurück und klingelt nicht mehr, A bleibt angemeldet, Anrufe kommen auf A
+   weiter an. Die Frage „Ist das dein Konto?“ braucht ein Konto, das 180
+   Tage ruht; sie ist durch die Backend-Tests (`test/verify.test.js`) und
+   die App-Tests (`tests/signInFlow.test.ts`) abgedeckt.
 3. Nach dem Deploy `/api/push-health` prüfen, ob `version` stimmt, und
    `/healthz` muss 200 antworten (Backend-README, Abschnitt Health check).

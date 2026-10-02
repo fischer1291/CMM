@@ -43,6 +43,8 @@ const TYPE_TEXT: Record<string, (name: string) => string> = {
   plus_winback_30: () => 'Plus wieder holen',
   cancel_survey: () => 'Kurze Frage zu Plus',
   referral_pair_reward: () => 'Plus für euch beide',
+  // A device the account did not know signed in (plan 2.9)
+  new_device: () => 'Neue Anmeldung',
 };
 
 const RESULT_TEXT: Record<string, { text: string; color: string }> = {

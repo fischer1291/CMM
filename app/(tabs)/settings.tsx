@@ -1,12 +1,13 @@
 import Constants from 'expo-constants';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { usePlan } from '../../contexts/PlanContext';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Linking, Share } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { ProfileView } from '../../features/profile/ProfileView';
 import { inviteText } from '../../content/links';
 import { deleteAccount, exportAccountData } from '../../services/account';
+import { fetchDevices, signOutEverywhere, type SignedInDevice } from '../../services/devices';
 import { paywallHref } from '../../services/paywall';
 import { pickAvatarImage, uploadAvatar } from '../../services/avatar';
 import { redeemWaitlistCode, waitlistRedeemed } from '../../services/waitlistApi';
@@ -36,8 +37,43 @@ export default function ProfileScreen() {
     }
   };
   const router = useRouter();
-  const { userPhone, userProfile, updateUserProfile, signOut } = useAuth();
+  const { userPhone, userProfile, updateUserProfile, signOut, replaceToken } = useAuth();
   const [uploading, setUploading] = useState(false);
+
+  // Devices signed in to the account (plan 2.9), fresh whenever the tab shows
+  const [devices, setDevices] = useState<SignedInDevice[] | null>(null);
+  const [signingOutEverywhere, setSigningOutEverywhere] = useState(false);
+  const loadDevices = useCallback(() => {
+    fetchDevices()
+      .then(setDevices)
+      .catch(() => {});
+  }, []);
+  useFocusEffect(loadDevices);
+
+  const confirmSignOutEverywhere = () =>
+    Alert.alert(
+      'Überall abmelden?',
+      'Alle anderen Geräte werden abgemeldet und bekommen keine Mitteilungen und Anrufe mehr. Auf diesem Gerät bleibst du angemeldet.',
+      [
+        { text: 'Abbrechen', style: 'cancel' },
+        {
+          text: 'Überall abmelden',
+          style: 'destructive',
+          onPress: async () => {
+            setSigningOutEverywhere(true);
+            try {
+              await signOutEverywhere(replaceToken);
+              loadDevices();
+              Alert.alert('Erledigt', 'Alle anderen Geräte sind abgemeldet. Wer dort weitermachen will, braucht einen neuen SMS-Code.');
+            } catch (err) {
+              Alert.alert('Nicht abgemeldet', (err as Error).message);
+            } finally {
+              setSigningOutEverywhere(false);
+            }
+          },
+        },
+      ]
+    );
 
   const changeAvatar = async () => {
     const uri = await pickAvatarImage();
@@ -128,6 +164,9 @@ export default function ProfileScreen() {
       onOpenImprint={() => router.push('/impressum')}
       onOpenCircles={() => router.push('/circles')}
       onOpenBlocked={() => router.push('/blocked')}
+      devices={devices}
+      onSignOutEverywhere={confirmSignOutEverywhere}
+      signingOutEverywhere={signingOutEverywhere}
       onSignOut={confirmSignOut}
       onDeleteAccount={confirmDelete}
       version={Constants.expoConfig?.version ?? '1.0.0'}

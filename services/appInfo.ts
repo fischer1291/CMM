@@ -14,6 +14,7 @@ export const APP_VERSION = Application.nativeApplicationVersion ?? '0.0.0';
 export const APP_BUILD = Application.nativeBuildVersion ?? '0';
 export const APP_UPDATE = describeUpdate(Updates);
 
+// services/deviceId.ts adds X-Device-Id and X-Device-Model at startup
 export const appHeaders: Record<string, string> = {
   'X-App-Version': APP_VERSION,
   'X-App-Build': APP_BUILD,

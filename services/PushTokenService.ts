@@ -24,6 +24,11 @@ class PushTokenService {
     return status as PermissionState;
   }
 
+  /** This device's Expo push token, once registered in this launch. */
+  getToken(): string | null {
+    return this.pushToken;
+  }
+
   /** Ask for permission (shows the system dialog once), then register. */
   async requestAndRegister(userPhone: string): Promise<PermissionState> {
     const { status } = await Notifications.requestPermissionsAsync();
@@ -45,6 +50,7 @@ class PushTokenService {
         {
           userPhone,
           token,
+          // Older backends only; current ones take X-Device-Id (services/deviceId.ts)
           deviceId: `${Platform.OS}-${Device.deviceName}-${Device.osVersion}`.replace(/[^a-zA-Z0-9-]/g, ''),
           platform: Platform.OS,
           timezone: deviceTimezone(),

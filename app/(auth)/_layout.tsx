@@ -10,6 +10,8 @@ export default function AuthLayout() {
     <Stack initialRouteName={pendingPhone ? 'verify' : 'onboarding'} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="onboarding" />
       <Stack.Screen name="verify" />
+      {/* "Ist das dein Konto?" for a recycled number (plan 2.9) */}
+      <Stack.Screen name="account-check" />
     </Stack>
   );
 }

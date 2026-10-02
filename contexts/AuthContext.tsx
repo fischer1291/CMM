@@ -6,6 +6,7 @@ import PushTokenService from '../services/PushTokenService';
 import { forgetDeviceState } from '../services/deviceState';
 import { setUser as setSentryUser } from '../services/sentry';
 import { session } from '../services/session';
+import { reconnectSocket } from '../services/socket';
 import type { Research } from '../services/researchApi';
 import { apiFetch, apiPostJson } from '../utils/api';
 
@@ -38,6 +39,11 @@ type AuthContextType = {
   signOut: (options?: { local?: boolean }) => Promise<void>;
   updateUserProfile: (profile: Partial<UserProfile>) => Promise<void>;
   reloadProfile: () => void;
+  /**
+   * A new token for the signed-in user ("Überall abmelden"): replaces it in
+   * the keychain and the session and reconnects the socket, without signing out.
+   */
+  replaceToken: (token: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -52,6 +58,7 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   updateUserProfile: async () => {},
   reloadProfile: () => {},
+  replaceToken: async () => {},
 });
 
 // Readable while the device is locked (after the first unlock since boot), so a
@@ -180,6 +187,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     []
   );
 
+  // The keychain copy first: the next launch restores the session from it
+  const replaceToken = useCallback(async (token: string) => {
+    await storeSecure('authToken', token);
+    session.setToken(token);
+    reconnectSocket(token);
+  }, []);
+
   // A rejected token (expired/revoked) signs the user out
   useEffect(() => {
     session.onUnauthorized(() => {
@@ -241,6 +255,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         signOut,
         updateUserProfile,
         reloadProfile,
+        replaceToken,
       }}
     >
       {children}

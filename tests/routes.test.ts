@@ -45,3 +45,10 @@ test('external links: only https on apps.apple.com', () => {
   expect(safeExternalUrl('/plus')).toBeNull();
   expect(safeExternalUrl(undefined)).toBeNull();
 });
+
+test('new_device opens the settings with the device list (plan 2.9)', () => {
+  // CMM-backend-new/lib/notify.js CATALOG new_device: url /settings
+  expect(safeRoute('/settings')).toBe('/settings');
+  expect(safeRoute('/settings?x=1')).toBeNull();
+  expect(safeRoute('/settingsX')).toBeNull();
+});

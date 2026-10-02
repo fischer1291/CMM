@@ -27,6 +27,7 @@ import { NotificationRouter } from '../components/NotificationRouter';
 import { fetchPreviewState } from '../dev/previewControl';
 import { setupNotifications } from '../services/notifications';
 import { installErrorReporting } from '../services/diagnostics';
+import { initDeviceId } from '../services/deviceId';
 import { init as initSentry, wrap as wrapWithSentry } from '../services/sentry';
 import { startUpdateWatcher } from '../services/updates';
 import { colors } from '../ui/theme';
@@ -35,6 +36,9 @@ import { colors } from '../ui/theme';
 // sits underneath ours and native crashes are caught from the first frame
 initSentry();
 installErrorReporting();
+// X-Device-Id / X-Device-Model for every request (plan 2.9); apiFetch waits
+// for it, so the session restore in AuthProvider already sends both
+initDeviceId();
 setupNotifications();
 // The native splash stays until the animated launch screen takes over
 SplashScreen.preventAutoHideAsync().catch(() => {});

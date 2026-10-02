@@ -36,6 +36,13 @@ wann als OTA und was als Store-Build rausgeht: `docs/RELEASE.md`.
   jetzt einen Knopf „Mehr zu Plus“; in einer Runde läuft das Gespräch dabei
   weiter. Sind die Moments für heute aufgebraucht, sagt dir die App das
   freundlich, statt einen Fehler zu zeigen.
+- Unter Profil → Geräte siehst du, auf welchen Geräten du angemeldet bist,
+  und kannst dich mit „Überall abmelden“ von allen anderen abmelden. Meldet
+  sich ein neues Gerät mit deiner Nummer an, bekommst du eine Mitteilung.
+- Neu vergebene Nummern: Gehörte deine Nummer vorher jemand anderem, fragt
+  die App bei der Anmeldung „Ist das dein Konto?“, statt dich in ein fremdes
+  Konto zu lassen. Die Datenschutzerklärung erklärt beides im neuen
+  Abschnitt „Angemeldete Geräte und neu vergebene Nummern“.
 
 ### Geändert
 
