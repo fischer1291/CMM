@@ -17,7 +17,7 @@ on:
         type: boolean
         default: true
       was_testen:
-        description: Was testen? (steht bei den Testern in TestFlight, optional)
+        description: Was testen? (steht in der Zusammenfassung des Laufs zum Einfügen in TestFlight, optional)
         type: string
         default: ''
 
@@ -62,6 +62,11 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
       # EAS prints its progress here; the result (JSON) goes outside the checkout, which must stay clean
+      # No --what-to-test: EAS passes a tester note to TestFlight on the
+      # Enterprise plan only and refuses the whole submission otherwise
+      # ("Changelog submission is currently available for Enterprise plan
+      # only"). The note goes into this run's summary instead, to paste into
+      # App Store Connect → TestFlight → the build → "Was testen?".
       - name: Build und Upload
         env:
           SUBMIT: ${{ inputs.submit }}
@@ -69,7 +74,10 @@ jobs:
         run: |
           args=(--platform ios --profile production --non-interactive --json)
           if [ "$SUBMIT" = "true" ]; then
-            args+=(--auto-submit --what-to-test "${NOTE:-Aktueller Stand von main ($(git rev-parse --short HEAD))}")
+            args+=(--auto-submit)
+          fi
+          if [ -n "$NOTE" ]; then
+            printf '### Was testen? (in TestFlight einfügen)\n\n%s\n\n' "$NOTE" >> "$GITHUB_STEP_SUMMARY"
           fi
           set +e
           eas build "${args[@]}" > "$RUNNER_TEMP/build.json"

@@ -43,13 +43,16 @@ App Store Connect hoch. So gibt es nur einen Zähler und keine doppelten Nummern
 **Normalfall, ohne Mac:** GitHub → CMM → Actions → **iOS-Build** → *Run workflow*
 (Branch `main`, „hochladen“ angehakt, optional „Was testen?“ für die Tester).
 Der Lauf wartet, bis der Build fertig und bei Apple ist (meist 20–30 Minuten), und
-ist nur dann grün. Die Zusammenfassung des Laufs zeigt die Build-Nummer und die
-Links zu expo.dev. Danach verarbeitet Apple den Build noch 10–30 Minuten, dann
-steht er in TestFlight. Die Frage nach der
+ist nur dann grün. Die Zusammenfassung des Laufs zeigt die Build-Nummer, die
+Links zu expo.dev und den Text „Was testen?“. Den Text trägst du selbst in App
+Store Connect → TestFlight → Build → „Was testen?“ ein: EAS gibt ihn nur im
+Enterprise-Plan an Apple weiter und lehnt sonst die ganze Einreichung ab. Danach
+verarbeitet Apple den Build noch 10–30 Minuten, dann steht er in TestFlight. Die Frage nach der
 Exportverschlüsselung kommt nicht (`ITSAppUsesNonExemptEncryption: false`).
 
 **Vom Mac aus, gleicher Weg:** `scripts/testflight.sh "Was testen?"` (vorher einmal
-`npx eas-cli login`). Gebaut wird, was committet ist.
+`npx eas-cli login`; der Text wird am Ende ausgegeben, zum Einfügen in TestFlight).
+Gebaut wird, was committet ist.
 
 Nicht mehr bauen: direkt mit Xcode (*Archive → Distribute*) oder mit `xcodebuild`.
 Solche Builds zählen an EAS vorbei, und die nächste Nummer von EAS gibt es dann
