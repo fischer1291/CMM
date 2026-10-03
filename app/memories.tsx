@@ -10,6 +10,7 @@ import { useContacts } from '../contexts/ContactsContext';
 import { Moment, toMoment } from '../features/moments/model';
 import { AppText, colors, EmptyState, GlassCard, PageHeader, Screen, spacing } from '../ui';
 import { apiFetch } from '../utils/api';
+import { paywallHref } from '../services/paywall';
 
 const dateOf = (iso: string) =>
   new Date(iso).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -46,7 +47,7 @@ export default function MemoriesScreen() {
     <Screen>
       <PageHeader title="Erinnerungen" onBack={() => router.back()} />
       {older > 0 ? (
-        <Pressable onPress={() => router.push('/plus')} accessibilityRole="button" style={{ marginBottom: spacing.md }}>
+        <Pressable onPress={() => router.push(paywallHref('memories'))} accessibilityRole="button" style={{ marginBottom: spacing.md }}>
           <GlassCard glow={colors.violet}>
             <AppText variant="bodyStrong">{older === 1 ? '1 ältere Erinnerung' : `${older} ältere Erinnerungen`} ✨</AppText>
             <AppText variant="caption" color={colors.textSecondary}>

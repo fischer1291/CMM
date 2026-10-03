@@ -1,4 +1,4 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { SupportView, TicketView } from '../features/support/SupportView';
@@ -8,6 +8,8 @@ import { fetchTickets, markTicketRead, openTicket, replyToTicket, SupportCategor
 
 export default function SupportScreen() {
   const router = useRouter();
+  // /support?topic=cancel from the Plus page (cancel_survey push)
+  const { topic } = useLocalSearchParams<{ topic?: string }>();
   const [tickets, setTickets] = useState<SupportTicket[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -74,6 +76,8 @@ export default function SupportScreen() {
       onSend={send}
       onOpen={(t) => setOpenId(t.id)}
       version={`${APP_VERSION} (${APP_BUILD})`}
+      topic={topic}
+      onReport={() => router.push('/melden')}
     />
   );
 }

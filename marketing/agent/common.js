@@ -91,16 +91,31 @@ async function spend({ provider, purpose, estimateEur, campaign, note }, fn) {
 const spent = () => Math.round(spentThisRun * 100) / 100;
 
 /**
+ * The end of a run that went through (plan 2.14): POST /marketing/notify
+ * with how long it took. The backend marks the run as fine and mails the
+ * owners if drafts wait for approval. A failed run is reported by the
+ * workflow itself (marketing-agent.yml, step "Fehlschlag melden").
+ */
+async function reportRun(startedAt) {
+  const { runSeconds } = require('./performance');
+  return backend('POST', '/marketing/notify', { durationSec: runSeconds(startedAt) });
+}
+
+/**
  * Upload one draft: the text first, then the MP4. The campaign name gets a
  * suffix if it is taken. Returns the campaign, or null when all were taken.
+ * `fields.hookVariants` (plan 2.14) is cleaned to what the backend takes
+ * (agent/performance.js hookVariants), so a long hook never costs the draft.
  */
 async function uploadDraft(base, fields, file) {
   const fs = require('fs');
+  const { hookVariants } = require('./performance');
   const name = base.slice(0, 56);
+  const body = { ...fields, hookVariants: hookVariants(fields.hookVariants) };
   for (const campaign of [name, `${name}-2`, `${name}-3`]) {
     let created;
     try {
-      created = await backend('POST', '/marketing/drafts', { ...fields, campaign });
+      created = await backend('POST', '/marketing/drafts', { ...body, campaign });
     } catch (err) {
       if (err.code === 'campaign_taken') continue;
       throw err;
@@ -132,7 +147,7 @@ const dayTag = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/
 
 module.exports = {
   API, KEY, MODEL, VIDEO_MODEL, IMAGE_MODEL, SPEECH_MODEL,
-  backend, spend, spent, BudgetExceeded, uploadDraft, musicFor,
+  backend, spend, spent, BudgetExceeded, uploadDraft, reportRun, musicFor,
   PRICES, eur, claudeCost, claudeMax, videoCost, imageCost,
   today, dayTag,
 };

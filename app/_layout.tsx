@@ -27,9 +27,18 @@ import { NotificationRouter } from '../components/NotificationRouter';
 import { fetchPreviewState } from '../dev/previewControl';
 import { setupNotifications } from '../services/notifications';
 import { installErrorReporting } from '../services/diagnostics';
+import { initDeviceId } from '../services/deviceId';
+import { init as initSentry, wrap as wrapWithSentry } from '../services/sentry';
+import { startUpdateWatcher } from '../services/updates';
 import { colors } from '../ui/theme';
 
+// Sentry first (only with a DSN, never in development), so its error handler
+// sits underneath ours and native crashes are caught from the first frame
+initSentry();
 installErrorReporting();
+// X-Device-Id / X-Device-Model for every request (plan 2.9); apiFetch waits
+// for it, so the session restore in AuthProvider already sends both
+initDeviceId();
 setupNotifications();
 // The native splash stays until the animated launch screen takes over
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -53,6 +62,11 @@ function InnerLayout() {
     fetchPreviewState().then((state) => setShowPreview(!!state?.open));
   }, []);
   const ready = !isLoading && fontsLoaded;
+
+  // OTA updates: look for a new bundle when the app comes back to the
+  // foreground (throttled in services/updates.ts, the launch is checked
+  // natively) and offer a restart, never force it and never during a call
+  useEffect(() => startUpdateWatcher(), []);
 
   // Animated launch screen on top until the app is ready (then it zooms away).
   // The key keeps it the same instance while the content around it changes.
@@ -133,6 +147,8 @@ function InnerLayout() {
             the first allowed screen, which must be onboarding, not these. */}
         <Stack.Screen name="datenschutz" />
         <Stack.Screen name="impressum" />
+        <Stack.Screen name="nutzungsbedingungen" />
+        <Stack.Screen name="melden" />
         <Stack.Screen name="einladung" />
         <Stack.Screen name="kreis" />
       </Stack>
@@ -143,7 +159,7 @@ function InnerLayout() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <SafeAreaProvider>
       <AppConfigProvider>
@@ -161,3 +177,6 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+// Sentry.wrap() only when reporting is active; otherwise the layout as is
+export default wrapWithSentry(RootLayout);

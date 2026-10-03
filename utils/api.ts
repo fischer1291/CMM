@@ -1,24 +1,29 @@
 import { API_BASE_URL } from '../config/env';
 import { appHeaders } from '../services/appInfo';
+import { deviceIdReady } from '../services/deviceId';
 import { session } from '../services/session';
 import { DEFAULT_TIMEOUT, fetchWithTimeout } from './apiUtils';
 
 /**
- * fetch against the backend: prefixes API_BASE_URL, adds the auth token and
- * signs the user out when the backend rejects the token.
+ * fetch against the backend: prefixes API_BASE_URL, adds the app and device
+ * headers (services/appInfo.ts, services/deviceId.ts) and the auth token,
+ * and signs the user out when the backend rejects the token.
  */
 export async function apiFetch(
   path: string,
   init: RequestInit = {},
   timeout: number = DEFAULT_TIMEOUT
 ): Promise<Response> {
+  // The device id is read once at startup; the first requests wait for it
+  await deviceIdReady();
   const token = session.getToken();
   const headers: Record<string, string> = { ...appHeaders, ...(init.headers as Record<string, string>) };
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const response = await fetchWithTimeout(`${API_BASE_URL}${path}`, { ...init, headers }, timeout);
   if (response.status === 401 && token) {
-    session.handleUnauthorized();
+    // Only if this token is still the current one ("Überall abmelden" swaps it)
+    session.handleUnauthorized(token);
   }
   return response;
 }

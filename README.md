@@ -31,6 +31,9 @@ Set via environment variables when starting Metro (see `config/env.ts`):
 |---|---|
 | `EXPO_PUBLIC_API_URL` | `https://api.wannayap.app` |
 | `EXPO_PUBLIC_AGORA_APP_ID` | production Agora App ID |
+| `EXPO_PUBLIC_REVENUECAT_IOS_KEY` | none: purchases stay off. Store builds and OTA updates take it from `eas.json` (`scripts/eas-env.js`) |
+| `EXPO_PUBLIC_SENTRY_DSN` | none: crash telemetry stays off (also always off in development builds). Release builds take it from the EAS environment variable, OTA bundles from the GitHub secret of the same name (`docs/RELEASE.md`, "Crash-Telemetrie") |
+| `EXPO_PUBLIC_SENTRY_ENV` | `production`; `eas.json` sets `preview` for the preview profile |
 
 ### Local machine notes
 
@@ -54,7 +57,7 @@ npm run check      # typecheck + lint, same as CI
 | `services/` | Call state, CallKit/CallKeep, notifications, PushKit token |
 | `config/` | Runtime configuration |
 | `ios/` | Native iOS project (committed; contains the PushKit/CallKit AppDelegate) |
-| `docs/` | Dev setup and historical fix notes |
+| `docs/` | Index in [`docs/README.md`](docs/README.md): dev setup, release checklist, [`RUNBOOK.md`](docs/RUNBOOK.md) (alarms, backup and restore, rollback, deploy window), [`SERVICES.md`](docs/SERVICES.md) (every service and how to hand over access), [`EMERGENCY.md`](docs/EMERGENCY.md) (if the founder is out), [`RESEARCH.md`](docs/RESEARCH.md) (user research), [`PRIVACY-CHANGE.md`](docs/PRIVACY-CHANGE.md) (privacy change process), historical fix notes and [`SCALE-PLAN.md`](docs/SCALE-PLAN.md): the 12-month plan for the processes and automation that turn the app into a company |
 
 ## Calls on iOS
 

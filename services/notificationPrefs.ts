@@ -5,6 +5,8 @@ export type NotificationPrefs = {
   nudges: boolean;
   moments: boolean;
   dailyMoment: boolean;
+  /** "Erinnerungen und Tipps", the lifecycle pushes (backend lib/lifecycle.js); missing on older servers, which means on */
+  lifecycle?: boolean;
   quietHours: { enabled: boolean; start: number; end: number };
 };
 
@@ -24,6 +26,22 @@ export async function saveNotificationPrefs(prefs: Partial<NotificationPrefs>): 
   const data = await res.json();
   if (!res.ok || !data.prefs) throw new Error(`HTTP ${res.status}`);
   return data.prefs;
+}
+
+/**
+ * Re-match (plan 2.13, backend lib/rematch.js): with the opt-in, the next
+ * contact sync leaves the hashes of numbers without an account on the server
+ * (peppered, 90 days); switching it off deletes them at once.
+ */
+export async function saveRematch(optIn: boolean): Promise<boolean> {
+  const res = await apiFetch(
+    '/me/rematch',
+    { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ optIn }) },
+    10000
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.success !== true || typeof data.optIn !== 'boolean') throw new Error(data.error || `HTTP ${res.status}`);
+  return data.optIn;
 }
 
 export type RecentPush = {

@@ -3,7 +3,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import PushTokenService from '../services/PushTokenService';
+import { forgetDeviceState } from '../services/deviceState';
+import { setUser as setSentryUser } from '../services/sentry';
 import { session } from '../services/session';
+import { reconnectSocket } from '../services/socket';
+import type { Acquisition } from '../services/acquisitionApi';
+import type { Research } from '../services/researchApi';
 import { apiFetch, apiPostJson } from '../utils/api';
 
 export type UserProfile = {
@@ -11,6 +16,22 @@ export type UserProfile = {
   avatarUrl: string;
   lastOnline: string;
   momentActiveUntil: string | null;
+  /** Personal code in the invite link (content/links.ts); null on older servers */
+  inviteCode: string | null;
+  /** Invitation to the research call (features/status/ResearchCard); null on older servers */
+  research: Research | null;
+  /**
+   * The answer to "Woher kennst du Wanna yap?" (plan 2.10): null before an
+   * answer, undefined on older servers or before the profile loaded
+   */
+  acquisition?: Acquisition | null;
+  /** Joined through someone's invite link (preselects "Freund·in") */
+  joinedViaInvite?: boolean;
+  /**
+   * Re-match opt-in (plan 2.13, PUT /me/rematch): tell me when someone from
+   * my address book joins. undefined on older servers (no switch then)
+   */
+  rematchOptIn?: boolean;
 };
 
 type AuthContextType = {
@@ -31,6 +52,11 @@ type AuthContextType = {
   signOut: (options?: { local?: boolean }) => Promise<void>;
   updateUserProfile: (profile: Partial<UserProfile>) => Promise<void>;
   reloadProfile: () => void;
+  /**
+   * A new token for the signed-in user ("Überall abmelden"): replaces it in
+   * the keychain and the session and reconnects the socket, without signing out.
+   */
+  replaceToken: (token: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -45,6 +71,7 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   updateUserProfile: async () => {},
   reloadProfile: () => {},
+  replaceToken: async () => {},
 });
 
 // Readable while the device is locked (after the first unlock since boot), so a
@@ -57,7 +84,7 @@ async function storeSecure(key: string, value: string | null) {
   if (value) await SecureStore.setItemAsync(key, value, KEYCHAIN_OPTIONS);
 }
 
-const EMPTY_PROFILE: UserProfile = { name: '', avatarUrl: '', lastOnline: '', momentActiveUntil: null };
+const EMPTY_PROFILE: UserProfile = { name: '', avatarUrl: '', lastOnline: '', momentActiveUntil: null, inviteCode: null, research: null };
 
 /** True when the backend issues tokens, so a token-less login must be re-verified. */
 async function backendRequiresTokens(): Promise<boolean> {
@@ -95,6 +122,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               avatarUrl: data.user.avatarUrl || '',
               lastOnline: data.user.lastOnline || '',
               momentActiveUntil: data.user.momentActiveUntil || null,
+              inviteCode: data.user.inviteCode || null,
+              research: data.user.research || null,
+              acquisition: data.user.acquisition,
+              joinedViaInvite: data.user.joinedViaInvite === true,
+              rematchOptIn: typeof data.user.rematchOptIn === 'boolean' ? data.user.rematchOptIn : undefined,
             }
           : EMPTY_PROFILE
       );
@@ -133,12 +165,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (userPhone) loadProfile();
   }, [userPhone, loadProfile]);
 
+  // Crash reports carry the hash of the own number as user key, never the
+  // number (services/sentry.ts); signing out clears it
+  useEffect(() => {
+    setSentryUser(userPhone);
+  }, [userPhone]);
+
   const signOut = useCallback(async (options?: { local?: boolean }) => {
     // While the auth token still works: this device stops getting pushes/calls.
     // Skipped when the server just rejected the token (it would fail again)
     // or the account no longer exists.
     if (session.getToken() && !options?.local) await PushTokenService.unregister();
     session.setToken(null);
+    // The next login reports the device permissions at once (services/deviceState)
+    await forgetDeviceState();
     await storeSecure('authToken', null);
     await storeSecure('userPhone', null);
     setUserPhoneState(null);
@@ -162,6 +202,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     },
     []
   );
+
+  // The keychain copy first: the next launch restores the session from it
+  const replaceToken = useCallback(async (token: string) => {
+    await storeSecure('authToken', token);
+    session.setToken(token);
+    reconnectSocket(token);
+  }, []);
 
   // A rejected token (expired/revoked) signs the user out
   useEffect(() => {
@@ -224,6 +271,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         signOut,
         updateUserProfile,
         reloadProfile,
+        replaceToken,
       }}
     >
       {children}

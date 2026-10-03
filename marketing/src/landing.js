@@ -52,8 +52,10 @@ const FAQ = [
 
 module.exports = function landing({ logoSvg, siteUrl, legalUrl, downloadUrl, ogImage, mode = 'live', apiUrl = 'https://api.wannayap.app', preorder = false }) {
   const waiting = mode === 'waitlist';
-  const storeCta = `<a class="cta" href="${downloadUrl}">${ICON.phone}<span>Im App Store laden</span></a>`;
-  const preorderLink = preorder ? `<a class="ghost" href="${downloadUrl}">Im App Store vorbestellen</a>` : '';
+  // data-store: the script at the end counts the click and adds ?ct= (the
+  // store switch itself stays in one place, /download)
+  const storeCta = `<a class="cta" href="${downloadUrl}" data-store>${ICON.phone}<span>Im App Store laden</span></a>`;
+  const preorderLink = preorder ? `<a class="ghost" href="${downloadUrl}" data-store>Im App Store vorbestellen</a>` : '';
   /** Waitlist sign-up (the script at the end sends it to the backend). */
   const waitForm = (id) => `
     <form class="wl" data-waitlist novalidate>
@@ -100,6 +102,10 @@ h1, h2, h3 { margin: 0; text-wrap: balance; letter-spacing: -0.03em; line-height
 p { margin: 0; }
 .eyebrow { font-family: var(--mono); font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cyan); }
 .muted { color: var(--text-2); }
+
+/* Status line: an active notice or outage banner from GET /app-config (statusScript) */
+.status { padding: max(10px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) 10px max(24px, env(safe-area-inset-left, 0px)); text-align: center; font-size: 15px; line-height: 1.4; color: var(--cyan); background: rgba(0,229,255,0.08); border-bottom: 1px solid rgba(0,229,255,0.25); }
+.status[data-level="warning"] { color: var(--warning); background: rgba(255,181,71,0.10); border-bottom-color: rgba(255,181,71,0.35); }
 
 /* Nav */
 .nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; backdrop-filter: blur(18px); background: rgba(11,11,18,0.72); border-bottom: 1px solid var(--border); }
@@ -212,7 +218,7 @@ p { margin: 0; }
 /* Footer */
 footer { border-top: 1px solid var(--border); padding-block: 40px 60px; font-size: 14px; color: var(--text-3); }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center; }
-footer nav { display: flex; gap: 22px; }
+footer nav { display: flex; flex-wrap: wrap; gap: 8px 22px; }
 footer a { text-decoration: none; color: var(--text-2); }
 footer a:hover { color: var(--text); }
 
@@ -280,6 +286,7 @@ dialog.wl-dialog::backdrop { background: rgba(5,5,10,0.78); backdrop-filter: blu
 </style>
 </head>
 <body>
+<div class="status" id="wy-status" role="status" hidden></div>
 <header class="nav">
   <div class="wrap">
     <a class="logo" href="#top" aria-label="Wanna yap?">${logoSvg}<span>Wanna yap?</span></a>
@@ -287,7 +294,7 @@ dialog.wl-dialog::backdrop { background: rgba(5,5,10,0.78); backdrop-filter: blu
       <a href="#so-gehts">So geht’s</a>
       <a href="#features">Features</a>
       <a href="#faq">FAQ</a>
-      ${waiting ? '<a class="mini" href="#warteliste">Warteliste</a>' : `<a class="mini" href="${downloadUrl}">Laden</a>`}
+      ${waiting ? '<a class="mini" href="#warteliste">Warteliste</a>' : `<a class="mini" href="${downloadUrl}" data-store>Laden</a>`}
     </nav>
   </div>
 </header>
@@ -388,10 +395,11 @@ dialog.wl-dialog::backdrop { background: rgba(5,5,10,0.78); backdrop-filter: blu
 <footer>
   <div class="wrap">
     <a class="logo" href="#top">${logoSvg}<span>Wanna yap?</span></a>
-    <nav aria-label="Rechtliches"><a href="${legalUrl}/impressum">Impressum</a><a href="${legalUrl}/datenschutz">Datenschutz</a></nav>
+    <nav aria-label="Rechtliches"><a href="${legalUrl}/impressum">Impressum</a><a href="${legalUrl}/datenschutz">Datenschutz</a><a href="${legalUrl}/nutzungsbedingungen">Nutzungsbedingungen</a><a href="${legalUrl}/melden">Melden</a></nav>
     <span>Gemacht für echte Gespräche.</span>
   </div>
 </footer>
+${statusScript({ apiUrl })}
 ${visitScript({ apiUrl, siteUrl })}
 ${waiting ? waitlistScript({ apiUrl, siteUrl }) : ''}
 </body>
@@ -399,18 +407,73 @@ ${waiting ? waitlistScript({ apiUrl, siteUrl }) : ''}
 };
 
 /**
+ * The line an active banner shows, from the body of GET /app-config (plan
+ * 2.15): { text, level } or null (no banner, no text, already over). Runs in
+ * the browser as written (statusScript inlines it), so it stays plain ES2017
+ * without outside names; tests call it directly.
+ */
+function bannerLine(data, now) {
+  const banner = data && typeof data === 'object' ? data.banner : null;
+  if (!banner || typeof banner.text !== 'string') return null;
+  const text = banner.text.trim();
+  if (!text) return null;
+  const until = banner.until ? Date.parse(banner.until) : NaN;
+  if (!Number.isNaN(until) && until <= now) return null;
+  return { text, level: banner.level === 'warning' ? 'warning' : 'info' };
+}
+
+/**
+ * Outage and notice banner (plan 2.15): the same banner the app shows, read
+ * from the public GET /app-config (alerts with user impact switch it on and
+ * off by themselves, CMM/docs/RUNBOOK.md "Störungs-Banner"). One plain GET
+ * per page view: no cookie, nothing stored, no counting. The text only ever
+ * goes in as textContent; without a banner, or when the request fails, the
+ * line stays hidden and nothing else happens.
+ */
+function statusScript({ apiUrl }) {
+  return `<script>
+(() => {
+  ${bannerLine.toString().replace(/\n/g, '\n  ')}
+  const box = document.getElementById('wy-status');
+  if (!box || typeof fetch !== 'function') return;
+  fetch(${JSON.stringify(apiUrl)} + '/app-config', { credentials: 'omit', cache: 'no-store' })
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data) => {
+      const line = bannerLine(data, Date.now());
+      if (!line) return;
+      box.textContent = line.text;
+      box.setAttribute('data-level', line.level);
+      box.hidden = false;
+    })
+    .catch(() => {});
+})();
+</script>`;
+}
+
+/**
  * Counts the visit (Admin console → Warteliste → Landing Page): one POST with
  * where it came from, no cookie, nothing stored on the device; then, once
- * each, whether the page was read and whether someone typed an address. Source is
- * utm_source, else the platform in the referrer (e.g. the link in the Instagram
- * bio). Reloads, back/forward, clicks within our own pages, the links from
- * our own mails and browsers switched off with ?nichtzaehlen=1 don't count.
- * Also leaves the source in window.wyVisitSource for the sign-up.
+ * each, whether the page was read, whether someone typed an address and whether
+ * a store button was clicked. Source is utm_source, else the platform in the
+ * referrer (e.g. the link in the Instagram bio). Reloads, back/forward, clicks
+ * within our own pages, the links from our own mails and browsers switched off
+ * with ?nichtzaehlen=1 don't count. Also leaves the source in
+ * window.wyVisitSource for the sign-up.
  */
 function visitScript({ apiUrl, siteUrl }) {
   return `<script>
 (() => {
   const q = new URLSearchParams(location.search);
+  // The campaign travels on to /download (and from there as ct into the App
+  // Store), same cleaning as there
+  const ct = (q.get('ct') || q.get('utm_campaign') || '').replace(/[^\\w-]/g, '').slice(0, 40);
+  if (ct) {
+    for (const a of document.querySelectorAll('a[data-store]')) {
+      const url = new URL(a.getAttribute('href'), location.href);
+      url.searchParams.set('ct', ct);
+      a.href = url.toString();
+    }
+  }
   const PLATFORMS = [
     ['instagram', /(^|\\.)instagram\\.com$/], ['tiktok', /(^|\\.)tiktok\\.com$/], ['facebook', /(^|\\.)(facebook\\.com|fb\\.com|fb\\.me)$/],
     ['youtube', /(^|\\.)(youtube\\.com|youtu\\.be)$/], ['x', /(^|\\.)(x\\.com|twitter\\.com|t\\.co)$/], ['linkedin', /(^|\\.)(linkedin\\.com|lnkd\\.in)$/],
@@ -448,10 +511,12 @@ function visitScript({ apiUrl, siteUrl }) {
   if (nav && nav.type !== 'navigate') return;
   if (own) return;
   if (q.has('bestaetigen') || q.has('abmelden') || navigator.webdriver) return;
+  // ?ct= (the store campaign) counts as the campaign too, so visits and store
+  // clicks line up per campaign in the console
   const send = (path, extra) => fetch(${JSON.stringify(apiUrl)} + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...extra, source, campaign: q.get('utm_campaign'), ref: q.has('ref') }),
+    body: JSON.stringify({ ...extra, source, campaign: q.get('utm_campaign') || q.get('ct'), ref: q.has('ref') }),
     keepalive: true,
   }).catch(() => {});
   send('/waitlist/visit', {});
@@ -474,6 +539,14 @@ function visitScript({ apiUrl, siteUrl }) {
     if (typed || !e.target || e.target.type !== 'email') return;
     typed = true;
     send('/waitlist/event', { step: 'form' });
+  });
+  // The store buttons (live mode, and pre-order): reported before the page
+  // leaves, keepalive keeps the request alive through the navigation
+  let clicked = false;
+  document.addEventListener('click', (e) => {
+    if (clicked || !e.target || !e.target.closest || !e.target.closest('a[data-store]')) return;
+    clicked = true;
+    send('/waitlist/event', { step: 'store' });
   });
 })();
 </script>`;
@@ -621,3 +694,6 @@ function waitlistScript({ apiUrl, siteUrl }) {
 })();
 </script>`;
 }
+
+module.exports.bannerLine = bannerLine;
+module.exports.statusScript = statusScript;

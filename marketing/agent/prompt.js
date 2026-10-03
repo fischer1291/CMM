@@ -6,6 +6,8 @@ const { SCREENS, LIMITS } = require('../src/templates');
 const trends = require('./trends');
 const soundtrack = require('./soundtrack');
 const { CAPTION_RULES, HASHTAG_RULES } = require('./texts');
+const { notesSection } = require('./notes');
+const { performanceSection, linksNote, viewsNote } = require('./performance');
 
 /** What a person changed in the texts before posting: a strong signal for the next captions. */
 const editedNote = (d) => {
@@ -97,6 +99,7 @@ ${STORY_RULES}
 - Jede Kampagne ist eine Einladung: Das Video soll Lust machen, die App mit einer bestimmten Person zu teilen.
 - Wiederhole keine Idee, die schon lief oder verworfen wurde. Nimm Begründungen beim Verwerfen ernst und wende sie auch auf neue Entwürfe an. Hat die Person Captions oder Hashtags vor dem Posten geändert, schreib künftig so, wie sie es wollte.
 - Teste bewusst: Jeder Entwurf prüft eine klare Hypothese (anderer Hook, andere Zielgruppe, andere Situation, anderer Ablauf).
+- Zu jedem Entwurf zwei Hook-Varianten (hookVariants): andere Einstiege in dieselbe Geschichte (Frage, POV, Konflikt, Zitat), je höchstens 120 Zeichen, nicht der Hook aus dem ersten Block. Damit lässt sich später testen, welcher Einstieg trägt.
 ${CAPTION_RULES}
 ${HASHTAG_RULES}`;
 }
@@ -107,7 +110,7 @@ function user({ count, today, context, trendNotes }) {
     ? drafts
         .map((d) => {
           const posted = Object.entries(d.posted || {}).filter(([, at]) => at).map(([p]) => p);
-          return `- ${d.createdAt.slice(0, 10)} · ${d.campaign} · ${d.template} · ${d.status}${posted.length ? ` (gepostet: ${posted.join(', ')})` : ''} · „${d.title}“${soundNote(d)}${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}\n  Inhalt: ${JSON.stringify(d.content)}${editedNote(d)}`;
+          return `- ${d.createdAt.slice(0, 10)} · ${d.campaign} · ${d.template} · ${d.status}${posted.length ? ` (gepostet: ${posted.join(', ')})` : ''}${viewsNote(d)} · „${d.title}“${soundNote(d)}${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}\n  Inhalt: ${JSON.stringify(d.content)}${editedNote(d)}`;
         })
         .join('\n')
     : 'Noch keine. Das ist der erste Lauf.';
@@ -118,16 +121,16 @@ function user({ count, today, context, trendNotes }) {
 
   return `Heute ist ${today}. Entwirf ${count} neue Videos (je 25–30 Sekunden).
 
-# Landing Page, letzte 30 Tage
+${notesSection(context.notes)}# Landing Page, letzte 30 Tage
 Besuche: ${visits?.last30Days ?? 0}, davon in den letzten 7 Tagen: ${visits?.last7Days ?? 0}. Bestätigte Anmeldungen: ${visits?.signups30Days ?? 0}.
 Besuche pro Tag: ${days || '–'}
 
 Pro Quelle und Kampagne (Kampagne = Kurzname des Videos, wenn es über seinen Link kam):
 ${campaigns}
 
-Hinweis: Links in Captions sind nicht klickbar, die meisten Besuche kommen über den Bio-Link. Die Zahlen pro Video sind deshalb noch dünn; Begründungen beim Verwerfen und was gepostet wurde, sind oft das bessere Signal.
+Hinweis: ${linksNote(context.bioLink)} Die Besuche pro Video sind deshalb dünn; Views, Aktivierte, Begründungen beim Verwerfen und was gepostet wurde, sind oft das bessere Signal.
 
-# Bisherige Entwürfe (neueste zuerst)
+${performanceSection(context)}# Bisherige Entwürfe (neueste zuerst)
 ${history}
 
 # Musik und Sound

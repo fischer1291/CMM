@@ -4,6 +4,10 @@
  * on GitHub: which build number, whether it reached App Store Connect, links.
  *
  *   node scripts/ios-build-summary.js build.json >> "$GITHUB_STEP_SUMMARY"
+ *   node scripts/ios-build-summary.js build.json --outputs >> "$GITHUB_OUTPUT"
+ *
+ * --outputs prints version=… and build=… of the finished build (empty when
+ * none finished) for the tag ios/v<version>-b<build> and the GitHub release.
  */
 const fs = require('fs');
 
@@ -30,6 +34,13 @@ try {
   builds = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 } catch {
   // eas stopped before printing JSON: the log above says why
+}
+
+if (process.argv.includes('--outputs')) {
+  const done = builds.find((b) => b.status === 'FINISHED' && b.appVersion && b.appBuildVersion);
+  console.log(`version=${done?.appVersion ?? ''}`);
+  console.log(`build=${done?.appBuildVersion ?? ''}`);
+  process.exit(0);
 }
 
 const lines = ['## iOS-Build', ''];

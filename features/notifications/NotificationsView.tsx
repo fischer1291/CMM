@@ -15,6 +15,9 @@ type Props = {
   recent: RecentPush[];
   /** Display name for a phone number */
   nameOf: (phone: string | null) => string;
+  /** Re-match opt-in (plan 2.13); undefined on older servers: no switch */
+  rematch?: boolean;
+  onRematchChange?: (optIn: boolean) => void;
 };
 
 const TYPE_TEXT: Record<string, (name: string) => string> = {
@@ -29,6 +32,23 @@ const TYPE_TEXT: Record<string, (name: string) => string> = {
   circle_invite: (name) => `${name} hat dich in einen Kreis eingeladen`,
   room_open: (name) => `${name} hat eine Runde gestartet`,
   circle_ritual: () => 'Euer Kreis-Ritual',
+  // Lifecycle pushes, "Erinnerungen und Tipps" (backend lib/lifecycle.js)
+  invite_reminder: () => 'Erinnerung: Freunde einladen',
+  first_call_hint: (name) => `Tipp: ${name} anrufen`,
+  yap_moment_invite: () => 'Einladung zum Yap Moment',
+  friends_were_available: () => 'Deine Leute waren erreichbar',
+  come_back: () => 'Deine Leute sind noch da',
+  come_back_30: () => 'Deine Leute sind noch da',
+  week_open: () => 'Deine Wochen-Serie',
+  plus_expiring: () => 'Dein Plus endet bald',
+  billing_issue: () => 'Zahlung bei Apple prüfen',
+  plus_winback_3: () => 'Plus wieder holen',
+  plus_winback_30: () => 'Plus wieder holen',
+  cancel_survey: () => 'Kurze Frage zu Plus',
+  trial_ending: () => 'Deine Probezeit endet bald',
+  referral_pair_reward: () => 'Plus für euch beide',
+  // A device the account did not know signed in (plan 2.9)
+  new_device: () => 'Neue Anmeldung',
 };
 
 const RESULT_TEXT: Record<string, { text: string; color: string }> = {
@@ -40,6 +60,9 @@ const RESULT_TEXT: Record<string, { text: string; color: string }> = {
   opted_out: { text: 'Von dir ausgeschaltet', color: colors.textMuted },
   daily_cap: { text: 'Tageslimit erreicht', color: colors.warning },
   no_token: { text: 'Mitteilungen nicht erlaubt', color: colors.warning },
+  lifecycle_cap: { text: 'Schon zwei Tipps diese Woche', color: colors.textMuted },
+  lifecycle_spacing: { text: 'Kurz davor schon ein Tipp', color: colors.textMuted },
+  contact_available_first: { text: 'Erreichbar-Meldung hatte Vorrang', color: colors.textMuted },
 };
 
 const APP_TEXT: Record<string, string> = {
@@ -98,7 +121,18 @@ function PermissionCard({ permission, onAllow, onOpenSettings }: Pick<Props, 'pe
 }
 
 /** What reaches the user, and when not. */
-export function NotificationsView({ permission, prefs, onBack, onAllow, onOpenSettings, onChange, recent, nameOf }: Props) {
+export function NotificationsView({
+  permission,
+  prefs,
+  onBack,
+  onAllow,
+  onOpenSettings,
+  onChange,
+  recent,
+  nameOf,
+  rematch,
+  onRematchChange,
+}: Props) {
   return (
     <Screen scroll>
       <PageHeader title="Mitteilungen" onBack={onBack} />
@@ -135,6 +169,20 @@ export function NotificationsView({ permission, prefs, onBack, onAllow, onOpenSe
                 value={prefs.moments}
                 onChange={(moments) => onChange({ moments })}
               />
+              <Toggle
+                label="Erinnerungen und Tipps"
+                description="Zum Beispiel, wenn ein Kontakt lange nicht erreichbar war oder dein Plus bald endet. Höchstens zweimal pro Woche."
+                value={prefs.lifecycle !== false}
+                onChange={(lifecycle) => onChange({ lifecycle })}
+              />
+              {rematch !== undefined && onRematchChange ? (
+                <Toggle
+                  label="Sag mir, wenn jemand aus meinem Adressbuch dazukommt"
+                  description="Dafür bleibt eine verschlüsselte Liste deiner Kontakte, die Wanna yap? noch nicht nutzen, 90 Tage bei uns. Ausschalten löscht sie sofort."
+                  value={rematch}
+                  onChange={onRematchChange}
+                />
+              ) : null}
             </View>
           </GlassCard>
           <AppText variant="caption" color={colors.textMuted} style={styles.note}>

@@ -9,6 +9,7 @@ import { Image } from 'expo-image';
 import { CallView, localPreviewStyle } from '../features/call/CallView';
 import { OnboardingView } from '../features/auth/OnboardingView';
 import { VerifyView } from '../features/auth/VerifyView';
+import { AccountCheckView } from '../features/auth/AccountCheckView';
 import { ContactsView } from '../features/contacts/ContactsView';
 import { CallsView } from '../features/calls/CallsView';
 import { PlusView } from '../features/plus/PlusView';
@@ -19,7 +20,7 @@ import { NudgeSheet } from '../components/NudgeSheet';
 import type { Plan } from '../services/planApi';
 import { MomentsView } from '../features/moments/MomentsView';
 import { UnlockCelebration } from '../features/moments/UnlockCelebration';
-import { ProfileSetupView } from '../features/profile/ProfileSetupView';
+import { AcquisitionStepView, ProfileSetupView } from '../features/profile/ProfileSetupView';
 import { ProfileView } from '../features/profile/ProfileView';
 import { MomentComposer } from '../features/moments/MomentComposer';
 import { StatusView } from '../features/status/StatusView';
@@ -41,7 +42,7 @@ import { CircleView } from '../features/circles/CircleView';
 import { RoomView } from '../features/circles/RoomView';
 import { CirclesStrip } from '../features/circles/CirclesStrip';
 import type { CircleDetail, CircleSummary } from '../services/circlesApi';
-import { PRIVACY_SECTIONS } from '../content/legal';
+import { PRIVACY_SECTIONS, TERMS_SECTIONS } from '../content/legal';
 import type { Stats } from '../services/gamificationApi';
 import { fetchPreviewState, PreviewState } from './previewControl';
 import {
@@ -250,9 +251,11 @@ const SAMPLE_PLAN: Plan = {
   interest: null,
 };
 const STORE_OFFERS: Offer[] = [
-  { id: '$rc_annual', title: 'Jährlich', price: '24,99 €', period: 'year', pkg: null },
-  { id: '$rc_monthly', title: 'Monatlich', price: '2,99 €', period: 'month', pkg: null },
+  { id: '$rc_annual', title: 'Jährlich', price: '24,99 €', period: 'year', intro: null, pkg: null },
+  { id: '$rc_monthly', title: 'Monatlich', price: '2,99 €', period: 'month', intro: null, pkg: null },
 ];
+// With the App Store intro offer (plan 2.6a): the account is eligible for 7 days free
+const TRIAL_OFFERS: Offer[] = STORE_OFFERS.map((o) => ({ ...o, intro: { eligible: true, periodText: '7 Tage', priceText: 'gratis', free: true } }));
 const plusProps = {
   plan: SAMPLE_PLAN,
   offers: [],
@@ -266,6 +269,8 @@ const plusProps = {
   onToggleInterest: () => {},
   onSendInterest: () => {},
   interestSent: false,
+  // Flag plus_interest on, so the gallery keeps showing the interest mode
+  interestMode: true,
   onBack: () => {},
   onOpenLegal: () => {},
 };
@@ -530,6 +535,12 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       onOpenCircles={() => {}}
       onOpenBlocked={() => {}}
       onRedeemWaitlist={async (code) => (code.replace(/[^A-Z0-9]/g, '') === 'ABCD2345' ? null : 'Diesen Code kennen wir nicht. Prüf ihn in deiner Mail, er sieht so aus: ABCD-1234.')}
+      devices={[
+        { id: 'A', model: 'iPhone 15 Pro', platform: 'ios', appVersion: '1.0.1', appBuild: '31', lastSeenAt: new Date().toISOString(), current: true },
+        { id: 'B', model: 'iPad Air', platform: 'ios', appVersion: '1.0.0', appBuild: '28', lastSeenAt: new Date(Date.now() - 3 * 86400000).toISOString(), current: false },
+      ]}
+      onSignOutEverywhere={() => {}}
+      signingOutEverywhere={false}
       onSignOut={() => {}}
       onDeleteAccount={() => {}}
       version="1.0.0"
@@ -604,6 +615,16 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       ),
     ])
   ),
+  'plus-trial-bottom': () => (
+    <View style={{ height: 2600, transform: [{ translateY: -1150 }] }}>
+      <PlusView {...plusProps} offers={TRIAL_OFFERS} selected="$rc_annual" interest={new Set()} />
+    </View>
+  ),
+  'plus-soon-bottom': () => (
+    <View style={{ height: 2600, transform: [{ translateY: -1150 }] }}>
+      <PlusView {...plusProps} interestMode={false} interest={new Set()} />
+    </View>
+  ),
   'plus-store': () => (
     <PlusView
       {...plusProps}
@@ -630,7 +651,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       available={false}
       availableContacts={[]}
       nudges={[]}
-      lonely={{ onInvite: () => {}, referral: <ReferralCard referral={{ step: 3, rewardDays: 30, maxRewards: 6, joined: 1, earned: 0, toNext: 2 }} /> }}
+      lonely={{ onInvite: () => {}, referral: <ReferralCard referral={{ step: 3, rewardDays: 30, maxRewards: 6, joined: 2, activated: 1, earned: 0, toNext: 2 }} /> }}
     />
   ),
   'contacts-referral': () => (
@@ -650,7 +671,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
       nudged={() => false}
       onOpenCalls={() => {}}
       missedCalls={0}
-      referral={<ReferralCard referral={{ step: 3, rewardDays: 30, maxRewards: 6, joined: 0, earned: 0, toNext: 3 }} compact />}
+      referral={<ReferralCard referral={{ step: 3, rewardDays: 30, maxRewards: 6, joined: 0, activated: 0, earned: 0, toNext: 3 }} compact />}
     />
   ),
   'status-missed': () => <StatusView {...statusProps} available={false} availableContacts={[]} nudges={[{ from: '+491', name: 'Anna Berg', avatarUrl: PHOTO }]} missedCalls={2} onOpenCalls={() => {}} />,
@@ -697,8 +718,21 @@ const SCREENS: Record<string, () => React.ReactElement> = {
   onboarding: () => <OnboardingView onStart={() => {}} />,
   'verify-phone': () => <VerifyView {...verifyProps} step="phone" reverify />,
   'verify-code': () => <VerifyView {...verifyProps} step="code" />,
+  'account-check': () => (
+    <AccountCheckView
+      name="Lea"
+      avatarUrl="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&fit=crop"
+      lastActive="März 2026"
+      busy={null}
+      onMine={() => {}}
+      onNotMine={() => {}}
+    />
+  ),
   'profile-setup': () => (
     <ProfileSetupView name="Leroy" onNameChange={() => {}} avatarUri={null} onPickAvatar={() => {}} onSave={() => {}} onSkip={() => {}} saving={false} />
+  ),
+  'profile-acquisition': () => (
+    <AcquisitionStepView choice={{ source: 'friend', android: 2 }} onChange={() => {}} canContinue onContinue={() => {}} onSkip={() => {}} />
   ),
   'call-ringing': () => <CallView {...callProps} phase="ringing" hasRemoteVideo={false} />,
   'call-connected': () => <CallView {...callProps} phase="connected" hasRemoteVideo videoLayer={<FakeVideo />} />,
@@ -872,6 +906,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
     />
   ),
   datenschutz: () => <LegalView title="Datenschutz" sections={PRIVACY_SECTIONS} onBack={() => {}} />,
+  nutzungsbedingungen: () => <LegalView title="Nutzungsbedingungen" sections={TERMS_SECTIONS} onBack={() => {}} />,
   'status-daily': () => (
     <StatusView
       {...statusProps}

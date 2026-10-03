@@ -95,8 +95,25 @@ export function setupNotifications(): void {
   });
 }
 
-/** Deep links a push may open; anything else is ignored. */
+/**
+ * Deep links a push may open; anything else is ignored. /plus may carry the
+ * push that led there (?from=plus_expiring, billing_issue, plus_winback_3 …,
+ * the lifecycle pushes of CMM-backend-new/lib/lifecycle.js). /settings is
+ * where new_device leads (plan 2.9: the device list, "Überall abmelden").
+ */
 export function safeRoute(url: unknown): string | null {
   if (typeof url !== 'string') return null;
-  return /^\/(friend\?phone=[%+0-9A-Za-z]+|circle\?id=[0-9a-f]{24}|callmoments|stats|schedule|circles|support|calls|plus)?$/.test(url) ? url : null;
+  return /^\/(friend\?phone=[%+0-9A-Za-z]+|circle\?id=[0-9a-f]{24}|callmoments|stats|schedule|circles|support|calls|contacts|settings|plus(\?from=[a-z0-9_]{1,40})?)?$/.test(url)
+    ? url
+    : null;
+}
+
+/** The only hosts a push may open outside the app (Apple's account pages). */
+const EXTERNAL_HOSTS = new Set(['apps.apple.com']);
+
+/** An https link to an allowed host, else null; opened with Linking, never routed. */
+export function safeExternalUrl(url: unknown): string | null {
+  if (typeof url !== 'string' || !url.startsWith('https://')) return null;
+  const match = /^https:\/\/([^/?#:@]+)(\/[^\s]*)?$/.exec(url);
+  return match && EXTERNAL_HOSTS.has(match[1].toLowerCase()) ? url : null;
 }

@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 6.0.0",
+    "version": ">= 13.4.0",
     "appVersionSource": "remote"
   },
   "build": {
@@ -19,9 +19,11 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
+      "environment": "preview",
       "env": {
         "APP_VARIANT": "production",
-        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_nHDdtjwsypUiXVhjhQyzDRDYmXW"
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_nHDdtjwsypUiXVhjhQyzDRDYmXW",
+        "EXPO_PUBLIC_SENTRY_ENV": "preview"
       },
       "cache": {
         "key": "preview-v1"
@@ -30,9 +32,11 @@
     "production": {
       "autoIncrement": true,
       "channel": "production",
+      "environment": "production",
       "env": {
         "APP_VARIANT": "production",
-        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_nHDdtjwsypUiXVhjhQyzDRDYmXW"
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_nHDdtjwsypUiXVhjhQyzDRDYmXW",
+        "EXPO_PUBLIC_SENTRY_ENV": "production"
       },
       "cache": {
         "key": "prod-v1"

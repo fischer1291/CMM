@@ -60,3 +60,27 @@ Both versions share the same:
 - Permissions and capabilities
 - Core functionality
 - Backend endpoints
+
+## Native modules and the committed `ios/` project
+
+The iOS project is committed (no prebuild). A new native module is linked
+by `use_native_modules!` in `ios/Podfile`, so EAS builds pick it up on
+their own, but a **local development build needs the pods once** after
+such a change:
+
+```bash
+npx pod-install        # or: (cd ios && pod install), LANG=en_US.UTF-8
+npm run ios
+```
+
+This applies to `@sentry/react-native` (crash telemetry, plan 2.1a,
+`services/sentry.ts`): the Sentry pod is linked this way, `Podfile.lock`
+is updated by `pod install`, never by hand. Sentry itself stays off in
+development builds (`__DEV__`) and without `EXPO_PUBLIC_SENTRY_DSN`, so
+nothing is reported from a dev build or Metro; the setup for release
+builds is in `RELEASE.md`, section "Crash-Telemetrie (Sentry)".
+The version is the current 8.x on purpose, not the ~7.2 that Expo SDK 54
+lists in `bundledNativeModules.json` (plan 2.1a asked for the latest
+release that runs on RN 0.81); `package.json` sets
+`expo.install.exclude: ["@sentry/react-native"]`, so `npx expo install
+--check` and expo-doctor do not flag it. Revisit on the next SDK upgrade.

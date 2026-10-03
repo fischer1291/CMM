@@ -2,16 +2,22 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Linking } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useContacts } from '../../contexts/ContactsContext';
 import { useNewCall } from '../../contexts/NewCallContext';
 import { StatusView } from '../../features/status/StatusView';
 import { ReferralCard } from '../../features/plus/ReferralCard';
+import { ResearchCard, researchCardVisible } from '../../features/status/ResearchCard';
+import { answerResearch, ResearchAnswer } from '../../services/researchApi';
+import { researchUrl } from '../../content/links';
 import { usePlan } from '../../contexts/PlanContext';
 import { showReferral } from '../../services/planApi';
 import { useCountdown } from '../../hooks/useCountdown';
 import { useNudges } from '../../hooks/useNudges';
+import { useNudgeComposer } from '../../hooks/useNudgeComposer';
+import { firstTalkCardVisible, firstTalkContact } from '../../features/status/firstTalk';
+import { saveNotificationPrefs } from '../../services/notificationPrefs';
 import { useDailyMoment } from '../../hooks/useDailyMoment';
 import { useCircles } from '../../hooks/useCircles';
 import { CirclesStrip } from '../../features/circles/CirclesStrip';
@@ -54,10 +60,38 @@ export default function StatusScreen() {
   // Loaded (or no access) and nobody has the app yet; empty before the first load
   const lonely = !contactsLoading && (permissionDenied || contacts.length > 0) && !contacts.some((c) => c.registered);
   const { startVideoCall } = useNewCall();
-  const { received, dismiss: dismissNudges, reload: reloadNudges } = useNudges();
+  const { received, dismiss: dismissNudges, reload: reloadNudges, nudge, nudged } = useNudges();
+  const composer = useNudgeComposer(nudge);
   const { daily, join: joinDaily } = useDailyMoment();
   const { album, celebrate, check: checkBadges, celebrated } = useBadgeAlbum();
-  const { config: appConfig } = useAppConfig();
+  const { config: appConfig, loaded: appConfigLoaded } = useAppConfig();
+  // The research card: "Termin wählen" opens the calendar first and reports
+  // booked only once the page opened (otherwise the card stays and nobody has
+  // booked); a failed request must not stop a booking, so it is only reported.
+  // The card disappears with the reloaded profile.
+  const [researchBusy, setResearchBusy] = useState(false);
+  const answerResearchCard = useCallback(
+    async (action: ResearchAnswer) => {
+      setResearchBusy(true);
+      try {
+        if (action === 'booked') {
+          try {
+            await Linking.openURL(researchUrl(userProfile?.name));
+          } catch {
+            Alert.alert('Die Buchungsseite ließ sich nicht öffnen', 'Bitte versuch es später noch einmal.');
+            return;
+          }
+        }
+        await answerResearch(action);
+        reloadProfile();
+      } catch {
+        Alert.alert('Das hat nicht geklappt', 'Bitte versuch es gleich noch einmal.');
+      } finally {
+        setResearchBusy(false);
+      }
+    },
+    [reloadProfile, userProfile?.name]
+  );
   const missed = useMissedCalls();
   const { circles, invites: circleInvites, reload: reloadCircles, setInvites: setCircleInvites } = useCircles();
 
@@ -201,6 +235,29 @@ export default function StatusScreen() {
     [received, contacts]
   );
 
+  // "Dein erstes Gespräch" (plan 2.13): someone is here, no talk yet
+  const firstTalkWith = useMemo(
+    () => (firstTalkCardVisible(contacts, album) ? firstTalkContact(contacts) : null),
+    [contacts, album]
+  );
+
+  // "Beim Yap Moment treffen": make sure the Yap Moment push reaches you,
+  // ask for notifications once if never asked, then say when it starts
+  const meetAtMoment = async (name: string) => {
+    const first = name.split(' ')[0] || name;
+    saveNotificationPrefs({ dailyMoment: true }).catch(() => {});
+    let permission = await PushTokenService.permission();
+    if (permission === 'undetermined' && userPhone) permission = await PushTokenService.requestAndRegister(userPhone);
+    const nextAt = daily.nextAt ? new Date(daily.nextAt) : null;
+    const when = nextAt ? `Heute um ${clock(nextAt.getHours() * 60 + nextAt.getMinutes())} Uhr` : 'Morgen, zu einer überraschenden Zeit';
+    Alert.alert(
+      'Yap Moment',
+      permission === 'granted'
+        ? `${when}. Wir sagen dir Bescheid, sobald er startet. Vielleicht ist ${first} dann auch dabei.`
+        : `${when}. Mitteilungen sind aus, schau dann einfach kurz rein. Vielleicht ist ${first} auch dabei.`
+    );
+  };
+
   let sessionCaption: string | null = null;
   if (timed && status.until) {
     const until = new Date(status.until);
@@ -226,13 +283,18 @@ export default function StatusScreen() {
         onOpenStats={() => router.push('/stats')}
         missedCalls={missed.count}
         onOpenCalls={() => router.push('/calls')}
-        notice={<NoticeBanner banner={appConfig.banner} />}
+        notice={<NoticeBanner banner={appConfig.banner} loaded={appConfigLoaded} />}
         nextUp={album?.nextUp ?? null}
         onOpenAlbum={() => router.push('/album')}
         scheduleLabel={scheduleLabel}
         onOpenSchedule={() => router.push('/schedule')}
         onOpenProfile={() => router.push('/(tabs)/settings')}
         onDismissNudges={() => dismissNudges()}
+        research={
+          researchCardVisible(userProfile?.research) ? (
+            <ResearchCard onBook={() => answerResearchCard('booked')} onLater={() => answerResearchCard('dismissed')} busy={researchBusy} />
+          ) : null
+        }
         lonely={
           lonely
             ? {
@@ -272,10 +334,24 @@ export default function StatusScreen() {
               }
             : null
         }
+        firstTalk={
+          firstTalkWith
+            ? {
+                contact: firstTalkWith,
+                nextAt: daily.nextAt ?? null,
+                momentRunning: daily.active,
+                nudged: nudged(firstTalkWith.phone),
+                onCall: () => userPhone && startVideoCall(firstTalkWith.phone, userPhone),
+                onNudge: () => composer.start(firstTalkWith.phone, firstTalkWith.name),
+                onMeetAtMoment: () => meetAtMoment(firstTalkWith.name),
+              }
+            : null
+        }
         showNotificationPrompt={showNotificationPrompt}
         onAllowNotifications={allowNotifications}
         onDismissNotifications={dismissNotifications}
       />
+      {composer.sheet}
       {celebrate.length > 0 && <BadgeCelebration badges={celebrate} onDone={celebrated} onOpenAlbum={() => router.push('/album')} />}
     </>
   );

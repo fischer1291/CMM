@@ -27,6 +27,15 @@ function StatusPill({ ticket }: { ticket: SupportTicket }) {
     </View>
   );
 }
+/** The title of a ticket: its category, or the decision a statement of reasons is about. */
+export function ticketTitle(ticket: Pick<SupportTicket, 'category' | 'moderation'>): string {
+  if (ticket.category === 'moderation') {
+    const action = ticket.moderation?.action;
+    return action === 'suspend' ? 'Sperre deines Kontos' : action === 'hide_moment' || action === 'delete_moment' ? 'Entscheidung zu deinem Moment' : 'Entscheidung zu deinem Konto';
+  }
+  return CATEGORIES.find((c) => c.value === ticket.category)?.label ?? 'Anfrage';
+}
+
 const when = (at: string) => new Date(at).toLocaleDateString('de-DE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 function Field({ value, onChange, placeholder }: { value: string; onChange: (t: string) => void; placeholder: string }) {
@@ -44,6 +53,16 @@ function Field({ value, onChange, placeholder }: { value: string; onChange: (t: 
   );
 }
 
+/**
+ * Where the form starts when another screen sends someone here
+ * (/support?topic=…). cancel: the answer to the cancel_survey push
+ * (/plus?from=cancel, plan 2.3), lands as a normal ticket under "Sonstiges".
+ */
+export function supportPrefill(topic: string | undefined): { category: SupportCategory; placeholder: string | null } {
+  if (topic === 'cancel') return { category: 'other', placeholder: 'Was hat bei Plus nicht gepasst? Ein Satz reicht.' };
+  return { category: 'bug', placeholder: null };
+}
+
 type Props = {
   tickets: SupportTicket[] | null;
   sending: boolean;
@@ -51,11 +70,16 @@ type Props = {
   onSend: (category: SupportCategory, message: string) => Promise<boolean>;
   onOpen: (ticket: SupportTicket) => void;
   version: string;
+  /** /support?topic=… (supportPrefill) */
+  topic?: string;
+  /** The public report form (/melden) */
+  onReport?: () => void;
 };
 
 /** Write to us, and see the answers. */
-export function SupportView({ tickets, sending, onBack, onSend, onOpen, version }: Props) {
-  const [category, setCategory] = useState<SupportCategory>('bug');
+export function SupportView({ tickets, sending, onBack, onSend, onOpen, version, topic, onReport }: Props) {
+  const prefill = supportPrefill(topic);
+  const [category, setCategory] = useState<SupportCategory>(prefill.category);
   const [message, setMessage] = useState('');
 
   return (
@@ -82,7 +106,13 @@ export function SupportView({ tickets, sending, onBack, onSend, onOpen, version 
         <Field
           value={message}
           onChange={setMessage}
-          placeholder={category === 'bug' ? 'Was ist passiert? Was hast du gerade gemacht?' : 'Erzähl uns davon …'}
+          placeholder={
+            prefill.placeholder && category === prefill.category
+              ? prefill.placeholder
+              : category === 'bug'
+                ? 'Was ist passiert? Was hast du gerade gemacht?'
+                : 'Erzähl uns davon …'
+          }
         />
         <Button
           title="Senden"
@@ -97,6 +127,15 @@ export function SupportView({ tickets, sending, onBack, onSend, onOpen, version 
         <AppText variant="caption" color={colors.textMuted} center style={{ marginTop: spacing.sm }}>
           Mitgeschickt werden nur App-Version ({version}) und Gerätetyp.
         </AppText>
+        {onReport ? (
+          <Pressable onPress={onReport} accessibilityRole="link" style={styles.reportLink}>
+            <Ionicons name="flag-outline" size={16} color={colors.textSecondary} />
+            <AppText variant="caption" color={colors.textSecondary} style={{ flex: 1 }}>
+              Hat dich jemand belästigt, oder hast du etwas gesehen, das nicht in Ordnung ist? Verstoß melden
+            </AppText>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
 
         <SectionHeader title="Deine Anfragen" />
         {!tickets ? (
@@ -145,7 +184,7 @@ export function TicketView({ ticket, sending, onBack, onReply }: { ticket: Suppo
   return (
     <Screen scroll>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'position' : undefined}>
-        <PageHeader title={CATEGORIES.find((c) => c.value === ticket.category)?.label ?? 'Anfrage'} onBack={onBack} />
+        <PageHeader title={ticketTitle(ticket)} onBack={onBack} />
         <View style={{ marginBottom: spacing.lg, alignItems: 'flex-start' }}>
           <StatusPill ticket={{ ...ticket, unread: false }} />
         </View>
@@ -176,9 +215,19 @@ export function TicketView({ ticket, sending, onBack, onReply }: { ticket: Suppo
           </View>
         ) : null}
         <View style={{ marginTop: spacing.xl }}>
-          <Field value={text} onChange={setText} placeholder={ticket.status === 'closed' ? 'Doch noch etwas? Schreib einfach.' : 'Antworten …'} />
+          <Field
+            value={text}
+            onChange={setText}
+            placeholder={
+              ticket.status === 'closed'
+                ? 'Doch noch etwas? Schreib einfach.'
+                : ticket.category === 'moderation'
+                  ? 'Siehst du das anders? Schreib uns, was wir wissen sollten.'
+                  : 'Antworten …'
+            }
+          />
           <Button
-            title={ticket.status === 'closed' ? 'Wieder öffnen & senden' : 'Antworten'}
+            title={ticket.status === 'closed' ? 'Wieder öffnen & senden' : ticket.category === 'moderation' && !ticket.messages.some((m) => m.from === 'user') ? 'Widersprechen' : 'Antworten'}
             icon="send"
             loading={sending}
             disabled={!text.trim()}
@@ -221,6 +270,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.pill, borderWidth: 1 },
   closed: { opacity: 0.6 },
+  reportLink: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.lg, paddingVertical: spacing.sm },
   closedNote: {
     flexDirection: 'row',
     alignItems: 'center',

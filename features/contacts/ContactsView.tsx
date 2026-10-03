@@ -16,6 +16,7 @@ import {
   TAB_BAR_SPACE,
 } from '../../ui';
 import { formatLastSeen } from '../../utils/time';
+import { inviteSuggestions, showInviteSuggestions } from './inviteSuggestions';
 
 type Props = {
   contacts: Contact[];
@@ -138,6 +139,11 @@ export function ContactsView({
   }, [contacts, query]);
 
   const availableCount = contacts.filter((c) => c.registered && c.isAvailable).length;
+  // Nobody here yet: three people to start with (features/contacts/inviteSuggestions.ts)
+  const suggestions = useMemo(
+    () => (showInviteSuggestions(contacts, { loading, query }) ? inviteSuggestions(contacts) : []),
+    [contacts, loading, query]
+  );
 
   const header = (
     <View>
@@ -181,6 +187,27 @@ export function ContactsView({
         />
       </View>
       {referral && !query && contacts.some((c) => !c.registered) ? <View style={styles.referral}>{referral}</View> : null}
+      {suggestions.length > 0 ? (
+        <View style={styles.suggestions}>
+          <AppText variant="label" color={colors.textMuted} style={styles.sectionTitle}>
+            Vorschläge zum Einladen
+          </AppText>
+          <AppText variant="caption" color={colors.textSecondary}>
+            Von deinen Kontakten nutzt noch niemand Wanna yap?. Fang mit ein, zwei Menschen an, mit denen du gern öfter reden würdest.
+          </AppText>
+          {suggestions.map((contact) => (
+            <ContactRow
+              key={contact.phone}
+              contact={contact}
+              onCall={onCall}
+              onInvite={onInvite}
+              onOpen={onOpen}
+              onNudge={onNudge}
+              nudged={false}
+            />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 
@@ -255,6 +282,7 @@ const styles = StyleSheet.create({
   badge: { minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.danger },
   badgeText: { fontSize: 11, lineHeight: 14, fontWeight: '700' },
   referral: { marginTop: spacing.lg },
+  suggestions: { gap: spacing.xs },
   list: { paddingHorizontal: spacing.xl, paddingBottom: TAB_BAR_SPACE },
   search: {
     flexDirection: 'row',

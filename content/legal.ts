@@ -1,5 +1,6 @@
 /**
- * Legal texts shown in the app and on the web (/datenschutz, /impressum).
+ * Legal texts shown in the app and on the web (/datenschutz, /impressum,
+ * /nutzungsbedingungen).
  *
  * OPERATOR holds the details of whoever runs the app (§ 5 DDG, Art. 13
  * GDPR): the address must be one where legal documents can be served.
@@ -16,9 +17,36 @@ export const OPERATOR = {
 
 const addressLines = (o: Operator) => [o.name, ...(o.careOf ? [o.careOf] : []), o.street, o.city, o.country];
 
-export const PRIVACY_UPDATED = '29. September 2026';
+/**
+ * The mail provider behind SMTP_URL (backend README), e.g. 'Brevo (Sendinblue
+ * SAS, Frankreich)'. The code does not fix one, so it is named in the imprint
+ * and the privacy policy only once it is entered here.
+ */
+export const MAIL_PROVIDER: string | null = null;
+
+export const PRIVACY_UPDATED = '3. Oktober 2026';
+/**
+ * Version of the terms a new user accepts in onboarding: the date of the
+ * wording in TERMS_SECTIONS (own terms since plan 2.7, before that Apple's
+ * standard EULA). Sent with privacyVersion = PRIVACY_UPDATED on
+ * POST /verify/check as ageConfirmed/termsVersion/privacyVersion. Raise both
+ * TERMS_VERSION and TERMS_UPDATED with every change of the wording.
+ */
+export const TERMS_VERSION = '2026-10-03';
+export const TERMS_UPDATED = '3. Oktober 2026';
+/** Our own terms on the web (app/nutzungsbedingungen.tsx); also the EULA link in App Store Connect. */
+export const TERMS_URL = 'https://wannayap.app/nutzungsbedingungen';
+/** Minimum age to use the app on one's own (Art. 8 GDPR, German threshold). */
+export const MIN_AGE = 16;
 
 export type LegalSection = { title: string; paragraphs: string[] };
+
+const mailProviderLines = () =>
+  MAIL_PROVIDER
+    ? [`Den Versand übernimmt unser E-Mail-Dienstleister ${MAIL_PROVIDER}, der die Adressen in unserem Auftrag verarbeitet (Art. 28 DSGVO) und sie für nichts anderes nutzen darf.`]
+    : [
+        'Den Versand übernimmt ein E-Mail-Dienstleister, der die Adressen in unserem Auftrag verarbeitet (Art. 28 DSGVO) und sie für nichts anderes nutzen darf. Welcher Dienstleister das ist, nennen wir im Impressum, sobald wir ihn eingetragen haben.',
+      ];
 
 const operatorLines = () =>
   OPERATOR
@@ -34,21 +62,39 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     title: 'Kurz gesagt',
     paragraphs: [
       'Wanna yap? zeigt dir, wann Menschen aus deinem Adressbuch Zeit für ein Gespräch haben. Dafür verarbeiten wir nur, was die App zum Funktionieren braucht.',
-      'Keine Werbung, kein Tracking, keine Analyse-Tools, kein Verkauf von Daten.',
+      'Keine Werbung, kein Tracking, keine Analyse-Tools, kein Verkauf von Daten. Nur Abstürze und die Stabilität der App melden wir an einen Dienstleister (siehe „Absturzberichte“).',
     ],
   },
   {
     title: 'Anmeldung mit deiner Telefonnummer',
     paragraphs: [
       'Zur Anmeldung bestätigst du deine Nummer mit einem SMS-Code. Den Versand übernimmt Twilio (Twilio Inc., USA). Wir speichern deine Nummer als dein Konto (Art. 6 Abs. 1 lit. b DSGVO).',
+      'Bei der Anmeldung bestätigst du außerdem dein Mindestalter und akzeptierst die Nutzungsbedingungen. Wir speichern dazu den Zeitpunkt der Bestätigung sowie die Fassung der Nutzungsbedingungen und dieser Datenschutzerklärung, die du dabei gesehen hast, als Nachweis.',
+    ],
+  },
+  {
+    title: 'Angemeldete Geräte und neu vergebene Nummern',
+    paragraphs: [
+      'Damit du siehst, wo du angemeldet bist, und dich überall abmelden kannst, schickt die App bei jeder Anfrage eine Kennung deines Geräts und das Gerätemodell (zum Beispiel „iPhone 15 Pro“) mit. Als Kennung nutzen wir auf dem iPhone die Gerätekennung, die Apple einem Anbieter für dessen Apps gibt (Identifier for Vendor, IDFV); fehlt sie, erzeugt die App einmal eine zufällige Kennung und legt sie im Schlüsselbund deines Geräts ab. Eine Werbe-ID nutzen wir nicht.',
+      'Für bis zu 10 Geräte speichern wir die Kennung, das Modell, die Plattform, die App-Version und wann das Gerät zuerst und zuletzt aktiv war, außerdem, wann du deine Nummer zuletzt per SMS bestätigt hast. Du siehst die Liste unter „Profil → Geräte“. „Überall abmelden“ meldet alle anderen Geräte ab und entfernt deren Push-Tokens; in der Liste bleibt dann nur dieses Gerät. Meldet sich ein Gerät an, das dein Konto noch nicht kennt, schicken wir eine Mitteilung „Neue Anmeldung“ mit dem Gerätemodell an dein bisheriges Gerät. Zweck ist die Sicherheit deines Kontos (Art. 6 Abs. 1 lit. b und f DSGVO); die Liste wird mit deinem Konto gelöscht.',
+      'Mobilfunkanbieter vergeben Nummern, die lange nicht genutzt wurden, neu. Bestätigt jemand eine Nummer, deren Konto seit mindestens 180 Tagen nicht genutzt wurde, von einem Gerät, das dieses Konto nicht kennt, zeigen wir vor der Anmeldung den Vornamen, das Profilbild und den Monat der letzten Aktivität des bisherigen Kontos und fragen: „Ist das dein Konto?“. So landet niemand im Konto einer anderen Person (Art. 6 Abs. 1 lit. f DSGVO). Lautet die Antwort Nein, löschen wir das bisherige Konto und legen ein neues, leeres an. Eine Kopie der Daten des bisherigen Kontos (so wie im Export unter „Deine Daten“) bewahren wir dann 30 Tage auf, nur damit unser Support es wiederherstellen kann, falls es doch jemandem gehört, der die Nummer noch nutzt; danach wird sie automatisch gelöscht.',
+    ],
+  },
+  {
+    title: 'Mindestalter',
+    paragraphs: [
+      `Wanna yap? ist für Menschen ab ${MIN_AGE} Jahren. Bist du jünger als ${MIN_AGE}, darfst du die App nur nutzen, wenn deine Eltern oder Erziehungsberechtigten zustimmen (Art. 8 DSGVO).`,
     ],
   },
   {
     title: 'Kontakte',
     paragraphs: [
-      'Wenn du den Zugriff erlaubst, bildet die App aus den Nummern deines Adressbuchs Prüfwerte (SHA-256-Hashes) und gleicht sie mit registrierten Nutzern ab. Namen und andere Kontaktdaten verlassen dein Gerät nicht.',
-      'Wir speichern nur, welche registrierten Nutzer in deinem Adressbuch stehen. Nummern von Menschen ohne Konto speichern wir nicht.',
+      'Wenn du den Zugriff erlaubst, bildet die App aus jeder Nummer deines Adressbuchs einen Prüfwert (SHA-256-Hash der Nummer im internationalen Format) und schickt nur diese Prüfwerte an unseren Server. Namen und andere Kontaktdaten verlassen dein Gerät nicht.',
+      'Der Server gleicht die Prüfwerte ausschließlich mit den Prüfwerten registrierter Nutzer ab und antwortet, wer davon ein Konto hat. Prüfwerte sind pseudonym, nicht anonym: Wer eine Nummer kennt, kann ihren Prüfwert bilden. Wir behandeln sie deshalb wie personenbezogene Daten. Prüfwerte von Nummern ohne Konto speichern wir nicht, außer du schaltest „Sag mir, wenn jemand aus meinem Adressbuch dazukommt“ ein (siehe unten).',
+      'Wir speichern nur, welche registrierten Nutzer in deinem Adressbuch stehen, damit nur sie deine Erreichbarkeit sehen und dich anrufen können. Diese Liste und der Prüfwert deiner eigenen Nummer werden mit deinem Konto gelöscht.',
       'Lädst du jemanden ein, speichern wir bis zu 60 Tage einen Prüfwert (Hash) dieser Nummer. Meldet sich die Person an, seid ihr automatisch verbunden und du bekommst Bescheid.',
+      'Re-Match: Schaltest du unter „Mitteilungen“ „Sag mir, wenn jemand aus meinem Adressbuch dazukommt“ ein (standardmäßig aus), behalten wir beim Abgleich die Prüfwerte der Nummern aus deinem Adressbuch, die noch kein Konto haben. Jeden davon verrechnen wir vorher noch einmal mit einem geheimen Schlüssel unseres Servers (HMAC-SHA256, „gepfeffert“), speichern also weder Nummern noch Namen, und behalten höchstens 5.000 Einträge. Jeder Abgleich ersetzt die Liste; 90 Tage nach deinem letzten Abgleich wird sie automatisch gelöscht. Meldet sich eine dieser Nummern bei Wanna yap? an und trägt ihren Namen ein, bekommst du eine Mitteilung („… ist jetzt dabei“), und ihr Eintrag verschwindet aus allen Listen. Wer dich blockiert hat oder von dir blockiert wurde, löst keine Mitteilung aus. Ausschalten löscht deine Liste sofort, ebenso die Löschung deines Kontos; im Export siehst du den Schalter und die Anzahl der Einträge. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO); für die Menschen, deren Nummern als Prüfwert in der Liste stehen, unser berechtigtes Interesse, dir ihren Beitritt mitzuteilen (Art. 6 Abs. 1 lit. f DSGVO). Auch diese Prüfwerte sind pseudonym, nicht anonym, und wir behandeln sie entsprechend.',
+      'Jeder Nutzer hat einen persönlichen Einladungslink mit einem Code. Meldest du dich über den Link einer Person an, speichern wir bei deinem Konto, wer dich eingeladen hat, verbinden euch und zählen das für diese Person; sie sieht nur die Anzahl. Öffnest du den Link im Browser, zählen wir nur den Besuch je Code und Plattform (iPhone, Android oder andere), ohne etwas über dich zu speichern.',
     ],
   },
   {
@@ -64,6 +110,14 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
       'Kreise sind gemeinsame Gruppen, denen man bewusst beitritt (Einladung oder Code). Wir speichern Name, Mitglieder und offene Einladungen; Einladungen an Menschen ohne App nur als Prüfwert (Hash) der Nummer. Mitglieder eines Kreises sehen einander, auch wenn sie ihre Nummern nicht gespeichert haben, und sehen, wann die anderen erreichbar sind (außer du schränkst das ein).',
       'Für Gruppenanrufe (Runden) speichern wir, wer wann dabei war, 30 Tage, und für deine Gesprächszeit-Statistik deine Zeit in der Runde.',
       'Blockierst du jemanden, speichern wir das, bis du es aufhebst. Meldungen (Grund, optionaler Hinweis, ggf. der betroffene Moment) speichern wir bis zu 6 Monate, um Missbrauch zu prüfen. Die gemeldete Person erfährt nicht, von wem die Meldung kommt.',
+    ],
+  },
+  {
+    title: 'Melden ohne Konto',
+    paragraphs: [
+      'Auf wannayap.app/melden (und in der App unter „Hilfe & Feedback“) kann jede Person einen Verstoß melden, auch ohne Konto (Art. 16 DSA). Wir speichern dazu die gewählte Kategorie (Belästigung, rechtswidriger Inhalt, Spam oder Sonstiges), deine Beschreibung und, wenn du sie angibst, die Telefonnummer der gemeldeten Person, einen Hinweis auf den betroffenen Moment und deine E-Mail-Adresse für Rückfragen. Alles außer Kategorie und Beschreibung ist freiwillig.',
+      'Zweck ist, die Meldung zu prüfen, gegen Verstöße vorzugehen und dir, falls du eine E-Mail-Adresse angibst, per Mail zu antworten (Art. 6 Abs. 1 lit. c DSGVO in Verbindung mit Art. 16 DSA und Art. 6 Abs. 1 lit. f DSGVO). Deine IP-Adresse nutzen wir nur kurz, um Massenmeldungen zu bremsen (höchstens fünf je Stunde), und speichern sie nicht bei der Meldung. Die gemeldete Person erfährt nicht, wer gemeldet hat.',
+      'Meldungen ohne Konto löschen wir nach 6 Monaten automatisch, wie Meldungen aus der App. Löscht die gemeldete Person ihr Konto, löschen wir auch Meldungen zu ihrer Nummer. Fragst du bei uns nach deiner Meldung, hilft uns die Vorgangsnummer, die du nach dem Absenden siehst.',
     ],
   },
   {
@@ -85,15 +139,42 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     paragraphs: [
       'Für Mitteilungen speichern wir ein Push-Token deines Geräts und versenden über den Expo Push Service (650 Industries, Inc., USA) sowie Apple (Apple Push Notification Service, auch für eingehende Anrufe). Welche Mitteilungen du bekommst, stellst du in der App ein.',
       'Welche Mitteilungen wir dir geschickt oder aus welchem Grund nicht geschickt haben, speichern wir 3 Tage; du siehst das unter „Mitteilungen → Zuletzt“.',
+      'Für „Erinnerungen und Tipps“ (zum Beispiel wenn du noch niemanden eingeladen hast oder dein geschenktes Plus bald endet) meldet die App unserem Server beim Start und bei der Rückkehr in den Vordergrund, höchstens alle zwei Stunden, ob du Mitteilungen und den Zugriff auf deine Kontakte erlaubt hast. Wir speichern davon nur den letzten Stand mit Zeitpunkt und außerdem, welche Erinnerung wir dir wann geschickt haben, damit jede nur einmal kommt; beides bis zur Löschung deines Kontos. Höchstens zwei solcher Mitteilungen kommen pro Woche, und du kannst sie unter „Mitteilungen“ ausschalten (Art. 6 Abs. 1 lit. b DSGVO).',
+    ],
+  },
+  {
+    title: 'Wanna yap+ und Käufe',
+    paragraphs: [
+      'Wanna yap+ kaufst du über Apple (App Store, In-App-Kauf). Die Zahlung wickelt Apple ab; Zahlungsdaten wie Karten- oder Kontonummern bekommen wir nicht zu sehen und speichern sie nicht.',
+      'Den Abo-Status verwaltet in unserem Auftrag RevenueCat (RevenueCat, Inc., USA; Art. 28 DSGVO). Als Kennung nutzen wir dort die interne Nummer deines Kontos, nicht deine Telefonnummer. RevenueCat meldet uns jede Änderung deines Abos; wir speichern davon das Produkt, den Status (z. B. aktiv, gekündigt, Zahlungsproblem, abgelaufen), die Laufzeit, den Preis und die Währung des Ereignisses, den Kündigungsgrund, das dir angezeigte Angebot, ob es sich um einen Testkauf handelt und bei einem Gerätewechsel die betroffenen internen Kontokennungen, um dir Wanna yap+ freizuschalten und unsere Einnahmen zu berechnen (Art. 6 Abs. 1 lit. b DSGVO).',
+      'Diese Abo-Ereignisse bleiben als Nachweis gespeichert, auch wenn du dein Konto löschst; sie sind dann nur noch über die interne Kennung bezeichnet und keiner Nummer mehr zuzuordnen. Wanna yap+ kannst du auch geschenkt bekommen (Einladungen, Warteliste); dann speichern wir nur, bis wann es gilt und woher es kommt. Kaufst du danach selbst ein Abo, merken wir uns die frühere Geschenk-Quelle, um zu messen, ob Geschenke zu Käufen führen. Bekommt ihr nach einem ersten Gespräch beide Plus geschenkt (Einladung für beide), speichern wir bei der eingeladenen Person, von welcher einladenden Nummer das kam, damit jedes Paar das nur einmal bekommt; löscht eine der beiden Personen ihr Konto, verschwindet der Eintrag.',
+      'Öffnest du die Seite zu Wanna yap+, startest dort einen Kauf oder stellst Käufe wieder her, zählt unser Server das nur als Tageszahl je Schritt und je Einstieg (zum Beispiel „aus den Einstellungen“ oder „aus einer Mitteilung“), ohne zu speichern, wer es war. Schlägt ein Kauf fehl, geht ein Fehlerbericht mit dem Fehlercode des App Store an uns, wie unter „Absturzberichte“ beschrieben. So sehen wir, ob Käufe klappen und welcher Weg zu Plus genutzt wird (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO).',
     ],
   },
   {
     title: 'Nutzungsstatistik, Support und Moderation',
     paragraphs: [
       'Um die App zu verbessern, zählen wir auf dem Server, an welchen Tagen die App genutzt wird. Dafür speichern wir statt deiner Nummer nur einen Prüfwert (Hash) und das Datum, bis zu 400 Tage. Daraus entstehen ausschließlich Gesamtzahlen (z. B. wie viele Menschen heute aktiv waren). Es gibt kein Tracking-SDK, keine Werbe-IDs und keine Weitergabe an Dritte.',
-      'Die App übermittelt bei jeder Anfrage ihre Version, Plattform und Betriebssystem-Version, damit wir Fehler eingrenzen und veraltete Versionen erkennen können.',
+      'Die App übermittelt bei jeder Anfrage ihre Version, Plattform und Betriebssystem-Version, damit wir Fehler eingrenzen und veraltete Versionen erkennen können, sowie die Gerätekennung und das Modell für die Geräteliste (siehe „Angemeldete Geräte und neu vergebene Nummern“). Bei der Anmeldung speichern wir außerdem die Sprache deines Geräts (aus der Anfrage der App), nur um zu messen, ob eine Übersetzung nötig wird; die App verhält sich dadurch nicht anders.',
       'Schreibst du uns über „Hilfe & Feedback“, speichern wir deine Nachrichten, die Kategorie und die App-Version, bis du dein Konto löschst.',
+      'Nach deinem zweiten Gespräch laden wir dich in der App zu einem 15-minütigen Gespräch mit dem Gründer ein. Wir speichern dazu nur, wann wir dich eingeladen haben, ob du einen Termin gewählt oder abgelehnt hast und ob das Gespräch stattfand (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO); mit deinem Konto wird das gelöscht. Tippst du auf „Termin wählen“, öffnet sich die Buchungsseite unseres Terminanbieters cal.com (Cal.com, Inc., USA) mit deinem Profilnamen vorbelegt; was du dort eingibst, verarbeitet cal.com nach seiner eigenen Datenschutzerklärung.',
       'Für Support und Moderation hat ein kleiner Kreis berechtigter Personen Zugriff auf ein geschütztes Admin-Werkzeug (Anmeldung mit Zwei-Faktor). Nummern sind dort maskiert; jeder Zugriff auf Daten einer Person wird protokolliert (1 Jahr). Bei Verstößen gegen die Regeln kann ein Konto gesperrt werden; bei einer dauerhaften Sperre speichern wir einen Prüfwert (Hash) der Nummer, damit sie sich nicht erneut registrieren kann.',
+      'Sperren wir dein Konto auf Zeit oder blenden einen deiner Moments aus oder löschen ihn, schreiben wir dir unter „Hilfe & Feedback“, welche Maßnahme, aus welchem Grund und bis wann (Art. 17 DSA). Diese Nachricht und deine Antwort darauf speichern wir wie andere Anfragen, bis du dein Konto löschst.',
+    ],
+  },
+  {
+    title: 'Woher du uns kennst',
+    paragraphs: [
+      'Nach dem Einrichten deines Profils fragen wir einmal, woher du Wanna yap? kennst (Freund·in, TikTok, Instagram, Flyer, Presse oder Sonstiges) und wie viele deiner fünf engsten Freunde ein Android-Handy haben (0 bis 5 oder „Weiß ich nicht“). Beides ist freiwillig; tippst du auf „Überspringen“, speichern wir nichts.',
+      'Antwortest du, speichern wir deine Antworten und den Zeitpunkt bei deinem Konto. Bist du über den Einladungslink einer Person gekommen, ergänzt unser Server den Einladungscode aus diesem Link; kennt er die Kampagne, über die du gekommen bist (etwa aus deinem Wartelisten-Eintrag oder einer gerade laufenden Aktion, zu der deine Antwort passt), ihren Kurznamen. Innerhalb von 24 Stunden kann eine neue Antwort die erste ersetzen, danach bleibt sie.',
+      'Wir nutzen das nur, um zu messen, über welche Wege Menschen zu uns finden und wie viele Freundeskreise Android nutzen; ausgewertet wird es nur als Gesamtzahlen je Weg oder Kampagne (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO). Es gibt dafür kein Tracking-SDK und keine Werbe-ID, und wir geben die Angaben nicht an Dritte weiter. Sie sind in deinem Datenexport enthalten und werden mit deinem Konto gelöscht.',
+    ],
+  },
+  {
+    title: 'Absturzberichte',
+    paragraphs: [
+      'Stürzt die App ab oder tritt ein technischer Fehler auf, schickt sie einen Fehlerbericht an unseren Server und an den Dienst Sentry (Functional Software, Inc., USA), den wir in der Region Europäische Union nutzen; die Berichte werden dort auf Servern in der Europäischen Union verarbeitet, im Auftrag und nach unseren Weisungen (Art. 28 DSGVO). Ein Bericht enthält die Fehlermeldung, die Stelle im Programmcode, die App-Version, das Gerätemodell, die iOS-Version, ob die App gerade im Vordergrund war und die letzten Bedienschritte in technischer Form (zum Beispiel „Schaltfläche angetippt“ oder „Anfrage an den Server gesendet“). Statt deiner Nummer steht im Bericht nur ein Prüfwert (Hash) davon, damit wir sehen, ob viele oder immer dieselbe Person betroffen ist; Telefonnummern, E-Mail-Adressen und Adressparameter von Anfragen entfernt die App vor dem Senden, bei nativen Abstürzen Sentry vor der Speicherung; Beschriftungen angetippter Elemente (etwa Namen) werden nicht übertragen. Es werden keine Telefonnummern, keine Namen, keine Bilder und keine Gesprächsinhalte übertragen, auch keine Werbe-IDs oder Standortdaten. Außerdem meldet die App bei jedem Start und jeder Rückkehr in den Vordergrund kurz an Sentry, dass sie läuft (App-Version, Gerätemodell, iOS-Version, Prüfwert), damit wir sehen, welcher Anteil der Sitzungen ohne Absturz bleibt.',
+      'Rechtsgrundlage ist unser berechtigtes Interesse an einer funktionierenden App (Art. 6 Abs. 1 lit. f DSGVO). Sentry löscht die Berichte spätestens nach 90 Tagen. Sentry erhält deine Nummer nicht im Klartext, sondern nur den Prüfwert. Weil sich Telefonnummern durch Durchprobieren aus einem Prüfwert zurückrechnen ließen, behandeln wir ihn wie die Nummer selbst (pseudonym, nicht anonym); Sentry verarbeitet ihn nur in unserem Auftrag. Möchtest du Berichte zu deinem Prüfwert früher entfernt haben, schreib uns, wir veranlassen das bei Sentry. Berichte senden nur Release-Versionen (App Store und TestFlight); in Entwicklungsversionen ist die Übertragung abgeschaltet.',
     ],
   },
   {
@@ -107,10 +188,17 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     paragraphs: [
       'Trägst du dich auf der Website in die Warteliste ein, speichern wir deine E-Mail-Adresse, um dir zu schreiben, sobald die App startet, und dir bis dahin höchstens ein paar Neuigkeiten zu schicken. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO).',
       'Wir nutzen das Double-Opt-in-Verfahren: Erst wenn du den Link in unserer Bestätigungsmail anklickst, stehst du auf der Liste. Als Nachweis deiner Einwilligung speichern wir den Zeitpunkt der Anmeldung und der Bestätigung, die dabei verwendete IP-Adresse und den Wortlaut der Einwilligung. Bestätigst du nicht, löschen wir den Eintrag nach 7 Tagen.',
-      'Kommst du über den Einladungslink einer anderen Person, speichern wir, über wessen Link du gekommen bist, damit sie für Empfehlungen belohnt werden kann. Sie erfährt nur die Anzahl, nicht wer sich eingetragen hat. Kommst du über einen Link aus einer Kampagne, speichern wir deren Kennzeichen (z. B. „tiktok“), um zu sehen, welche Werbung funktioniert.',
+      'Kommst du über den Einladungslink einer anderen Person, speichern wir, über wessen Link du gekommen bist, damit sie für Empfehlungen belohnt werden kann. Sie erfährt nur die Anzahl, nicht wer sich eingetragen hat. Kommst du über einen Link aus einer Kampagne, speichern wir deren Kennzeichen (z. B. „tiktok“), um zu sehen, welche Werbung funktioniert. Beim Eintragen speichern wir außerdem, ob du ein iPhone oder ein Android-Gerät nutzt (aus der Browser-Kennung), um dir zum passenden Zeitpunkt zu schreiben.',
       'Auf deinem Gerät merkt sich die Website im lokalen Speicher deines Browsers deinen Wartelisten-Code und einen Einladungslink, über den du gekommen bist. Das ist für die von dir gewünschte Funktion nötig (§ 25 Abs. 2 TDDDG) und verlässt dein Gerät nicht.',
       'Die Mails versenden wir über einen E-Mail-Dienstleister, der sie in unserem Auftrag verarbeitet (Art. 28 DSGVO). Du kannst deine Einwilligung jederzeit widerrufen, über den Abmelde-Link in jeder Mail oder per Mail an uns. Dann löschen wir deine Adresse sofort. Andernfalls löschen wir die Warteliste spätestens 12 Monate nach dem Start der App.',
       'Löst du deinen Wartelisten-Code in der App ein, verknüpfen wir den Eintrag mit deinem Konto, um dir das Abzeichen und gegebenenfalls die geschenkten Plus-Tage zu geben.',
+    ],
+  },
+  {
+    title: 'E-Mail-Versand',
+    paragraphs: [
+      'In der App brauchen wir keine E-Mail-Adresse. E-Mails schicken wir nur an Adressen aus der Warteliste (die Bestätigungsmail, die Nachricht zum Start der App und gelegentliche Neuigkeiten, bis du dich abmeldest) und, wenn du bei einer Meldung ohne Konto eine Adresse angibst, unsere Antwort auf diese Meldung.',
+      ...mailProviderLines(),
     ],
   },
   {
@@ -139,6 +227,115 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   },
 ];
 
+/** The report form for everyone, with or without an account (app/melden.tsx, DSA Art. 16). */
+export const REPORT_URL = 'https://wannayap.app/melden';
+
+const operatorName = () => (OPERATOR ? `${OPERATOR.name}, ${addressLines(OPERATOR).slice(1).join(', ')}` : 'den im Impressum genannten Anbieter');
+const contactMail = () => (OPERATOR ? OPERATOR.email : 'die im Impressum genannte Adresse');
+
+/**
+ * Our own terms of use (plan 2.7), public at /nutzungsbedingungen and the
+ * EULA link in App Store Connect. Plain German, "du", short. Draft until a
+ * lawyer has reviewed it (docs/RELEASE.md, Gate item lawyerReview): every
+ * change raises TERMS_VERSION and TERMS_UPDATED. Statements here must match
+ * what the code does: moderation notices are tickets (backend
+ * lib/moderation.js), reports without an account go to POST /reports/public.
+ */
+export const TERMS_SECTIONS: LegalSection[] = [
+  {
+    title: 'Worum es geht',
+    paragraphs: [
+      `Diese Bedingungen gelten für die App Wanna yap? und die Website wannayap.app. Anbieter ist ${operatorName()}.`,
+      'Wanna yap? zeigt dir, wann Menschen, die du kennst, Zeit für ein Gespräch haben, und verbindet euch per Video- oder Sprachanruf. Anrufen kannst du nur Menschen, die dich auch kennen: wenn ihr euch gegenseitig im Adressbuch habt, ihr euch über einen Einladungslink gefunden habt oder gemeinsam in einem Kreis seid. Wanna yap? ist kein Netzwerk, um Fremde kennenzulernen.',
+      'Mit „Los geht’s“ bei der Anmeldung akzeptierst du diese Bedingungen. Wie wir mit deinen Daten umgehen, steht in der Datenschutzerklärung.',
+    ],
+  },
+  {
+    title: 'Mindestalter',
+    paragraphs: [
+      `Wanna yap? ist für Menschen ab ${MIN_AGE} Jahren. Bist du jünger, darfst du die App nur mit Zustimmung deiner Eltern oder Erziehungsberechtigten nutzen. Bei der Anmeldung bestätigst du dein Alter.`,
+    ],
+  },
+  {
+    title: 'Dein Konto',
+    paragraphs: [
+      'Dein Konto hängt an deiner Telefonnummer. Nutze nur eine Nummer, die dir gehört, und gib dein Konto nicht an andere weiter.',
+      'Du kannst dein Konto jederzeit in der App unter „Profil → Deine Daten“ löschen. Damit endet dieser Vertrag; ein laufendes Abo kündigst du zusätzlich bei Apple (siehe „Wanna yap+“).',
+    ],
+  },
+  {
+    title: 'Fair miteinander',
+    paragraphs: [
+      'Wanna yap? lebt davon, dass sich alle wohlfühlen. Deshalb gilt:',
+      'Keine Belästigung: Wer nicht abnimmt oder nicht mehr angerufen werden möchte, hat Zeit oder Lust gerade nicht. Kein Drängen, keine Drohungen, keine Beleidigungen, kein Anrufen in Serie.',
+      'Keine rechtswidrigen Inhalte: Nichts, was gegen Gesetze verstößt oder die Rechte anderer verletzt, weder im Gespräch noch in Moments, Namen, Profilbildern oder Kreisen.',
+      'Moments nur mit Zustimmung: Ein Moment zeigt die Person, mit der du gesprochen hast. Er wird erst geteilt, wenn sie zustimmt. Halte keine Bilder fest, die sie bloßstellen, und versuche nicht, die Zustimmung zu umgehen (zum Beispiel per Bildschirmfoto zum Weiterverbreiten).',
+      'Kein Missbrauch der Technik: keine automatisierten Zugriffe, keine Versuche, Telefonnummern anderer abzufragen, und keine Werbung oder Spam.',
+    ],
+  },
+  {
+    title: 'Melden',
+    paragraphs: [
+      `Stört dich etwas, kannst du Personen und Moments direkt in der App melden oder blockieren. Auch ohne Konto kannst du uns Verstöße melden: ${REPORT_URL}. Wir prüfen jede Meldung zügig und sagen dir, wenn du eine E-Mail-Adresse angibst, was wir unternommen haben.`,
+    ],
+  },
+  {
+    title: 'Moderation und Sperren',
+    paragraphs: [
+      'Verstößt jemand gegen diese Regeln, können wir einen Moment ausblenden oder löschen, ein Konto auf Zeit sperren oder es bei schweren oder wiederholten Verstößen dauerhaft schließen. Wir entscheiden im Einzelfall und berücksichtigen, wie schwer der Verstoß wiegt.',
+      'Betrifft eine Entscheidung dich, sagen wir dir unter „Hilfe & Feedback“ in der App, welche Maßnahme wir ergriffen haben, aus welchem Grund und wie lange sie gilt (Art. 17 DSA). Ist dein Konto gesperrt, nennt dir die App bei der Anmeldung den Grund und das Ende der Sperre.',
+      `Du kannst widersprechen: Antworte einfach auf diese Nachricht in der App, oder schreib an ${contactMail()}, wenn du dich gerade nicht anmelden kannst. Ein Mensch schaut sich die Entscheidung noch einmal an, und wir antworten dir (Art. 20 DSA). Außerdem kannst du eine zugelassene außergerichtliche Streitbeilegungsstelle (Art. 21 DSA) anrufen oder vor Gericht gehen.`,
+    ],
+  },
+  {
+    title: 'Wanna yap+',
+    paragraphs: [
+      'Wanna yap? ist kostenlos. Wanna yap+ ist ein freiwilliges Abo mit Extras, als Monats- oder Jahresabo. Du kaufst es über Apple; Apple wickelt die Zahlung ab, und es gelten zusätzlich Apples Bedingungen für Käufe im App Store.',
+      'Das Abo verlängert sich automatisch um dieselbe Laufzeit, bis du es kündigst. Kündigen kannst du jederzeit in den iPhone-Einstellungen (dein Name → Abonnements), spätestens 24 Stunden vor Ablauf der laufenden Periode. Das Löschen der App oder deines Kontos kündigt das Abo nicht.',
+      'Bieten wir eine kostenlose Probezeit an, siehst du ihre Dauer vor dem Kauf. Kündigst du nicht spätestens 24 Stunden vor ihrem Ende, geht sie in ein bezahltes Abo über. Das Jahresabo kannst du über die Familienfreigabe von Apple mit deiner Familie teilen.',
+      'Erstattungen laufen über Apple (reportaproblem.apple.com). Ändern wir den Preis, sagt dir Apple vorher Bescheid; bei einer Erhöhung musst du je nach Fall zustimmen, sonst endet das Abo.',
+    ],
+  },
+  {
+    title: 'Geschenktes Plus',
+    paragraphs: [
+      'Plus kann es auch geschenkt geben, etwa für Einladungen, über die Warteliste oder als Dankeschön von uns. Das ist freiwillig, gilt für die angegebene Zeit und lässt sich nicht in Geld umtauschen.',
+      'Wird ein Geschenk durch Missbrauch erlangt (zum Beispiel mit Scheinkonten für Einladungen), können wir es entziehen.',
+    ],
+  },
+  {
+    title: 'Verfügbarkeit',
+    paragraphs: [
+      'Wir arbeiten daran, dass Wanna yap? zuverlässig läuft, können aber nicht versprechen, dass die App immer erreichbar ist oder jeder Anruf zustande kommt. Wanna yap? ersetzt kein Telefon für Notrufe.',
+      'Wir entwickeln die App weiter und können Funktionen ändern oder einstellen. Wollen wir die App ganz einstellen, sagen wir es dir mindestens 30 Tage vorher.',
+    ],
+  },
+  {
+    title: 'Haftung',
+    paragraphs: [
+      'Wir haften unbeschränkt bei Vorsatz und grober Fahrlässigkeit, bei Verletzung von Leben, Körper oder Gesundheit und nach dem Produkthaftungsgesetz. Bei leichter Fahrlässigkeit haften wir nur, wenn wir eine wesentliche Pflicht verletzen, auf die du dich verlassen darfst, und begrenzt auf den typischen, vorhersehbaren Schaden.',
+      'Für das, was andere Nutzer sagen oder teilen, sind sie selbst verantwortlich. Erfahren wir von rechtswidrigen Inhalten, handeln wir zügig.',
+    ],
+  },
+  {
+    title: 'Änderungen dieser Bedingungen',
+    paragraphs: [
+      'Ändern wir diese Bedingungen, sagen wir es dir vorher in der App. Jede Fassung trägt ein Datum (siehe „Stand“). Nutzt du die App nach der Änderung weiter, gilt die neue Fassung; bist du nicht einverstanden, kannst du dein Konto jederzeit löschen. Für ein laufendes Abo ändern sich Preis und Leistung nur so, wie oben unter „Wanna yap+“ beschrieben.',
+    ],
+  },
+  {
+    title: 'Anwendbares Recht',
+    paragraphs: [
+      'Es gilt deutsches Recht. Wohnst du in einem anderen Land der EU, behältst du den Schutz der zwingenden Verbraucherschutzvorschriften deines Landes.',
+      'An Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle nehmen wir nicht teil (siehe Impressum).',
+    ],
+  },
+  {
+    title: 'Stand',
+    paragraphs: [TERMS_UPDATED],
+  },
+];
+
 export const IMPRINT_SECTIONS: LegalSection[] = [
   {
     title: 'Angaben gemäß § 5 DDG',
@@ -154,6 +351,17 @@ export const IMPRINT_SECTIONS: LegalSection[] = [
     title: 'Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV',
     paragraphs: OPERATOR ? [`${OPERATOR.name}, Anschrift wie oben`] : ['–'],
   },
+  {
+    title: 'Kontaktstelle nach dem Digital Services Act (Art. 11 und 12 DSA)',
+    paragraphs: [
+      OPERATOR
+        ? `Für Behörden, die EU-Kommission und das Gremium für digitale Dienste ebenso wie für alle, die Wanna yap? nutzen: E-Mail an ${OPERATOR.email}.`
+        : 'Die Kontaktadresse wird vor der Veröffentlichung ergänzt.',
+      'Du kannst uns auf Deutsch oder Englisch schreiben.',
+      `Verstöße und rechtswidrige Inhalte kannst du auch ohne Konto melden: ${REPORT_URL}.`,
+    ],
+  },
+  ...(MAIL_PROVIDER ? [{ title: 'E-Mail-Dienstleister', paragraphs: [MAIL_PROVIDER] }] : []),
   {
     title: 'Verbraucherstreitbeilegung',
     paragraphs: ['Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.'],

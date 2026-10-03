@@ -12,6 +12,7 @@ Alles, was im App-Store-Eintrag von Wanna yap? steht, zum Kopieren. Sprache: Deu
 | Primäre Kategorie | Soziale Netze |
 | Sekundäre Kategorie | Lifestyle |
 | Datenschutz-URL | `https://wannayap.app/datenschutz` |
+| Lizenzvereinbarung (EULA) | Eigene EULA: Text von `https://wannayap.app/nutzungsbedingungen` (siehe unten) |
 | Inhaltsrechte | Enthält keine Inhalte Dritter |
 
 Der Untertitel wird mitdurchsucht: „Zeit“ und „gerade“ gehören deshalb nicht noch
@@ -67,15 +68,23 @@ Kostenlos fürs iPhone. Wanna yap? macht am meisten Spaß mit deinen Leuten: Lad
 WANNA YAP+ (FREIWILLIG)
 Alles Wichtige bleibt kostenlos. Mit Wanna yap+ bekommst du dazu: alle Moments für immer, größere Kreise, Runden ohne Zeitlimit, Video in HD, deinen Jahresrückblick und mehr. Wanna yap+ gibt es als Monats- oder Jahresabo. Es verlängert sich automatisch, bis du es kündigst. Kündigen kannst du jederzeit in den Einstellungen deines Apple-Kontos, spätestens 24 Stunden vor Ablauf.
 
-Nutzungsbedingungen (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Nutzungsbedingungen (EULA): https://wannayap.app/nutzungsbedingungen
 Datenschutz: https://wannayap.app/datenschutz
 ```
 
 Die beiden Links am Ende verlangt Apple, weil die App Abos anbietet (Richtlinie 3.1.2): Ohne
-Link zu den Nutzungsbedingungen im Eintrag wird die Prüfung angehalten. Wir nutzen Apples
-Standard-EULA; dieselben Links zeigt die App unter dem Kauf-Button (`app/plus.tsx`). Kommen
-eigene Nutzungsbedingungen auf wannayap.app, beide Stellen umstellen oder die eigene EULA in
-App Store Connect → App-Informationen → Lizenzvereinbarung hinterlegen.
+Link zu den Nutzungsbedingungen im Eintrag wird die Prüfung angehalten. Seit Plan 2.7 haben
+wir eigene Nutzungsbedingungen (`content/legal.ts` → `TERMS_SECTIONS`, öffentlich unter
+`/nutzungsbedingungen`, `TERMS_URL`); dieselben Links zeigt die App unter dem Kauf-Button
+(`app/plus.tsx`) und beim Start (Onboarding).
+
+Weil der Eintrag damit nicht mehr auf Apples Standard-EULA verweist, braucht App Store
+Connect → App-Informationen → **Lizenzvereinbarung** eine **eigene EULA**: dort „Bearbeiten“,
+eigene Lizenzvereinbarung wählen und den Text der Seite `/nutzungsbedingungen` einfügen
+(oder den Link, falls das Feld ihn annimmt) und für alle Länder übernehmen. Ändert sich der
+Text (`TERMS_VERSION`), die Lizenzvereinbarung dort mit aktualisieren. Die Beschreibung lässt
+sich nur mit einer neuen Version ändern: den neuen Link mit der nächsten Einreichung
+übernehmen, zusammen mit der eigenen Lizenzvereinbarung.
 
 **Neuerungen in dieser Version:** `Die erste Version von Wanna yap?. Schön, dass du da bist.`
 

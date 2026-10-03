@@ -15,6 +15,7 @@ import {
   TAB_BAR_SPACE,
 } from '../../ui';
 import { DailyMomentCard } from './DailyMomentCard';
+import { FirstTalkCard } from './FirstTalkCard';
 import { NextUpCard } from '../album/AlbumView';
 import type { Album } from '../../services/badgesApi';
 
@@ -50,12 +51,16 @@ type Props = {
   onOpenProfile?: () => void;
   /** "Deine Kreise" (features/circles/CirclesStrip) */
   circlesStrip?: React.ReactNode;
+  /** "Dein erstes Gespräch": registered contacts, no talk yet (./firstTalk.ts) */
+  firstTalk?: React.ComponentProps<typeof FirstTalkCard> | null;
   /** The daily Yap Moment while it runs */
   daily?: React.ComponentProps<typeof DailyMomentCard> | null;
   /** "Nicht jetzt" on the nudge card */
   onDismissNudges: () => void;
   /** None of your contacts has the app yet: invite instead of waiting */
   lonely?: { onInvite: () => void; referral?: React.ReactNode } | null;
+  /** After the second talk: the invitation to a research call (features/status/ResearchCard) */
+  research?: React.ReactNode;
   /** Explain notifications before the system asks */
   showNotificationPrompt?: boolean;
   onAllowNotifications?: () => void;
@@ -180,8 +185,10 @@ export function StatusView({
   onOpenProfile,
   onDismissNudges,
   lonely,
+  research,
   circlesStrip,
   daily,
+  firstTalk,
   showNotificationPrompt,
   onAllowNotifications,
   onDismissNotifications,
@@ -243,9 +250,13 @@ export function StatusView({
         )}
       </View>
 
+      {firstTalk ? <FirstTalkCard {...firstTalk} /> : null}
+
       {circlesStrip}
 
       {showNotificationPrompt && <NotificationPrompt onAllow={onAllowNotifications} onDismiss={onDismissNotifications} />}
+
+      {research}
 
       {missedCalls > 0 && onOpenCalls ? (
         <View style={{ marginTop: spacing.xl }}>

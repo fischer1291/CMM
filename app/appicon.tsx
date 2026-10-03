@@ -6,6 +6,7 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { usePlan } from '../contexts/PlanContext';
 import { APP_ICONS, currentIcon, iconsSupported, setIcon } from '../services/appIcon';
 import { AppText, Button, colors, PageHeader, radius, Screen, spacing } from '../ui';
+import { paywallHref } from '../services/paywall';
 
 /** Choose the app icon (Wanna yap+). */
 export default function AppIconScreen() {
@@ -16,7 +17,7 @@ export default function AppIconScreen() {
   const [current, setCurrent] = useState<string | null>(currentIcon());
 
   const choose = async (id: string | null) => {
-    if (!allowed) return router.push('/plus');
+    if (!allowed) return router.push(paywallHref('appicon'));
     try {
       await setIcon(id);
       setCurrent(id);
@@ -64,7 +65,7 @@ export default function AppIconScreen() {
           );
         })}
       </View>
-      {!allowed ? <Button title="Mehr zu Plus" icon="sparkles" onPress={() => router.push('/plus')} style={{ marginTop: spacing.xl }} /> : null}
+      {!allowed ? <Button title="Mehr zu Plus" icon="sparkles" onPress={() => router.push(paywallHref('appicon'))} style={{ marginTop: spacing.xl }} /> : null}
     </Screen>
   );
 }

@@ -36,7 +36,7 @@ export default function ContactsScreen() {
   const invite = (contact: Contact) => {
     // Remembered (as a hash): when they sign up, you're connected right away
     recordInvites([contact.phone]).catch(() => {});
-    const text = inviteText(userProfile?.name?.split(' ')[0]);
+    const text = inviteText(userProfile?.name?.split(' ')[0], userProfile?.inviteCode);
     // SMS to that contact; the share sheet if SMS isn't available (e.g. iPad)
     Linking.openURL(`sms:${contact.phone}&body=${encodeURIComponent(text)}`).catch(() => Share.share({ message: text }));
   };

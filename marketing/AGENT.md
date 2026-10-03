@@ -18,12 +18,52 @@ vor jedem bezahlten Aufruf      →  POST /marketing/budget/reserve         Budg
   (Claude, Veo, Bild)                ↳ 402, wenn Tag oder Woche voll
 danach echte Kosten             →  POST /marketing/budget/:id/settle
 Referenzbilder vorschlagen      →  POST /marketing/characters/:key/…      Figuren: Bild auswählen
-Entwurf + MP4                   →  POST /marketing/drafts, PUT …/video    ansehen, freigeben oder mit
-Mail an die Owner               →  POST /marketing/notify                 Grund verwerfen, posten
+Entwurf, MP4, 2 Hook-Varianten  →  POST /marketing/drafts, PUT …/video    ansehen, freigeben oder mit
+Lauf fertig (Dauer), Mail       →  POST /marketing/notify                 Grund verwerfen, posten
+Lauf fehlgeschlagen (Workflow)  →  POST /marketing/notify {failed:true}   Alarm agent_failed (Push, Mail)
+Zahlen je gepostetem Video      ←  Job alle 6 h (Instagram, TikTok)
 ```
 
 Der Grund beim Verwerfen, was gepostet wurde, die Besuche pro Kampagne und die bisherige
-Geschichte der Hero-Videos gehen beim nächsten Lauf an den Agenten zurück.
+Geschichte der Hero-Videos gehen beim nächsten Lauf an den Agenten zurück. Dazu kommen die
+Hinweise aus der Wochenreview am Montag (Konsole → App → „Marketing-Hinweise für den
+Agenten“, `AppConfig.marketingNotes`, höchstens 1.000 Zeichen, Plan 2.11): `context.notes`
+steht in App- und Hero-Läufen als Abschnitt „Hinweise des Owners für diese Woche“ im Prompt
+(`agent/notes.js`) und hat Vorrang vor eigenen Themenideen. Leeres Feld = kein Abschnitt.
+Welche Entscheidung dahintersteht, steht in [`../docs/DECISIONS.md`](../docs/DECISIONS.md).
+
+## Was gewirkt hat: Rückkopplung (Plan 2.14)
+
+- **Zahlen je Video:** Das Backend holt alle 6 Stunden für Videos, die es in den letzten
+  30 Tagen selbst gepostet hat, die Zahlen von Instagram (Plays, Reichweite, Likes, Shares,
+  Gespeichert, Kommentare) und TikTok (Views, Likes, Kommentare, Shares) und speichert sie
+  am Entwurf (`AdDraft.stats`). Von Hand gepostete Videos und TikTok-Posts, die noch im
+  Posteingang oder privat sind, bleiben ohne Zahlen.
+- **Top und Flop im Prompt:** `GET /marketing/context` liefert `performance` (je bis zu
+  10 gepostete Videos der letzten 30 Tage, sortiert nach Views je Euro KI-Kosten, mit
+  Neunutzern und Aktivierten über den Link der Kampagne) und `aiCostPerPostedVideoEur`
+  (alle Agent-Ausgaben in 30 Tagen geteilt durch die geposteten Videos). App- und
+  Hero-Läufe bekommen daraus den Abschnitt „Was gewirkt hat (30 Tage)“
+  (`agent/performance.js`): vorne, hinten und eine Liste nach Aktivierung. Der Agent soll
+  Formate nach Aktivierung bewerten, nicht nach Views. Ohne gemessene Videos fehlt der
+  Abschnitt. In der Geschichte der Entwürfe stehen die Views dazu.
+- **Zwei Hook-Varianten:** Jeder Entwurf (App und Hero) kommt mit genau zwei anderen
+  Einstiegen in dieselbe Geschichte (`hookVariants`, je höchstens 120 Zeichen, bei Hero-Folgen
+  44); die Konsole zeigt sie beim Entwurf. Gerendert wird der Hook aus dem Plan; die
+  Varianten sind für einen späteren Test, welcher Einstieg trägt.
+- **Bio-Link pro Woche:** Jeden Montag legt das Backend die Kampagne `bio-<Jahr>-w<KW>` an
+  (Kanal „other“, „Bio-Link KW n“). Der Link `https://wannayap.app/k/bio-…` steht in der
+  Konsole zum Kopieren und im Prompt („Links in Captions sind nicht klickbar; der Bio-Link
+  dieser Woche ist …“). **Du trägst ihn jeden Montag in beide Bios ein**, dann zählt der
+  Kampagnen-Tab Besuche und Neunutzer je Woche.
+- **Lauf-Meldung:** Am Ende jedes Laufs mit Uploads schickt der Agent
+  `POST /marketing/notify { durationSec }` (wie lange der Lauf gedauert hat; Mail und Push,
+  wenn Entwürfe warten). Bricht ein Lauf ab, meldet der Workflow selbst
+  (`marketing-agent.yml`, Schritt „Fehlschlag melden“, `if: failure()`)
+  `{ failed: true, step: "<Modus>", runUrl: "<Link zum Lauf>" }`; das Backend löst den Alarm
+  `agent_failed` aus (Push und Mail, nie mit der Fehlermeldung). Der Agent-Schritt hat ein
+  eigenes Zeitlimit von 55 Minuten, damit auch ein hängender Lauf gemeldet wird. Was dann zu
+  tun ist, steht in [`../docs/RUNBOOK.md`](../docs/RUNBOOK.md) unter „Alarme“.
 
 ## Budget
 
@@ -148,7 +188,8 @@ Braucht wie `npm run video` Google Chrome und ffmpeg.
 
 Instagram und TikTok machen Links in Beschreibungen nicht klickbar. Die Links pro Video
 (`utm_campaign` = Kampagnenname) sind für Story-Link-Sticker und später für Anzeigen
-gedacht. Für normale Posts bleibt der Bio-Link.
+gedacht. Für normale Posts bleibt der Bio-Link, jede Woche ein eigener (siehe
+„Was gewirkt hat“ oben).
 
 ## Automatisch posten
 
@@ -163,15 +204,18 @@ TikTok `is_aigc`).
 2. [developers.facebook.com](https://developers.facebook.com) → App erstellen → Typ
    **Business** → Produkt **Instagram** → „API-Einrichtung mit Instagram-Login“.
 3. Dort das Instagram-Konto hinzufügen (es bekommt eine Rolle in der App) und
-   **Token generieren**, mit den Berechtigungen `instagram_business_basic` und
-   `instagram_business_content_publish`.
+   **Token generieren**, mit den Berechtigungen `instagram_business_basic`,
+   `instagram_business_content_publish` und `instagram_business_manage_insights` (für die
+   Zahlen je Video, Plan 2.14; ein älterer Token ohne sie: neu generieren und neu einfügen).
 4. Den Token in der Konsole unter Kanäle → Instagram einfügen. Das Backend erneuert ihn
    selbst, bevor er nach 60 Tagen abläuft.
 
 **TikTok** (Content Posting API)
 1. [developers.tiktok.com](https://developers.tiktok.com) → App anlegen, Produkte
    **Login Kit** und **Content Posting API** (Direct Post aktivieren), Scopes
-   `user.info.basic`, `video.upload`, `video.publish`.
+   `user.info.basic`, `video.upload`, `video.publish` und `video.list` (für die Zahlen je
+   Video, Plan 2.14; wer vorher verbunden hat: Scope ergänzen, dann in der Konsole TikTok
+   trennen und neu verbinden).
 2. Redirect-URI: `https://api.wannayap.app/marketing/tiktok/callback`.
 3. Client Key und Client Secret auf Render als `TIKTOK_CLIENT_KEY` und
    `TIKTOK_CLIENT_SECRET` eintragen.

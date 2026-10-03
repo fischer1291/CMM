@@ -1,0 +1,141 @@
+# The JS hotfix way: GitHub → Actions → OTA-Update → Run workflow. EAS Update
+# ships the JavaScript bundle of the chosen commit to every build on the
+# channel without a Store review; the app fetches it when it comes to the
+# foreground and offers a restart (services/updates.ts). production = every
+# App Store and TestFlight build (both come from the production profile, so
+# there is no staged rollout between them); preview = only builds of the
+# preview profile (eas build --profile preview, internal distribution to
+# registered devices), which nobody builds today, so an update there reaches
+# no device until such a build is installed (docs/RELEASE.md, "Kanäle").
+#
+# OTA only when nothing native changed: TypeScript, content, assets that were
+# already in the build. A new native module, a changed Info.plist or ios/
+# project, a new Expo SDK: Store build with a higher runtimeVersion instead.
+# The fingerprint step below refuses the OTA when native files changed and
+# runtimeVersion did not. Rules, rollback (eas update:republish) and the
+# phased-release discipline: docs/RELEASE.md, section "OTA oder Store-Build".
+#
+# eas update does not read the env block of eas.json (that is for builds), so
+# the workflow exports the env of the build profile named like the channel
+# itself (scripts/eas-env.js) before bundling; otherwise the bundle would ship
+# without EXPO_PUBLIC_REVENUECAT_IOS_KEY and switch purchases off.
+name: OTA-Update
+run-name: OTA-Update ${{ inputs.channel }} · ${{ inputs.message }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Kanal (production = App Store und TestFlight; preview = nur Builds des Profils preview auf registrierten Geräten, kein TestFlight)
+        type: choice
+        options: [preview, production]
+        default: preview
+        required: true
+      message:
+        description: Was ändert sich? (steht bei expo.dev an der Update-Gruppe, Pflicht)
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ota-update-${{ inputs.channel }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # An OTA reaches every App Store and TestFlight build within minutes:
+      # production takes only what is on main; a branch may go to preview
+      - name: Produktion nur von main
+        if: inputs.channel == 'production' && github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Der Kanal production nimmt nur Updates vom Branch main (gestartet von ${GITHUB_REF#refs/heads/}). Zum Ausprobieren den Kanal preview nehmen (erreicht nur Builds des Profils preview, siehe docs/RELEASE.md)."
+          exit 1
+      - uses: actions/checkout@v4
+      - name: Setup vorhanden?
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          MESSAGE: ${{ inputs.message }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Secret EXPO_TOKEN fehlt (GitHub → Settings → Secrets and variables → Actions). Siehe docs/RELEASE.md."
+            exit 1
+          fi
+          if [ -z "$(echo "$MESSAGE" | tr -d '[:space:]')" ]; then
+            echo "::error::Die Nachricht darf nicht leer sein: sie beschreibt die Update-Gruppe bei expo.dev."
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Versionsnummern
+        run: node scripts/version.js
+      # Stops when native files changed since ios/fingerprint.json was written
+      # but runtimeVersion did not: such a bundle would crash on the installed builds
+      - name: Native Fingerprint passt zur runtimeVersion
+        run: node scripts/fingerprint.js
+      # Same variables as the Store build of this channel's profile (eas.json)
+      - name: Build-Umgebung wie eas.json
+        env:
+          CHANNEL: ${{ inputs.channel }}
+        run: |
+          node scripts/eas-env.js --check
+          node scripts/eas-env.js "$CHANNEL" | tee -a "$GITHUB_ENV"
+      - name: Kaufschlüssel gesetzt?
+        run: |
+          if [ -z "$EXPO_PUBLIC_REVENUECAT_IOS_KEY" ]; then
+            echo "::error::EXPO_PUBLIC_REVENUECAT_IOS_KEY fehlt, das Bundle hätte keinen Kauf (eas.json build.<profil>.env)."
+            exit 1
+          fi
+      # The Sentry DSN is not in eas.json (EAS environment variable for builds);
+      # the OTA bundle takes it from the GitHub secret. Missing: Sentry stays
+      # off in this bundle, the run only warns (docs/RELEASE.md, "Crash-Telemetrie").
+      - name: Sentry-DSN für das Bundle
+        env:
+          SENTRY_DSN: ${{ secrets.EXPO_PUBLIC_SENTRY_DSN }}
+        run: |
+          if [ -z "$SENTRY_DSN" ]; then
+            echo "::warning::Secret EXPO_PUBLIC_SENTRY_DSN fehlt: dieses OTA-Bundle meldet keine Abstürze an Sentry."
+          else
+            echo "EXPO_PUBLIC_SENTRY_DSN=$SENTRY_DSN" >> "$GITHUB_ENV"
+          fi
+      - name: Web-Routen begrenzt
+        run: node scripts/check-web-stubs.js
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Tests
+        run: npm test -- --ci
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: eas update
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          MESSAGE: ${{ inputs.message }}
+        run: |
+          eas update --platform ios --channel "$CHANNEL" --message "$MESSAGE" --non-interactive --json > "$RUNNER_TEMP/update.json"
+          cat "$RUNNER_TEMP/update.json"
+      - name: Zusammenfassung
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          MESSAGE: ${{ inputs.message }}
+        run: |
+          node -e '
+            const updates = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+            const list = Array.isArray(updates) ? updates : [updates];
+            const lines = ["## OTA-Update", "", `Kanal **${process.env.CHANNEL}** · ${process.env.MESSAGE} · Commit ${process.env.GITHUB_SHA.slice(0, 7)}`, ""];
+            for (const u of list) {
+              lines.push(`- ${u.platform ?? "?"}: Update-Gruppe \`${u.group ?? "?"}\`, Runtime \`${u.runtimeVersion ?? "?"}\`, Update-ID \`${u.id ?? "?"}\``);
+            }
+            lines.push("", "Rollback: `eas update:republish --group <letzte gute Gruppe>` (docs/RELEASE.md, Abschnitt OTA oder Store-Build).");
+            console.log(lines.join("\n"));
+          ' "$RUNNER_TEMP/update.json" >> "$GITHUB_STEP_SUMMARY"

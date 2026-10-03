@@ -7,14 +7,38 @@ import { AppText, colors, radius, spacing } from '../ui';
 
 const DISMISSED_KEY = 'noticeBannerDismissed';
 
-/** The admin's notice (e.g. maintenance). Hidden once closed, until the text changes. */
-export function NoticeBanner({ banner }: { banner: AppBanner | null }) {
+/**
+ * Whether a closed banner is forgotten: a real config (loaded from
+ * /app-config or live over the socket, never the empty start value) shows a
+ * different banner or none at all. Outage banners from alerts (plan 2.15)
+ * reuse the same text each time, so a line closed during one outage must
+ * show again at the next. This also holds after a cold start: the first
+ * successful load without that banner clears the stored dismissal, even if
+ * the app never saw the banner end.
+ */
+export const forgetsDismissal = (dismissed: string | null | undefined, current: string | null | undefined, loaded: boolean) =>
+  loaded && !!dismissed && dismissed !== (current || null);
+
+/**
+ * The admin's notice (e.g. maintenance) or an outage banner from an alert.
+ * Hidden once closed, until a loaded config shows another banner or none.
+ * loaded comes from AppConfigContext; without it (previews) a dismissal stays.
+ */
+export function NoticeBanner({ banner, loaded = false }: { banner: AppBanner | null; loaded?: boolean }) {
+  // undefined until AsyncStorage answered, so a stored dismissal is never raced
   const [dismissed, setDismissed] = useState<string | null | undefined>(undefined);
   useEffect(() => {
     AsyncStorage.getItem(DISMISSED_KEY)
       .then(setDismissed)
       .catch(() => setDismissed(null));
   }, []);
+  const text = banner?.text || null;
+  useEffect(() => {
+    if (forgetsDismissal(dismissed, text, loaded)) {
+      setDismissed(null);
+      AsyncStorage.removeItem(DISMISSED_KEY).catch(() => {});
+    }
+  }, [dismissed, text, loaded]);
 
   if (!banner || dismissed === undefined || dismissed === banner.text) return null;
   const warning = banner.level === 'warning';

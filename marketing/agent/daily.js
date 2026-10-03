@@ -24,13 +24,16 @@ const { ensureReferences } = require('./characters');
 const { trends } = require('./trends');
 const { chooseStyles, recentStyles, soundTip, withDefaults } = require('./soundtrack');
 const { tidy } = require('./texts');
-const { KEY, backend, spent, uploadDraft, musicFor, today, dayTag, BudgetExceeded } = require('./common');
+const { KEY, backend, spent, uploadDraft, reportRun, musicFor, today, dayTag, BudgetExceeded } = require('./common');
 
 const COUNT = Math.min(4, Math.max(1, Number(process.env.AD_COUNT || 2)));
 const DRY = process.argv.includes('--dry-run');
 const PLAN_FILE = process.argv.includes('--plan') ? process.argv[process.argv.indexOf('--plan') + 1] : null;
 const OUT = path.join(__dirname, '../dist/agent');
 const SITE = (process.env.SITE_URL || 'https://wannayap.app').replace(/^https?:\/\//, '');
+const STARTED = Date.now();
+// What went up in this run; read again when the budget stops it half way
+const done = [];
 
 async function main() {
   if (!DRY && !KEY) throw new Error('MARKETING_AGENT_KEY fehlt (oder --dry-run)');
@@ -52,7 +55,6 @@ async function main() {
   const logoSvg = markOnly(120).replace(/width="120" height="120"/, 'width="100%" height="100%"');
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await launch();
-  const done = [];
   // Claude's styles, but never the same twice in a row
   const styles = chooseStyles(plan.drafts.map((d) => d.music), recentStyles(context.drafts));
   try {
@@ -85,6 +87,7 @@ async function main() {
         music: { style },
         sound,
         model,
+        hookVariants: draft.hookVariants,
       }, file);
       if (uploaded) done.push(uploaded);
       else console.warn(`  übersprungen: Kampagnenname ${draft.slug} schon vergeben`);
@@ -93,8 +96,10 @@ async function main() {
     await browser.close();
   }
 
-  if (!DRY && done.length) {
-    const { pending, mailed } = await backend('POST', '/marketing/notify');
+  // Every finished run reports in, also one without a new draft (all names taken): the
+  // backend's runs.lastOkAt is the agent's heartbeat (plan 2.14); mails go out only for drafts
+  if (!DRY) {
+    const { pending, mailed } = await reportRun(STARTED);
     console.log(`\n${done.length} Entwürfe hochgeladen, ${pending} warten auf Freigabe, ${mailed} Mail(s) verschickt. Kosten dieses Laufs: ${spent().toFixed(2)} €`);
   } else {
     console.log(`\n${done.length} Videos in ${path.relative(process.cwd(), OUT)}/`);
@@ -105,6 +110,13 @@ main().catch((err) => {
   // Budget used up: not an error, just nothing more today (a note in the GitHub run)
   if (err instanceof BudgetExceeded) {
     console.log(`::warning::${err.message}`);
+    // What went up before the budget ran out still waits for approval; the run counts as done
+    if (!DRY) {
+      return reportRun(STARTED).then(
+        ({ pending, mailed }) => console.log(`${done.length} Entwürfe hochgeladen, ${pending} warten auf Freigabe, ${mailed} Mail(s) verschickt.`),
+        (e) => console.log(`::warning::Meldung an das Backend fehlgeschlagen: ${e.message}`),
+      );
+    }
     return;
   }
   console.error(err);

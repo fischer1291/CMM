@@ -6,6 +6,7 @@ import type { Limits, Plan } from '../../services/planApi';
 import { PLUS_FEATURES, showReferral } from '../../services/planApi';
 import { ReferralCard } from './ReferralCard';
 import type { Offer } from '../../services/purchases';
+import { introLine } from '../../services/purchases';
 import { AppText, Button, colors, GlassCard, glow, PageHeader, radius, Screen, SectionHeader, spacing } from '../../ui';
 import { LogoMark } from '../../ui/components/LogoMark';
 
@@ -13,6 +14,15 @@ type Props = {
   plan: Plan | null;
   /** Store offers; empty while purchases aren't live yet */
   offers: Offer[];
+  /** The store is live and its offers are still loading */
+  loadingOffers?: boolean;
+  /** Purchases are set up in this build (purchasesAvailable()); offers may still come back empty */
+  storeConfigured?: boolean;
+  /** The plan didn't load in time (offline): a note with a retry instead of the spinner */
+  planStalled?: boolean;
+  onRetryPlan?: () => void;
+  /** Flag plus_interest: without a store, "Interesse zeigen" instead of "Plus kommt bald" */
+  interestMode?: boolean;
   selected: string | null;
   onSelect: (id: string) => void;
   busy: boolean;
@@ -28,7 +38,55 @@ type Props = {
   onInvite?: () => void;
   onBack: () => void;
   onOpenLegal: (which: 'terms' | 'privacy') => void;
+  /** Which push or screen led here (/plus?from=…): billing_issue, cancel and trial_ending bring their own note */
+  from?: string;
+  /** billing_issue: Apple's payment method page */
+  onFixBilling?: () => void;
+  /** cancel (cancel_survey push): write us a line through Hilfe & Feedback */
+  onAnswerSurvey?: () => void;
 };
+
+export type PlusNotice = {
+  kind: 'billing' | 'survey' | 'trial';
+  title: string;
+  text: string;
+  /** Without a button the note only informs */
+  button?: string;
+  icon?: 'card-outline' | 'chatbubble-ellipses-outline';
+};
+
+/**
+ * The note on top of /plus for pushes that ask for something (plan 2.3):
+ * billing_issue (check the payment method at Apple) and cancel_survey
+ * (/plus?from=cancel, the push asks why; answered as a support message);
+ * trial_ending (plan 2.6a) only says that nothing needs doing.
+ * Everything else, win-back included, shows the normal page.
+ */
+export function plusNotice(from: string | undefined): PlusNotice | null {
+  if (from === 'billing_issue')
+    return {
+      kind: 'billing',
+      title: 'Zahlung bei Apple prüfen',
+      text: 'Apple konnte dein Plus gerade nicht abbuchen. Schau kurz nach deiner Zahlungsmethode, dann läuft alles einfach weiter.',
+      button: 'Zahlungsmethode ansehen',
+      icon: 'card-outline',
+    };
+  if (from === 'cancel')
+    return {
+      kind: 'survey',
+      title: 'Magst du uns sagen, warum?',
+      text: 'Du hast dein Plus gekündigt. Wenn du magst, schreib uns kurz, was nicht gepasst hat. Ein Satz reicht, ganz freiwillig.',
+      button: 'Kurz schreiben',
+      icon: 'chatbubble-ellipses-outline',
+    };
+  if (from === 'trial_ending')
+    return {
+      kind: 'trial',
+      title: 'Deine Probezeit endet bald',
+      text: 'Du musst nichts tun, wenn Plus weiterlaufen soll.',
+    };
+  return null;
+}
 
 const unlimited = (v: number | null, unit: string) => (v == null ? 'unbegrenzt' : `${v} ${unit}`);
 
@@ -72,11 +130,26 @@ function Compare({ free, plus }: { free: Limits; plus: Limits }) {
   );
 }
 
-/** Wanna yap+: what it adds, and either the store or "Interesse zeigen". */
+/**
+ * "Interesse zeigen" (flag plus_interest) only in a build without a store:
+ * an empty offering in a store build is a store problem (offering_empty),
+ * not "coming soon".
+ */
+export const interestModeOpen = (p: { interestMode?: boolean; storeConfigured?: boolean; offers: number; loadingOffers?: boolean }): boolean =>
+  !!p.interestMode && !p.storeConfigured && p.offers === 0 && !p.loadingOffers;
+
+/**
+ * Wanna yap+: what it adds, and the store; without a store "Plus kommt bald"
+ * or, with the flag plus_interest, "Interesse zeigen".
+ */
 export function PlusView(props: Props) {
-  const { plan, offers, selected, onSelect, busy, onBuy, onRestore, onManage, interest, onToggleInterest, onSendInterest, interestSent, onBack, onOpenLegal, onInvite } = props;
+  const { plan, offers, loadingOffers, storeConfigured, planStalled, onRetryPlan, interestMode, selected, onSelect, busy, onBuy, onRestore, onManage, interest, onToggleInterest, onSendInterest, interestSent, onBack, onOpenLegal, onInvite, from, onFixBilling, onAnswerSurvey } = props;
+  const notice = plusNotice(from);
+  const onNotice = notice?.kind === 'billing' ? onFixBilling : notice?.kind === 'survey' ? onAnswerSurvey : undefined;
   const isPlus = plan?.plan === 'plus';
   const storeLive = offers.length > 0;
+  const interestOpen = interestModeOpen({ interestMode, storeConfigured, offers: offers.length, loadingOffers });
+  const chosen = offers.find((o) => o.id === selected);
   const yearly = offers.find((o) => o.period === 'year');
   const monthly = offers.find((o) => o.period === 'month');
 
@@ -102,11 +175,21 @@ export function PlusView(props: Props) {
         ) : null}
       </View>
 
+      {notice && (onNotice || !notice.button) ? (
+        <GlassCard glow={notice.kind === 'billing' ? colors.warning : colors.violet} style={{ marginTop: spacing.lg }}>
+          <AppText variant="bodyStrong">{notice.title}</AppText>
+          <AppText variant="caption" color={colors.textSecondary} style={{ marginTop: spacing.xs }}>
+            {notice.text}
+          </AppText>
+          {notice.button && onNotice ? <Button title={notice.button} icon={notice.icon} variant="secondary" onPress={onNotice} style={{ marginTop: spacing.md }} /> : null}
+        </GlassCard>
+      ) : null}
+
       <SectionHeader title="Das bekommst du" />
       <View style={{ gap: spacing.sm }}>
         {PLUS_FEATURES.map((f) => {
           const picked = interest.has(f.id);
-          const selectable = !storeLive && !isPlus && !interestSent;
+          const selectable = interestOpen && !isPlus && !interestSent;
           return (
             <Pressable
               key={f.id}
@@ -141,16 +224,21 @@ export function PlusView(props: Props) {
       <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
         {isPlus ? (
           plan?.plus?.source === 'store' ? <Button title="Abo verwalten" variant="secondary" onPress={onManage} /> : null
-        ) : storeLive ? (
+        ) : !plan ? null : storeLive ? (
           <>
             {[yearly, monthly].filter(Boolean).map((o) => {
               const offer = o as Offer;
               const on = selected === offer.id;
+              const trial = introLine(offer);
               return (
                 <Pressable key={offer.id} onPress={() => onSelect(offer.id)} accessibilityRole="radio" accessibilityState={{ selected: on }} style={[styles.offer, on && styles.offerOn]}>
                   <View style={{ flex: 1 }}>
                     <AppText variant="bodyStrong">{offer.period === 'year' ? 'Jährlich' : 'Monatlich'}</AppText>
-                    {offer.period === 'year' ? (
+                    {trial ? (
+                      <AppText variant="caption" color={colors.cyan}>
+                        {trial}
+                      </AppText>
+                    ) : offer.period === 'year' ? (
                       <AppText variant="caption" color={colors.cyan}>
                         Am beliebtesten
                       </AppText>
@@ -165,7 +253,12 @@ export function PlusView(props: Props) {
                 </Pressable>
               );
             })}
-            <Button title="Plus starten" icon="sparkles" onPress={onBuy} loading={busy} disabled={!selected} />
+            {chosen && introLine(chosen) ? (
+              <AppText variant="caption" color={colors.textSecondary} center>
+                Kündigen geht jederzeit in den iPhone-Einstellungen.
+              </AppText>
+            ) : null}
+            <Button title={chosen?.intro?.eligible && chosen.intro.free ? `${chosen.intro.periodText} gratis testen` : 'Plus starten'} icon="sparkles" onPress={onBuy} loading={busy} disabled={!selected} />
             <Pressable onPress={onRestore} accessibilityRole="button" style={{ alignSelf: 'center', padding: spacing.sm }}>
               <AppText variant="caption" color={colors.textSecondary}>
                 Käufe wiederherstellen
@@ -187,6 +280,8 @@ export function PlusView(props: Props) {
               </Pressable>
             </View>
           </>
+        ) : loadingOffers ? (
+          <ActivityIndicator color={colors.cyan} />
         ) : interestSent ? (
           <GlassCard glow={colors.cyan}>
             <AppText variant="bodyStrong">Danke dir! 💜</AppText>
@@ -194,15 +289,32 @@ export function PlusView(props: Props) {
               Wir sagen dir Bescheid, sobald Wanna yap+ startet.
             </AppText>
           </GlassCard>
-        ) : (
+        ) : interestOpen ? (
           <>
             <AppText variant="caption" color={colors.textSecondary} center>
               Wanna yap+ kommt bald. Tipp an, was dich am meisten interessiert, dann bauen wir das zuerst.
             </AppText>
             <Button title="Interesse zeigen" icon="heart" onPress={onSendInterest} loading={busy} />
           </>
+        ) : storeConfigured ? (
+          <AppText variant="caption" color={colors.textSecondary} center>
+            Die Angebote lassen sich gerade nicht laden. Versuch es später noch einmal.
+          </AppText>
+        ) : (
+          <AppText variant="caption" color={colors.textSecondary} center>
+            Plus kommt bald.
+          </AppText>
         )}
-        {!plan ? <ActivityIndicator color={colors.cyan} /> : null}
+        {!plan && planStalled ? (
+          <>
+            <AppText variant="caption" color={colors.textSecondary} center>
+              Gerade gibt es keine Verbindung. Versuch es gleich noch einmal.
+            </AppText>
+            {onRetryPlan ? <Button title="Nochmal versuchen" variant="secondary" onPress={onRetryPlan} /> : null}
+          </>
+        ) : !plan ? (
+          <ActivityIndicator color={colors.cyan} />
+        ) : null}
         {showReferral(plan) ? <ReferralCard referral={plan.referral} onPress={onInvite} compact /> : null}
       </View>
       <AppText variant="caption" color={colors.textMuted} center style={{ marginTop: spacing.xl }}>

@@ -2,6 +2,8 @@
  * Wanna yap+ plan (backend lib/plan.js, routes/plus.js).
  */
 import { apiFetch, apiPostJson } from '../utils/api';
+import type { FunnelStep, PaywallSource } from './paywall';
+import { session } from './session';
 
 export type Limits = {
   circles: number;
@@ -32,14 +34,20 @@ export type Plan = {
 };
 
 export type Referral = {
-  /** Every `step` people who join through your invites give `rewardDays` of Plus */
+  /** Every `step` invited people who had their first talk give `rewardDays` of Plus */
   step: number;
   rewardDays: number;
   maxRewards: number;
+  /** People who came in through your invites */
   joined: number;
+  /** Of those, who had their first talk already (what counts); missing on older servers */
+  activated?: number;
   earned: number;
   /** People still needed for the next reward; null when all are earned */
   toNext: number | null;
+  /** Experiment (flag referral_two_sided, plan 2.12): after the first talk both get `pairDays` of Plus; missing on older servers */
+  twoSided?: boolean;
+  pairDays?: number;
 };
 
 /** Worth showing the invite reward: not all earned, and no store subscription. */
@@ -68,8 +76,29 @@ export async function fetchPlan(): Promise<Plan> {
   return ok(await apiFetch('/me/plan', {}, 10000));
 }
 
+/**
+ * Right after a purchase or restore: the backend asks RevenueCat and sets Plus
+ * without waiting for the webhook. Answers like fetchPlan.
+ */
+export async function syncPlus(): Promise<Plan> {
+  return ok(await apiPostJson('/me/plus/sync', {}, 10000));
+}
+
 export async function sendInterest(features: string[]): Promise<void> {
   await ok(await apiPostJson('/me/plus-interest', { features }, 10000));
+}
+
+/**
+ * One step on the paywall for the backend's day counters (plan 2.6a). Only
+ * signed in, and silent: a lost count must never bother anyone.
+ */
+export async function reportFunnel(step: FunnelStep, from: PaywallSource): Promise<void> {
+  if (!session.getToken()) return;
+  try {
+    await apiPostJson('/me/plus/funnel', { step, from }, 5000);
+  } catch {
+    // offline or an older server: the count is lost, nothing else
+  }
 }
 
 type Person = { phone: string; name: string | null; avatarUrl: string | null } | null;

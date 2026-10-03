@@ -89,7 +89,7 @@ export default {
       isDev: IS_DEV
     },
     owner: 'schly21',
-    runtimeVersion: '1.0.0',
+    runtimeVersion: '1.0.1',
     updates: {
       url: 'https://u.expo.dev/b5b430e0-3b17-49fe-bf44-ad9c6a49b8e3'
     }

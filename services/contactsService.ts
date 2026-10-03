@@ -18,27 +18,39 @@ export type MatchedUser = {
   lastOnline: string | null;
 };
 
+/**
+ * What the address book says about an entry beyond its name, for the invite
+ * suggestions (features/contacts/inviteSuggestions.ts). Stays on the device.
+ */
+export type DeviceDetails = { hasImage: boolean; hasFullName: boolean };
+
 export type ContactMatchResult = {
   /** E.164 -> name from the address book */
   deviceNames: Map<string, string>;
+  /** E.164 -> picture and full name in the address book */
+  deviceDetails: Map<string, DeviceDetails>;
   matched: MatchedUser[];
 };
 
 export class ContactsPermissionError extends Error {}
 
-async function readDeviceContacts(userPhone: string): Promise<Map<string, string>> {
+async function readDeviceContacts(userPhone: string): Promise<{ names: Map<string, string>; details: Map<string, DeviceDetails> }> {
   const region = regionOf(userPhone);
-  const { data } = await Contacts.getContactsAsync({ fields: [Contacts.Fields.PhoneNumbers] });
+  const { data } = await Contacts.getContactsAsync({
+    fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.ImageAvailable, Contacts.Fields.FirstName, Contacts.Fields.LastName],
+  });
   const names = new Map<string, string>();
+  const details = new Map<string, DeviceDetails>();
   for (const contact of data) {
     for (const entry of contact.phoneNumbers ?? []) {
       const e164 = entry.number ? toE164(entry.number, region) : null;
       if (e164 && e164 !== userPhone && !names.has(e164)) {
         names.set(e164, contact.name);
+        details.set(e164, { hasImage: !!contact.imageAvailable, hasFullName: !!contact.firstName?.trim() && !!contact.lastName?.trim() });
       }
     }
   }
-  return names;
+  return { names, details };
 }
 
 /**
@@ -56,7 +68,7 @@ export async function matchContacts(
     throw new ContactsPermissionError('Contacts permission not granted');
   }
 
-  const deviceNames = await readDeviceContacts(userPhone);
+  const { names: deviceNames, details: deviceDetails } = await readDeviceContacts(userPhone);
   const phones = [...deviceNames.keys()];
 
   let response = await apiPostJson('/contacts/match', { hashes: phones.map(hashPhone) }, 15000);
@@ -71,6 +83,7 @@ export async function matchContacts(
 
   return {
     deviceNames,
+    deviceDetails,
     matched: (result.matched as any[]).map((m) => ({
       phone: m.phone,
       name: m.name || '',

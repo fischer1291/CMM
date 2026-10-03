@@ -8,6 +8,8 @@ const { CAPTION_RULES, HASHTAG_RULES } = require('./texts');
 const trends = require('./trends');
 const soundtrack = require('./soundtrack');
 const { CHARACTERS, byKey } = require('./characters');
+const { notesSection } = require('./notes');
+const { performanceSection, linksNote, viewsNote } = require('./performance');
 
 // The parts around the scenes (agent/cut.js), and the longest episode
 const APP_SECONDS = 3.6;
@@ -101,6 +103,7 @@ ${STORY_RULES}
 - Nur Funktionen, die es gibt: Status „erreichbar“, Wochenplan, Yap Moment, Kreise mit Ritualen, Moments mit „Talk first“, Anstupsen, Video- und Sprachanrufe, Statistik. Kostenlos fürs iPhone.
 - Einsamkeit nie als Angstmacher, niemanden beschämen, niemanden zur Witzfigur machen.
 - Hat die Person Captions oder Hashtags früherer Videos vor dem Posten geändert (steht in der Geschichte unten), schreib so, wie sie es wollte.
+- Zur Folge zwei Hook-Varianten (hookVariants): andere Hook-Sätze für die erste Einstellung (Frage, POV, Konflikt, Zitat), je höchstens 44 Zeichen, nicht der Hook selbst. Damit lässt sich später testen, welcher Einstieg trägt.
 - Captions dürfen die Serie aufgreifen („jonas, bitte“, „teil 4 kommt“), müssen aber auch für Neue funktionieren.
 ${CAPTION_RULES}
 ${HASHTAG_RULES}
@@ -117,7 +120,7 @@ function user({ today, context, available, maxShots, trendNotes }) {
     const last = aired(episodes).at(-1);
     const lines = episodes.map((d) => {
       const n = d.content?.episodeNo ? `Folge ${d.content.episodeNo} · ` : '';
-      return `- ${d.createdAt.slice(0, 10)} · ${n}„${d.title}“ · ${d.status}${soundNote(d)}${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}\n  ${d.episode || '(ohne Zusammenfassung)'}${d.content?.teaser ? `\n  Offener Faden: ${d.content.teaser}` : ''}${editedNote(d)}`;
+      return `- ${d.createdAt.slice(0, 10)} · ${n}„${d.title}“ · ${d.status}${viewsNote(d)}${soundNote(d)}${d.feedback ? ` · Begründung: „${d.feedback}“` : ''}\n  ${d.episode || '(ohne Zusammenfassung)'}${d.content?.teaser ? `\n  Offener Faden: ${d.content.teaser}` : ''}${editedNote(d)}`;
     });
     return `## ${c.series.title} (Serie „${c.key}“)${ready.has(c.key) ? '' : ' · Hauptfigur ohne Referenzbild: heute nicht möglich'}
 Nächste Folge wäre Folge ${aired(episodes).length + 1}${last ? `, letzte Folge am ${last.createdAt.slice(0, 10)}` : ', bisher keine'}.
@@ -136,7 +139,7 @@ ${lines.length ? lines.join('\n') : 'Noch keine Folge: Stell die Figur und ihre 
 
 Figuren mit Referenzbild (nur diese dürfen erkennbar im Bild sein): ${available.map((c) => `${c.name} („${c.key}“)`).join(', ')}.
 
-# Die Serien bisher (älteste Folge zuerst; verworfene Folgen wurden nie gezeigt und zählen nicht zur Geschichte, ihre Begründungen aber schon)
+${notesSection(context.notes)}# Die Serien bisher (älteste Folge zuerst; verworfene Folgen wurden nie gezeigt und zählen nicht zur Geschichte, ihre Begründungen aber schon)
 ${series}
 
 # Die letzten App-Videos und was die Person dazu gesagt hat
@@ -144,8 +147,9 @@ ${apps || '–'}
 
 # Landing Page, letzte 30 Tage
 ${campaigns}
+Hinweis: ${linksNote(context.bioLink)}
 
-# Musik und Sound
+${performanceSection(context)}# Musik und Sound
 Unter die Szenen kommt Musik; sie wird leiser, sobald jemand spricht. Die Szenen behalten ihren Ton (Sprache, leise Umgebung).
 ${soundtrack.rules(soundtrack.recentStyles(context.drafts))}
 

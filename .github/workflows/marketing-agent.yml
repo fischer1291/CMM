@@ -44,7 +44,10 @@ jobs:
       - run: npm ci
         working-directory: marketing
       - name: Agent
+        id: agent
         working-directory: marketing
+        # Below the job's 60 minutes, so a hanging run fails here and gets reported below
+        timeout-minutes: 55
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -58,6 +61,26 @@ jobs:
             figuren) node agent/references.js ;;
             *) node agent/daily.js ;;
           esac
+      # Plan 2.14: a failed run reaches the owners as the alert agent_failed
+      # (push and mail): the mode as the step and the link to this run, never
+      # the error itself. Same backend as agent/common.js (API_URL, default
+      # api.wannayap.app); a failing report only leaves a warning here.
+      - name: Fehlschlag melden
+        if: failure()
+        env:
+          MARKETING_AGENT_KEY: ${{ secrets.MARKETING_AGENT_KEY }}
+          MODE: ${{ inputs.mode || (github.event.schedule == '37 4 * * 2,5' && 'hero') || 'app' }}
+          AGENT_OUTCOME: ${{ steps.agent.outcome }}
+        run: |
+          API="${API_URL:-https://api.wannayap.app}"
+          if [ "$AGENT_OUTCOME" = "failure" ]; then STEP="$MODE"; else STEP="setup ($MODE)"; fi
+          BODY=$(jq -n --arg step "$STEP" --arg runUrl "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{failed: true, step: $step, runUrl: $runUrl}')
+          curl -fsS -X POST "$API/marketing/notify" \
+            -H "Authorization: Bearer $MARKETING_AGENT_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY" \
+            || echo "::warning::Fehlschlag konnte nicht an das Backend gemeldet werden"
       # The rendered videos and the model's texts, for a look without the console
       - uses: actions/upload-artifact@v4
         if: always()

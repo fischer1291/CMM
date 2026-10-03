@@ -3,8 +3,8 @@
 //
 //   cd marketing && npm install && npm run build
 //
-// The website build (scripts/build-web.sh) only needs the landing page, without
-// Chrome:  node marketing/build.js --landing-only --out dist
+// The website build (scripts/build-web.sh) only needs the landing page and the
+// download redirect, without Chrome:  node marketing/build.js --landing-only --out dist
 //
 // Set the URLs below before printing anything with a QR code on it.
 const fs = require('fs');
@@ -12,12 +12,13 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { markOnly } = require('../docs/brand/logo');
 const landing = require('./src/landing');
+const { downloadPage } = require('./src/download-page');
 const kit = require('./src/kit');
 
 const CONFIG = {
   /** Where the landing page will live (used for og:image and share links). */
   siteUrl: process.env.SITE_URL || 'https://wannayap.app',
-  /** /impressum and /datenschutz come from the app's web build on the same site. */
+  /** /impressum, /datenschutz, /nutzungsbedingungen and /melden come from the app's web build on the same site. */
   legalUrl: '',
   /** One place decides where "download" goes (netlify.toml: /download), so
    *  printed QR codes and posts keep working when TestFlight becomes the App Store. */
@@ -29,6 +30,14 @@ const CONFIG = {
   apiUrl: (process.env.PUBLIC_API_URL || 'https://api.wannayap.app').replace(/\/$/, ''),
   /** Show "Oder im App Store vorbestellen" next to the waitlist once pre-order is live. */
   preorder: process.env.PREORDER === '1',
+  /** Where /download sends people (public/download.html keeps null, the website
+   *  build writes these in): the App Store page (apps.apple.com/app/id…) and the
+   *  provider token from App Store Connect → Kampagnen, so ct/pt reach the store.
+   *  Required with LANDING_MODE=live: the build stops instead of deploying
+   *  "kommt in Kürze". TESTFLIGHT_URL is the fallback while there is no store link. */
+  storeUrl: process.env.STORE_URL || null,
+  providerToken: process.env.PROVIDER_TOKEN || null,
+  testflightUrl: process.env.TESTFLIGHT_URL || null,
 };
 /** QR target on print material: the landing page, tagged so scans show up separately. */
 const QR_URL = `${CONFIG.siteUrl}/?utm_source=flyer&utm_medium=print`;
@@ -38,11 +47,15 @@ const CHROME = process.env.CHROME || '/Applications/Google Chrome.app/Contents/M
 const DIST = path.join(__dirname, 'dist');
 const TMP = path.join(DIST, '.html');
 
-/** Only the landing page, into `outDir` (for the website build; no Chrome). */
+/** Only the landing page and the download redirect, into `outDir` (for the
+ *  website build; no Chrome). Checks the store link first, before anything is written. */
 function landingOnly(outDir) {
+  const download = downloadPage(fs.readFileSync(path.join(__dirname, '../public/download.html'), 'utf8'), CONFIG);
   const logoSvg = markOnly(120).replace(/width="120" height="120"/, 'width="100%" height="100%"');
   fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(path.join(outDir, 'index.html'), landing({ ...CONFIG, logoSvg, ogImage: 'og-image.png' }));
+  // Replaces the copy expo export made from public/ (scripts/build-web.sh)
+  fs.writeFileSync(path.join(outDir, 'download.html'), download);
   fs.copyFileSync(path.join(__dirname, 'static/og-image.png'), path.join(outDir, 'og-image.png'));
   fs.copyFileSync(path.join(__dirname, '../assets/images/favicon.png'), path.join(outDir, 'favicon.png'));
   fs.copyFileSync(path.join(__dirname, '../assets/images/icon.png'), path.join(outDir, 'apple-touch-icon.png'));
@@ -54,7 +67,7 @@ async function main() {
     const out = args[args.indexOf('--out') + 1];
     if (!out || args.indexOf('--out') < 0) throw new Error('--landing-only needs --out <dir>');
     landingOnly(path.resolve(out));
-    console.log(`Landing page written to ${out}`);
+    console.log(`Landing page and download redirect written to ${out} (${CONFIG.mode}, store: ${CONFIG.storeUrl || CONFIG.testflightUrl || 'none'})`);
     return;
   }
   fs.rmSync(DIST, { recursive: true, force: true });
