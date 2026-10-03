@@ -30,6 +30,11 @@ const HeroPlan = z.object({
   episode: text(600, 'Was in dieser Folge passiert, als Gedächtnis für die nächsten Folgen'),
   teaser: text(200, 'Der offene Faden am Ende (Cliffhanger oder Frage), an den die nächste Folge anknüpft'),
   hook: text(44, 'Text oben im Bild während der ersten Einstellung: der Hook, verständlich ohne Ton, eine Stelle in *Sternchen*'),
+  // Plan 2.14: two other hooks for the first shot, uploaded with the draft for a later test
+  hookVariants: z
+    .array(text(44, 'Hook-Variante für die erste Einstellung: ein anderer Einstieg (Frage, POV, Konflikt, Zitat), nicht der Hook selbst'))
+    .length(2)
+    .describe('Genau zwei Hook-Varianten, je höchstens 44 Zeichen'),
   shots: z.array(Shot).min(2).max(MAX_SHOTS),
   appAfter: z.number().int().min(1).max(MAX_SHOTS).describe('Nach der wievielten Einstellung der echte App-Screen kommt (die Wendung der Folge); die Einstellungen danach sind der Payoff'),
   payoff: text(LIMITS.payoff, 'Satz über dem echten App-Screen; genau eine Stelle in *Sternchen* wird farbig'),
@@ -39,6 +44,9 @@ const HeroPlan = z.object({
   music: Music,
   sound: Sound,
 });
+
+/** A saved plan (--plan): episodes from before plan 2.14 have no hook variants. */
+const SavedHeroPlan = HeroPlan.extend({ hookVariants: z.array(z.string()).max(2).optional() });
 
 const Review = z.object({
   shots: z.array(
@@ -50,4 +58,4 @@ const Review = z.object({
   ),
 });
 
-module.exports = { HeroPlan, Review, MAX_SHOTS };
+module.exports = { HeroPlan, SavedHeroPlan, Review, MAX_SHOTS };

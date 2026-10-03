@@ -106,7 +106,17 @@ const Story = z.object({
     .describe('Die Szenen der Geschichte in ihrer Reihenfolge; der erste Block ist der Hook, mindestens ein app-Block, nie als erster'),
 });
 
-const draft = (ad) =>
+/**
+ * Two other ways into the same story (plan 2.14), uploaded with the draft and
+ * shown in the console, for a later test of which hook carries. Saved plans
+ * from before have none.
+ */
+const HookVariants = z
+  .array(text(120, 'Hook-Variante: ein anderer Einstieg in dieselbe Geschichte (Frage, POV, Konflikt, Zitat), nicht der Hook aus dem ersten Block'))
+  .length(2)
+  .describe('Genau zwei Hook-Varianten, je höchstens 120 Zeichen');
+
+const draft = (ad, hooks = HookVariants) =>
   z.object({
     slug: z
       .string()
@@ -116,6 +126,7 @@ const draft = (ad) =>
     title: text(80, 'Arbeitstitel für die Freigabe'),
     idea: text(600, 'Warum dieses Video, welche Hypothese es testet und worauf es sich in den Zahlen oder im Feedback stützt'),
     ad,
+    hookVariants: hooks,
     captions: Captions,
     hashtags: Hashtags,
     music: Music,
@@ -130,7 +141,7 @@ const Plan = z.object({
 /** A saved plan (--plan), also one from before the stories. */
 const PlanFile = z.object({
   analysis: z.string(),
-  drafts: z.array(draft(z.discriminatedUnion('template', [Story, Chat, Moment, List]))).min(1),
+  drafts: z.array(draft(z.discriminatedUnion('template', [Story, Chat, Moment, List]), z.array(z.string()).max(2).optional())).min(1),
 });
 
-module.exports = { Plan, PlanFile, Draft, Captions, Hashtags };
+module.exports = { Plan, PlanFile, Draft, Captions, Hashtags, HookVariants };

@@ -18,7 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const { markOnly } = require('../../docs/brand/logo');
 const { launch } = require('../video');
-const { HeroPlan, Review, MAX_SHOTS } = require('./hero-schema');
+const { HeroPlan, SavedHeroPlan, Review, MAX_SHOTS } = require('./hero-schema');
 const heroPrompt = require('./hero-prompt');
 const { ask } = require('./claude');
 const { byKey, ensureReferences } = require('./characters');
@@ -27,7 +27,7 @@ const { cutHero, frames } = require('./cut');
 const { trends } = require('./trends');
 const { listen } = require('./speech');
 const { tidy } = require('./texts');
-const { KEY, backend, spent, uploadDraft, today, dayTag, videoCost, BudgetExceeded } = require('./common');
+const { KEY, backend, spent, uploadDraft, reportRun, today, dayTag, videoCost, BudgetExceeded } = require('./common');
 const { chooseStyles, recentStyles, soundTip, withDefaults } = require('./soundtrack');
 
 const { MAX_SCENES, seriesHistory, aired } = heroPrompt;
@@ -43,6 +43,7 @@ const MAX_RETAKES = 2;
 const LEAD = 0.35;
 const TAIL = 0.45;
 const MIN_SHOT = 2;
+const STARTED = Date.now();
 
 /** Share of the planned words that were heard (0–1). */
 function heardShare(planned, heard) {
@@ -155,7 +156,7 @@ async function main() {
 
   const trendNotes = PLAN_FILE ? null : await trends();
   const { output: plan, model } = PLAN_FILE
-    ? { output: HeroPlan.parse(savedPlan(PLAN_FILE)), model: null }
+    ? { output: SavedHeroPlan.parse(savedPlan(PLAN_FILE)), model: null }
     : await ask({ schema: HeroPlan, system: heroPrompt.system(), content: heroPrompt.user({ today: today(), context, available, maxShots, trendNotes }), purpose: 'plan-hero' });
   plan.shots = plan.shots.slice(0, maxShots);
   // Only characters that have a reference image may appear
@@ -325,8 +326,9 @@ async function main() {
     sound,
     model,
     costEur: spent(),
+    hookVariants: plan.hookVariants,
   }, video.file);
-  const { pending, mailed } = await backend('POST', '/marketing/notify');
+  const { pending, mailed } = await reportRun(STARTED);
   console.log(`\nHero-Folge ${uploaded} hochgeladen, ${pending} warten auf Freigabe, ${mailed} Mail(s). Kosten: ${spent().toFixed(2)} €`);
 }
 
