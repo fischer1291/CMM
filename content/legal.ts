@@ -23,7 +23,7 @@ const addressLines = (o: Operator) => [o.name, ...(o.careOf ? [o.careOf] : []), 
  */
 export const MAIL_PROVIDER: string | null = null;
 
-export const PRIVACY_UPDATED = '2. Oktober 2026';
+export const PRIVACY_UPDATED = '3. Oktober 2026';
 /**
  * Version of the terms a new user accepts in onboarding. Until our own terms
  * exist (plan 2.7) Apple's standard EULA applies; the version still records

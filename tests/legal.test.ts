@@ -72,7 +72,7 @@ test('the policy names the device list and the question for recycled numbers (pl
 });
 
 test('the policy date and the terms version are the October 2026 revision', () => {
-  expect(PRIVACY_UPDATED).toBe('2. Oktober 2026');
+  expect(PRIVACY_UPDATED).toBe('3. Oktober 2026');
   expect(PRIVACY_SECTIONS.find((s) => s.title === 'Stand')!.paragraphs).toEqual([PRIVACY_UPDATED]);
   expect(TERMS_VERSION).toBe('2026-10-01');
   expect(MIN_AGE).toBe(16);

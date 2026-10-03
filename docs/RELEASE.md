@@ -354,7 +354,7 @@ eigener Handler, unser Handler schickt sie nur ans Backend (keine Doppel).
      ersetzt (`lib/sentry.js`). Ohne `SENTRY_DSN` läuft das Backend wie
      bisher.
 6. **Datenschutz:** Abschnitt „Absturzberichte“ in `content/legal.ts`
-   (`PRIVACY_SECTIONS`, Stand 2. Oktober 2026) ist der Text; App-Datenschutz
+   (`PRIVACY_SECTIONS`, Stand 3. Oktober 2026) ist der Text; App-Datenschutz
    in App Store Connect um **Diagnose → Absturzdaten** und **Sonstige
    Diagnosedaten** ergänzen (Abschnitt 3).
    Jede Änderung an dem, was Sentry sieht, läuft über `PRIVACY-CHANGE.md`.
