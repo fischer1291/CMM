@@ -4,7 +4,10 @@
 # which Expo copies. expo export renders every file in app/, so the app-only
 # screens have <route>.web.tsx stubs (components/AppOnlyWeb.tsx: noindex and a
 # page load of /, the landing page below, not a router redirect); only
-# /einladung, /kreis, /datenschutz and /impressum are real pages. scripts/check-web-stubs.js keeps the list complete (CI) and writes
+# /einladung, /kreis, /datenschutz, /impressum, /nutzungsbedingungen (our own
+# terms, TERMS_URL, also the EULA link in App Store Connect) and /melden (the
+# report form without an account, DSA Art. 16, plan 2.7) are real pages.
+# scripts/check-web-stubs.js keeps the list complete (CI) and writes
 # dist/_headers (X-Robots-Tag: noindex for the stub routes, for crawlers that
 # never run the page's JavaScript). Known gap: without JavaScript a stub route
 # shows the empty shell instead of redirecting; Netlify has no per-route

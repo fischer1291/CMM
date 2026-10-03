@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import type { LegalSection } from '../../content/legal';
 import { AppText, colors, PageHeader, Screen, spacing } from '../../ui';
 
-/** A legal text (privacy policy, imprint) as plain, readable sections. */
+/** A legal text (privacy policy, imprint, terms) as plain, readable sections. */
 export function LegalView({ title, sections, onBack }: { title: string; sections: LegalSection[]; onBack?: () => void }) {
   return (
     <Screen scroll ambient={false}>

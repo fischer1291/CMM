@@ -18,7 +18,7 @@ const kit = require('./src/kit');
 const CONFIG = {
   /** Where the landing page will live (used for og:image and share links). */
   siteUrl: process.env.SITE_URL || 'https://wannayap.app',
-  /** /impressum and /datenschutz come from the app's web build on the same site. */
+  /** /impressum, /datenschutz, /nutzungsbedingungen and /melden come from the app's web build on the same site. */
   legalUrl: '',
   /** One place decides where "download" goes (netlify.toml: /download), so
    *  printed QR codes and posts keep working when TestFlight becomes the App Store. */

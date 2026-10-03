@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * The website shows only four pages of the app (datenschutz, impressum,
- * einladung, kreis) and the landing page at /. Every other screen in app/
+ * The website shows only six pages of the app (datenschutz, impressum,
+ * nutzungsbedingungen, melden, einladung, kreis) and the landing page at /.
+ * Every other screen in app/
  * needs a <route>.web.tsx sibling that re-exports components/AppOnlyWeb.tsx,
  * otherwise expo export renders it as a public page. CI runs this; the
  * matching test is tests/webStubs.test.ts. The stub's noindex meta tag only
@@ -18,7 +19,7 @@ const path = require('path');
 
 const APP_DIR = path.join(__dirname, '..', 'app');
 // Routes without a stub: public on the web, or replaced by the landing page
-const PUBLIC_ROUTES = ['datenschutz', 'impressum', 'einladung', 'kreis', '(tabs)/index'];
+const PUBLIC_ROUTES = ['datenschutz', 'impressum', 'nutzungsbedingungen', 'melden', 'einladung', 'kreis', '(tabs)/index'];
 
 /** Route files below `dir` (recursive, relative, POSIX), without layouts and platform files. */
 function listRoutes(dir, prefix = '') {

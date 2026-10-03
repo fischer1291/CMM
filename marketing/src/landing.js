@@ -218,7 +218,7 @@ p { margin: 0; }
 /* Footer */
 footer { border-top: 1px solid var(--border); padding-block: 40px 60px; font-size: 14px; color: var(--text-3); }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; align-items: center; }
-footer nav { display: flex; gap: 22px; }
+footer nav { display: flex; flex-wrap: wrap; gap: 8px 22px; }
 footer a { text-decoration: none; color: var(--text-2); }
 footer a:hover { color: var(--text); }
 
@@ -395,7 +395,7 @@ dialog.wl-dialog::backdrop { background: rgba(5,5,10,0.78); backdrop-filter: blu
 <footer>
   <div class="wrap">
     <a class="logo" href="#top">${logoSvg}<span>Wanna yap?</span></a>
-    <nav aria-label="Rechtliches"><a href="${legalUrl}/impressum">Impressum</a><a href="${legalUrl}/datenschutz">Datenschutz</a></nav>
+    <nav aria-label="Rechtliches"><a href="${legalUrl}/impressum">Impressum</a><a href="${legalUrl}/datenschutz">Datenschutz</a><a href="${legalUrl}/nutzungsbedingungen">Nutzungsbedingungen</a><a href="${legalUrl}/melden">Melden</a></nav>
     <span>Gemacht für echte Gespräche.</span>
   </div>
 </footer>

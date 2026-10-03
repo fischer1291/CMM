@@ -162,6 +162,7 @@ export default function ProfileScreen() {
       onExportData={exportData}
       onOpenPrivacy={() => router.push('/datenschutz')}
       onOpenImprint={() => router.push('/impressum')}
+      onOpenTerms={() => router.push('/nutzungsbedingungen')}
       onOpenCircles={() => router.push('/circles')}
       onOpenBlocked={() => router.push('/blocked')}
       devices={devices}

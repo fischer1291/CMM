@@ -32,6 +32,8 @@ type Props = {
   onExportData: () => void;
   onOpenPrivacy: () => void;
   onOpenImprint: () => void;
+  /** Our own terms (plan 2.7); the row is hidden without it */
+  onOpenTerms?: () => void;
   onOpenCircles: () => void;
   onOpenBlocked: () => void;
   /** Code from the waitlist launch mail; returns an error to show, or null. Hidden once redeemed. */
@@ -210,6 +212,7 @@ export function ProfileView(props: Props) {
           { icon: 'download-outline', label: 'Meine Daten exportieren', onPress: props.onExportData },
           { icon: 'hand-left-outline', label: 'Blockierte Personen', onPress: props.onOpenBlocked },
           { icon: 'shield-checkmark-outline', label: 'Datenschutz', onPress: props.onOpenPrivacy },
+          ...(props.onOpenTerms ? [{ icon: 'reader-outline' as const, label: 'Nutzungsbedingungen', onPress: props.onOpenTerms }] : []),
           { icon: 'document-text-outline', label: 'Impressum', onPress: props.onOpenImprint },
         ]}
       />

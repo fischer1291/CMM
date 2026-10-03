@@ -1,5 +1,6 @@
 /**
- * Legal texts shown in the app and on the web (/datenschutz, /impressum).
+ * Legal texts shown in the app and on the web (/datenschutz, /impressum,
+ * /nutzungsbedingungen).
  *
  * OPERATOR holds the details of whoever runs the app (§ 5 DDG, Art. 13
  * GDPR): the address must be one where legal documents can be served.
@@ -25,13 +26,16 @@ export const MAIL_PROVIDER: string | null = null;
 
 export const PRIVACY_UPDATED = '3. Oktober 2026';
 /**
- * Version of the terms a new user accepts in onboarding. Until our own terms
- * exist (plan 2.7) Apple's standard EULA applies; the version still records
- * which wording was shown. Sent with privacyVersion = PRIVACY_UPDATED on
- * POST /verify/check as ageConfirmed/termsVersion/privacyVersion.
+ * Version of the terms a new user accepts in onboarding: the date of the
+ * wording in TERMS_SECTIONS (own terms since plan 2.7, before that Apple's
+ * standard EULA). Sent with privacyVersion = PRIVACY_UPDATED on
+ * POST /verify/check as ageConfirmed/termsVersion/privacyVersion. Raise both
+ * TERMS_VERSION and TERMS_UPDATED with every change of the wording.
  */
-export const TERMS_VERSION = '2026-10-01';
-export const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+export const TERMS_VERSION = '2026-10-03';
+export const TERMS_UPDATED = '3. Oktober 2026';
+/** Our own terms on the web (app/nutzungsbedingungen.tsx); also the EULA link in App Store Connect. */
+export const TERMS_URL = 'https://wannayap.app/nutzungsbedingungen';
 /** Minimum age to use the app on one's own (Art. 8 GDPR, German threshold). */
 export const MIN_AGE = 16;
 
@@ -109,6 +113,14 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     ],
   },
   {
+    title: 'Melden ohne Konto',
+    paragraphs: [
+      'Auf wannayap.app/melden (und in der App unter „Hilfe & Feedback“) kann jede Person einen Verstoß melden, auch ohne Konto (Art. 16 DSA). Wir speichern dazu die gewählte Kategorie (Belästigung, rechtswidriger Inhalt, Spam oder Sonstiges), deine Beschreibung und, wenn du sie angibst, die Telefonnummer der gemeldeten Person, einen Hinweis auf den betroffenen Moment und deine E-Mail-Adresse für Rückfragen. Alles außer Kategorie und Beschreibung ist freiwillig.',
+      'Zweck ist, die Meldung zu prüfen, gegen Verstöße vorzugehen und dir, falls du eine E-Mail-Adresse angibst, per Mail zu antworten (Art. 6 Abs. 1 lit. c DSGVO in Verbindung mit Art. 16 DSA und Art. 6 Abs. 1 lit. f DSGVO). Deine IP-Adresse nutzen wir nur kurz, um Massenmeldungen zu bremsen (höchstens fünf je Stunde), und speichern sie nicht bei der Meldung. Die gemeldete Person erfährt nicht, wer gemeldet hat.',
+      'Meldungen ohne Konto löschen wir nach 6 Monaten automatisch, wie Meldungen aus der App. Löscht die gemeldete Person ihr Konto, löschen wir auch Meldungen zu ihrer Nummer. Fragst du bei uns nach deiner Meldung, hilft uns die Vorgangsnummer, die du nach dem Absenden siehst.',
+    ],
+  },
+  {
     title: 'Anrufe',
     paragraphs: [
       'Video- und Sprachanrufe laufen über Agora (Agora Lab, Inc., USA). Die Inhalte deiner Gespräche werden weder aufgezeichnet noch von uns gespeichert.',
@@ -147,6 +159,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
       'Schreibst du uns über „Hilfe & Feedback“, speichern wir deine Nachrichten, die Kategorie und die App-Version, bis du dein Konto löschst.',
       'Nach deinem zweiten Gespräch laden wir dich in der App zu einem 15-minütigen Gespräch mit dem Gründer ein. Wir speichern dazu nur, wann wir dich eingeladen haben, ob du einen Termin gewählt oder abgelehnt hast und ob das Gespräch stattfand (berechtigtes Interesse, Art. 6 Abs. 1 lit. f DSGVO); mit deinem Konto wird das gelöscht. Tippst du auf „Termin wählen“, öffnet sich die Buchungsseite unseres Terminanbieters cal.com (Cal.com, Inc., USA) mit deinem Profilnamen vorbelegt; was du dort eingibst, verarbeitet cal.com nach seiner eigenen Datenschutzerklärung.',
       'Für Support und Moderation hat ein kleiner Kreis berechtigter Personen Zugriff auf ein geschütztes Admin-Werkzeug (Anmeldung mit Zwei-Faktor). Nummern sind dort maskiert; jeder Zugriff auf Daten einer Person wird protokolliert (1 Jahr). Bei Verstößen gegen die Regeln kann ein Konto gesperrt werden; bei einer dauerhaften Sperre speichern wir einen Prüfwert (Hash) der Nummer, damit sie sich nicht erneut registrieren kann.',
+      'Sperren wir dein Konto auf Zeit oder blenden einen deiner Moments aus oder löschen ihn, schreiben wir dir unter „Hilfe & Feedback“, welche Maßnahme, aus welchem Grund und bis wann (Art. 17 DSA). Diese Nachricht und deine Antwort darauf speichern wir wie andere Anfragen, bis du dein Konto löschst.',
     ],
   },
   {
@@ -184,7 +197,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   {
     title: 'E-Mail-Versand',
     paragraphs: [
-      'In der App brauchen wir keine E-Mail-Adresse. E-Mails schicken wir nur an Adressen aus der Warteliste: die Bestätigungsmail, die Nachricht zum Start der App und gelegentliche Neuigkeiten, bis du dich abmeldest.',
+      'In der App brauchen wir keine E-Mail-Adresse. E-Mails schicken wir nur an Adressen aus der Warteliste (die Bestätigungsmail, die Nachricht zum Start der App und gelegentliche Neuigkeiten, bis du dich abmeldest) und, wenn du bei einer Meldung ohne Konto eine Adresse angibst, unsere Antwort auf diese Meldung.',
       ...mailProviderLines(),
     ],
   },
@@ -214,6 +227,115 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   },
 ];
 
+/** The report form for everyone, with or without an account (app/melden.tsx, DSA Art. 16). */
+export const REPORT_URL = 'https://wannayap.app/melden';
+
+const operatorName = () => (OPERATOR ? `${OPERATOR.name}, ${addressLines(OPERATOR).slice(1).join(', ')}` : 'den im Impressum genannten Anbieter');
+const contactMail = () => (OPERATOR ? OPERATOR.email : 'die im Impressum genannte Adresse');
+
+/**
+ * Our own terms of use (plan 2.7), public at /nutzungsbedingungen and the
+ * EULA link in App Store Connect. Plain German, "du", short. Draft until a
+ * lawyer has reviewed it (docs/RELEASE.md, Gate item lawyerReview): every
+ * change raises TERMS_VERSION and TERMS_UPDATED. Statements here must match
+ * what the code does: moderation notices are tickets (backend
+ * lib/moderation.js), reports without an account go to POST /reports/public.
+ */
+export const TERMS_SECTIONS: LegalSection[] = [
+  {
+    title: 'Worum es geht',
+    paragraphs: [
+      `Diese Bedingungen gelten für die App Wanna yap? und die Website wannayap.app. Anbieter ist ${operatorName()}.`,
+      'Wanna yap? zeigt dir, wann Menschen, die du kennst, Zeit für ein Gespräch haben, und verbindet euch per Video- oder Sprachanruf. Anrufen kannst du nur Menschen, die dich auch kennen: wenn ihr euch gegenseitig im Adressbuch habt, ihr euch über einen Einladungslink gefunden habt oder gemeinsam in einem Kreis seid. Wanna yap? ist kein Netzwerk, um Fremde kennenzulernen.',
+      'Mit „Los geht’s“ bei der Anmeldung akzeptierst du diese Bedingungen. Wie wir mit deinen Daten umgehen, steht in der Datenschutzerklärung.',
+    ],
+  },
+  {
+    title: 'Mindestalter',
+    paragraphs: [
+      `Wanna yap? ist für Menschen ab ${MIN_AGE} Jahren. Bist du jünger, darfst du die App nur mit Zustimmung deiner Eltern oder Erziehungsberechtigten nutzen. Bei der Anmeldung bestätigst du dein Alter.`,
+    ],
+  },
+  {
+    title: 'Dein Konto',
+    paragraphs: [
+      'Dein Konto hängt an deiner Telefonnummer. Nutze nur eine Nummer, die dir gehört, und gib dein Konto nicht an andere weiter.',
+      'Du kannst dein Konto jederzeit in der App unter „Profil → Deine Daten“ löschen. Damit endet dieser Vertrag; ein laufendes Abo kündigst du zusätzlich bei Apple (siehe „Wanna yap+“).',
+    ],
+  },
+  {
+    title: 'Fair miteinander',
+    paragraphs: [
+      'Wanna yap? lebt davon, dass sich alle wohlfühlen. Deshalb gilt:',
+      'Keine Belästigung: Wer nicht abnimmt oder nicht mehr angerufen werden möchte, hat Zeit oder Lust gerade nicht. Kein Drängen, keine Drohungen, keine Beleidigungen, kein Anrufen in Serie.',
+      'Keine rechtswidrigen Inhalte: Nichts, was gegen Gesetze verstößt oder die Rechte anderer verletzt, weder im Gespräch noch in Moments, Namen, Profilbildern oder Kreisen.',
+      'Moments nur mit Zustimmung: Ein Moment zeigt die Person, mit der du gesprochen hast. Er wird erst geteilt, wenn sie zustimmt. Halte keine Bilder fest, die sie bloßstellen, und versuche nicht, die Zustimmung zu umgehen (zum Beispiel per Bildschirmfoto zum Weiterverbreiten).',
+      'Kein Missbrauch der Technik: keine automatisierten Zugriffe, keine Versuche, Telefonnummern anderer abzufragen, und keine Werbung oder Spam.',
+    ],
+  },
+  {
+    title: 'Melden',
+    paragraphs: [
+      `Stört dich etwas, kannst du Personen und Moments direkt in der App melden oder blockieren. Auch ohne Konto kannst du uns Verstöße melden: ${REPORT_URL}. Wir prüfen jede Meldung zügig und sagen dir, wenn du eine E-Mail-Adresse angibst, was wir unternommen haben.`,
+    ],
+  },
+  {
+    title: 'Moderation und Sperren',
+    paragraphs: [
+      'Verstößt jemand gegen diese Regeln, können wir einen Moment ausblenden oder löschen, ein Konto auf Zeit sperren oder es bei schweren oder wiederholten Verstößen dauerhaft schließen. Wir entscheiden im Einzelfall und berücksichtigen, wie schwer der Verstoß wiegt.',
+      'Betrifft eine Entscheidung dich, sagen wir dir unter „Hilfe & Feedback“ in der App, welche Maßnahme wir ergriffen haben, aus welchem Grund und wie lange sie gilt (Art. 17 DSA). Ist dein Konto gesperrt, nennt dir die App bei der Anmeldung den Grund und das Ende der Sperre.',
+      `Du kannst widersprechen: Antworte einfach auf diese Nachricht in der App, oder schreib an ${contactMail()}, wenn du dich gerade nicht anmelden kannst. Ein Mensch schaut sich die Entscheidung noch einmal an, und wir antworten dir (Art. 20 DSA). Außerdem kannst du eine zugelassene außergerichtliche Streitbeilegungsstelle (Art. 21 DSA) anrufen oder vor Gericht gehen.`,
+    ],
+  },
+  {
+    title: 'Wanna yap+',
+    paragraphs: [
+      'Wanna yap? ist kostenlos. Wanna yap+ ist ein freiwilliges Abo mit Extras, als Monats- oder Jahresabo. Du kaufst es über Apple; Apple wickelt die Zahlung ab, und es gelten zusätzlich Apples Bedingungen für Käufe im App Store.',
+      'Das Abo verlängert sich automatisch um dieselbe Laufzeit, bis du es kündigst. Kündigen kannst du jederzeit in den iPhone-Einstellungen (dein Name → Abonnements), spätestens 24 Stunden vor Ablauf der laufenden Periode. Das Löschen der App oder deines Kontos kündigt das Abo nicht.',
+      'Bieten wir eine kostenlose Probezeit an, siehst du ihre Dauer vor dem Kauf. Kündigst du nicht spätestens 24 Stunden vor ihrem Ende, geht sie in ein bezahltes Abo über. Das Jahresabo kannst du über die Familienfreigabe von Apple mit deiner Familie teilen.',
+      'Erstattungen laufen über Apple (reportaproblem.apple.com). Ändern wir den Preis, sagt dir Apple vorher Bescheid; bei einer Erhöhung musst du je nach Fall zustimmen, sonst endet das Abo.',
+    ],
+  },
+  {
+    title: 'Geschenktes Plus',
+    paragraphs: [
+      'Plus kann es auch geschenkt geben, etwa für Einladungen, über die Warteliste oder als Dankeschön von uns. Das ist freiwillig, gilt für die angegebene Zeit und lässt sich nicht in Geld umtauschen.',
+      'Wird ein Geschenk durch Missbrauch erlangt (zum Beispiel mit Scheinkonten für Einladungen), können wir es entziehen.',
+    ],
+  },
+  {
+    title: 'Verfügbarkeit',
+    paragraphs: [
+      'Wir arbeiten daran, dass Wanna yap? zuverlässig läuft, können aber nicht versprechen, dass die App immer erreichbar ist oder jeder Anruf zustande kommt. Wanna yap? ersetzt kein Telefon für Notrufe.',
+      'Wir entwickeln die App weiter und können Funktionen ändern oder einstellen. Wollen wir die App ganz einstellen, sagen wir es dir mindestens 30 Tage vorher.',
+    ],
+  },
+  {
+    title: 'Haftung',
+    paragraphs: [
+      'Wir haften unbeschränkt bei Vorsatz und grober Fahrlässigkeit, bei Verletzung von Leben, Körper oder Gesundheit und nach dem Produkthaftungsgesetz. Bei leichter Fahrlässigkeit haften wir nur, wenn wir eine wesentliche Pflicht verletzen, auf die du dich verlassen darfst, und begrenzt auf den typischen, vorhersehbaren Schaden.',
+      'Für das, was andere Nutzer sagen oder teilen, sind sie selbst verantwortlich. Erfahren wir von rechtswidrigen Inhalten, handeln wir zügig.',
+    ],
+  },
+  {
+    title: 'Änderungen dieser Bedingungen',
+    paragraphs: [
+      'Ändern wir diese Bedingungen, sagen wir es dir vorher in der App. Jede Fassung trägt ein Datum (siehe „Stand“). Nutzt du die App nach der Änderung weiter, gilt die neue Fassung; bist du nicht einverstanden, kannst du dein Konto jederzeit löschen. Für ein laufendes Abo ändern sich Preis und Leistung nur so, wie oben unter „Wanna yap+“ beschrieben.',
+    ],
+  },
+  {
+    title: 'Anwendbares Recht',
+    paragraphs: [
+      'Es gilt deutsches Recht. Wohnst du in einem anderen Land der EU, behältst du den Schutz der zwingenden Verbraucherschutzvorschriften deines Landes.',
+      'An Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle nehmen wir nicht teil (siehe Impressum).',
+    ],
+  },
+  {
+    title: 'Stand',
+    paragraphs: [TERMS_UPDATED],
+  },
+];
+
 export const IMPRINT_SECTIONS: LegalSection[] = [
   {
     title: 'Angaben gemäß § 5 DDG',
@@ -228,6 +350,16 @@ export const IMPRINT_SECTIONS: LegalSection[] = [
   {
     title: 'Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV',
     paragraphs: OPERATOR ? [`${OPERATOR.name}, Anschrift wie oben`] : ['–'],
+  },
+  {
+    title: 'Kontaktstelle nach dem Digital Services Act (Art. 11 und 12 DSA)',
+    paragraphs: [
+      OPERATOR
+        ? `Für Behörden, die EU-Kommission und das Gremium für digitale Dienste ebenso wie für alle, die Wanna yap? nutzen: E-Mail an ${OPERATOR.email}.`
+        : 'Die Kontaktadresse wird vor der Veröffentlichung ergänzt.',
+      'Du kannst uns auf Deutsch oder Englisch schreiben.',
+      `Verstöße und rechtswidrige Inhalte kannst du auch ohne Konto melden: ${REPORT_URL}.`,
+    ],
   },
   ...(MAIL_PROVIDER ? [{ title: 'E-Mail-Dienstleister', paragraphs: [MAIL_PROVIDER] }] : []),
   {

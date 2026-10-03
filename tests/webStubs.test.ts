@@ -5,8 +5,13 @@ import { listRoutes, missingStubs, orphanStubs, robotsHeaders, webPath, PUBLIC_R
 
 const APP = path.join(__dirname, '..', 'app');
 
-test('only the four public pages and the start route render on the web', () => {
-  expect(PUBLIC_ROUTES).toEqual(['datenschutz', 'impressum', 'einladung', 'kreis', '(tabs)/index']);
+test('only the six public pages and the start route render on the web', () => {
+  // plan 2.7: the terms and the report form without an account are public
+  expect(PUBLIC_ROUTES).toEqual(['datenschutz', 'impressum', 'nutzungsbedingungen', 'melden', 'einladung', 'kreis', '(tabs)/index']);
+  const routes = listRoutes(APP).map((r: { route: string }) => r.route);
+  for (const pub of PUBLIC_ROUTES) expect(routes).toContain(pub);
+  // public pages have no stub that would hide them
+  for (const pub of ['nutzungsbedingungen', 'melden']) expect(fs.existsSync(path.join(APP, `${pub}.web.tsx`))).toBe(false);
 });
 
 test('every app screen has its web stub, every stub its screen', () => {
@@ -71,7 +76,7 @@ test('the Netlify headers mark every stub route noindex, never a public page', (
   // the home shell exported as dist/(tabs)/index.html is hidden, the landing at / is not
   expect(real).toContain('/(tabs)\n  X-Robots-Tag: noindex');
   expect(real).toContain('/(tabs)/index\n  X-Robots-Tag: noindex');
-  for (const pub of ['/kreis\n', '/einladung\n', '/datenschutz\n', '/impressum\n', '/\n']) expect(real).not.toContain(pub);
+  for (const pub of ['/kreis\n', '/einladung\n', '/datenschutz\n', '/impressum\n', '/nutzungsbedingungen\n', '/melden\n', '/\n']) expect(real).not.toContain(pub);
 });
 
 test('a stub leaves the router for the static landing page, except when already there', () => {

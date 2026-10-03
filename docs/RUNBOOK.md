@@ -299,6 +299,10 @@ Restore-Test ≤ 90.
 
 **Letzter Restore-Test:** noch nie
 
+Nach jedem Restore-Test das Datum auch in der Konsole unter App → Betrieb
+→ „Letzter Restore-Test“ eintragen: daraus rechnet das Launch-Gate den
+Haken `restoreDrill` (jünger als 90 Tage, [`GATE.md`](GATE.md)).
+
 ## Rollback
 
 - **Backend (Render):** Dashboard → Service → Deploys → vorheriges Deploy →

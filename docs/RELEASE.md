@@ -13,6 +13,9 @@ fehlt dort.
 | App-Eintrag in App Store Connect (Bundle-ID `com.schly21.kontaktlisteapp`) | App Store Connect | erledigt |
 | Demo-Zugang für App Review: `REVIEW_PHONE` und `REVIEW_CODE` (6–10 Ziffern), dazu `REVIEW_UNTIL` (letzter Tag) | Render → Environment | erledigt; bei jeder Einreichung `REVIEW_UNTIL` neu setzen, nach der Freigabe alle drei entfernen (Abschnitt 4) |
 | Datenschutz-URL: `https://wannayap.app/datenschutz` | App Store Connect → App-Informationen | erledigt |
+| Eigene Nutzungsbedingungen juristisch prüfen lassen (Entwurf aus Plan 2.7, dazu der Wortlaut der Begründungen bei Moderation im Backend, Impressum mit DSA-Kontaktstelle) | `content/legal.ts` → `TERMS_SECTIONS`, `IMPRINT_SECTIONS`; Gate-Haken `lawyerReview` ([`GATE.md`](GATE.md)) | offen. Jede Änderung hebt `TERMS_VERSION` und `TERMS_UPDATED` an; neue Anmeldungen speichern die Version (`consent.termsVersion`) |
+| Eigene EULA statt Apples Standard-EULA: Text von `https://wannayap.app/nutzungsbedingungen` | App Store Connect → App-Informationen → Lizenzvereinbarung; Link in der Beschreibung ([`APPSTORE.md`](APPSTORE.md)) | offen, mit der nächsten Einreichung |
+| Meldeseite ohne Konto `https://wannayap.app/melden` erreichbar, Testmeldung kommt in der Konsole an (Support, Kategorie Meldung) und `hallo@wannayap.app` empfängt Mails (DSA-Kontaktstelle) | Website nach dem Deploy | offen |
 | Store-Texte und Screenshots | `docs/APPSTORE.md`, Bilder aus `marketing/` (`npm run build` → `dist/kit/appstore/`) | erledigt (1.0 mit Build 22 in der Prüfung) |
 
 ### Backend-Umgebung (Render)

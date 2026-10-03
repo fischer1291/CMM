@@ -77,6 +77,7 @@ export default function SupportScreen() {
       onOpen={(t) => setOpenId(t.id)}
       version={`${APP_VERSION} (${APP_BUILD})`}
       topic={topic}
+      onReport={() => router.push('/melden')}
     />
   );
 }

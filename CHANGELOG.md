@@ -53,8 +53,21 @@ wann als OTA und was als Store-Build rausgeht: `docs/RELEASE.md`.
   selbst, sobald alles wieder läuft. Hast du ihn geschlossen, siehst du ihn
   bei der nächsten Störung wieder. Schreibst du uns in der Zeit, bekommst
   du gleich eine Antwort, dass wir dran sind.
+- Eigene Nutzungsbedingungen statt Apples Standard-EULA, kurz und auf
+  Deutsch: unter Profil, beim Start und auf wannayap.app/nutzungsbedingungen
+  (Stand 3. Oktober 2026).
+- Verstoß melden geht jetzt auch ohne Konto auf wannayap.app/melden; in der
+  App führt „Hilfe & Feedback“ dorthin. Nach dem Senden siehst du eine
+  Vorgangsnummer.
+- Blenden wir einen deiner Moments aus oder sperren dein Konto auf Zeit,
+  sagen wir dir unter „Hilfe & Feedback“, warum und wie lange. Siehst du das
+  anders, antwortest du einfach dort.
 
 ### Geändert
+
+- Das Impressum nennt unsere Kontaktstelle nach dem Digital Services Act;
+  die Datenschutzerklärung erklärt im neuen Abschnitt „Melden ohne Konto“,
+  was wir bei einer Meldung speichern.
 
 - Ohne App-Store-Angebot zeigt die Plus-Seite nur „Plus kommt bald.“; die
   Umfrage „Interesse zeigen“ gibt es nur noch, wenn wir sie einschalten.

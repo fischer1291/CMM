@@ -42,7 +42,7 @@ import { CircleView } from '../features/circles/CircleView';
 import { RoomView } from '../features/circles/RoomView';
 import { CirclesStrip } from '../features/circles/CirclesStrip';
 import type { CircleDetail, CircleSummary } from '../services/circlesApi';
-import { PRIVACY_SECTIONS } from '../content/legal';
+import { PRIVACY_SECTIONS, TERMS_SECTIONS } from '../content/legal';
 import type { Stats } from '../services/gamificationApi';
 import { fetchPreviewState, PreviewState } from './previewControl';
 import {
@@ -906,6 +906,7 @@ const SCREENS: Record<string, () => React.ReactElement> = {
     />
   ),
   datenschutz: () => <LegalView title="Datenschutz" sections={PRIVACY_SECTIONS} onBack={() => {}} />,
+  nutzungsbedingungen: () => <LegalView title="Nutzungsbedingungen" sections={TERMS_SECTIONS} onBack={() => {}} />,
   'status-daily': () => (
     <StatusView
       {...statusProps}

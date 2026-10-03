@@ -10,6 +10,7 @@ export default function OnboardingScreen() {
     <OnboardingView
       onStart={() => router.push({ pathname: '/(auth)/verify', params: { ageConfirmed: '1' } })}
       onOpenPrivacy={() => router.push('/datenschutz')}
+      onOpenTerms={() => router.push('/nutzungsbedingungen')}
     />
   );
 }

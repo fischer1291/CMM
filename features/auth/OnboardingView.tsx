@@ -14,7 +14,16 @@ const POINTS: { icon: keyof typeof Ionicons.glyphMap; title: string; text: strin
 export const canStart = (ageConfirmed: boolean) => ageConfirmed === true;
 
 /** First screen for new users. onStart only fires with the age confirmed. */
-export function OnboardingView({ onStart, onOpenPrivacy }: { onStart: () => void; onOpenPrivacy?: () => void }) {
+export function OnboardingView({
+  onStart,
+  onOpenPrivacy,
+  onOpenTerms,
+}: {
+  onStart: () => void;
+  onOpenPrivacy?: () => void;
+  /** Our own terms (app/nutzungsbedingungen.tsx); without it the web page TERMS_URL opens */
+  onOpenTerms?: () => void;
+}) {
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   return (
     <Screen edges={['top', 'bottom']}>
@@ -65,10 +74,10 @@ export function OnboardingView({ onStart, onOpenPrivacy }: { onStart: () => void
         <Button title="Los geht’s" icon="arrow-forward" onPress={onStart} disabled={!canStart(ageConfirmed)} />
         <AppText variant="caption" color={colors.textMuted} center>
           Mit „Los geht’s“ akzeptierst du die{' '}
-          <AppText variant="caption" color={colors.cyan} onPress={() => Linking.openURL(TERMS_URL).catch(() => {})} accessibilityRole="link">
+          <AppText variant="caption" color={colors.cyan} onPress={onOpenTerms ?? (() => Linking.openURL(TERMS_URL).catch(() => {}))} accessibilityRole="link">
             Nutzungsbedingungen
           </AppText>{' '}
-          (Apples Standard-EULA) und hast die{' '}
+          und hast die{' '}
           <AppText variant="caption" color={colors.cyan} onPress={onOpenPrivacy} accessibilityRole="link">
             Datenschutzerklärung
           </AppText>{' '}

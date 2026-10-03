@@ -1,14 +1,19 @@
 /**
- * "Hilfe & Feedback": tickets answered in the admin console.
+ * "Hilfe & Feedback": tickets answered in the admin console. Since plan 2.7
+ * the list also holds statements of reasons (category "moderation", written
+ * by the backend's lib/moderation.js when a moment is hidden or deleted or
+ * the account suspended); replying to one is the objection (DSA Art. 20).
  */
 import { apiFetch, apiPostJson } from '../utils/api';
 import { appInfo } from './appInfo';
 
 export type SupportCategory = 'bug' | 'idea' | 'account' | 'other';
 export type SupportMessage = { from: 'user' | 'support'; text: string; at: string };
+export type ModerationAction = 'suspend' | 'hide_moment' | 'delete_moment';
 export type SupportTicket = {
   id: string;
-  category: SupportCategory;
+  /** What the user can pick, or "moderation" for a statement of reasons */
+  category: SupportCategory | 'moderation';
   status: 'open' | 'answered' | 'closed';
   unread: boolean;
   messages: SupportMessage[];
@@ -16,6 +21,8 @@ export type SupportTicket = {
   updatedAt: string;
   /** When support closed it (null while open) */
   closedAt?: string | null;
+  /** Only on category "moderation": the measure and when it ends (null: no end) */
+  moderation?: { action: ModerationAction | null; until: string | null };
 };
 
 async function ok<T = any>(res: Response): Promise<T> {

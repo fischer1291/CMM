@@ -147,6 +147,8 @@ function InnerLayout() {
             the first allowed screen, which must be onboarding, not these. */}
         <Stack.Screen name="datenschutz" />
         <Stack.Screen name="impressum" />
+        <Stack.Screen name="nutzungsbedingungen" />
+        <Stack.Screen name="melden" />
         <Stack.Screen name="einladung" />
         <Stack.Screen name="kreis" />
       </Stack>
