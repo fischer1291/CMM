@@ -11,8 +11,9 @@ Ausfall des Gründers in [`EMERGENCY.md`](EMERGENCY.md).
 Das Gerüst stammt aus Plan-Punkt 1.9, die Alarmliste aus 1.10, Quittung,
 Kill-Switch, Phased Release, Twilio und Datenpanne aus 1.8; die Zeilen
 `gift_days` (2.12), `pepper_changed` (2.8), `sentry_fatal` und
-`review_login` (2.1b), `purchase_failures` (2.6a) und `weekly_silent`
-(2.11) aus Phase 2.
+`review_login` (2.1b), `purchase_failures` (2.6a), `weekly_silent`
+(2.11) und `agora_tokens` (2.15) sowie der Störungs-Banner (2.15) aus
+Phase 2.
 
 **Zuletzt geprüft:** 2026-10-03
 
@@ -31,9 +32,10 @@ Schlüssel in `lib/alerts.js` `RULES` (Titel der Mitteilung = `title` dort).
 
 | Alarm-Tag | Stufe | Bedeutung | Gegenmaßnahme |
 |---|---|---|---|
-| `sms_failures` | error | Twilio hat heute mehr als 20 % der Anmelde-SMS abgelehnt (ab 5 Starts; Zähler `smsStarted`/`smsFailed` in `lib/opsCounters.js`). Neue Nutzer kommen nicht in die App. | 1. Twilio-Konsole: Guthaben, Status des Verify-Service, Fraud Guard. 2. Viele Starts aus fremden Nummernkreisen → SMS-Pumping: Konsole → App → Betrieb `smsPaused` an oder `smsRegions` enger. 3. Konto gesperrt → Abschnitt "Twilio gesperrt". |
-| `push_failures` | warn | Von den in der letzten Stunde versuchten Pushes (`PushDecision` sent/failed, ab 20) sind über 10 % fehlgeschlagen oder mit Fehlerquittung zurück. | 1. `GET /api/push-health` und Expo-Status prüfen. 2. Konsole → Fehler: häuft sich ein Build, Mindest-Build hochsetzen. 3. Bleibt es, APNs-/Expo-Zugangsdaten prüfen (siehe `push_credentials`). |
-| `push_credentials` | error | Apple oder Expo haben heute unsere Zugangsdaten abgelehnt (`InvalidProviderToken`, `TopicDisallowed` …, Zähler `pushCredentialErrors`). Niemand bekommt Pushes, Anrufe klingeln nicht im Hintergrund. | 1. APNs-Key in Apple Developer prüfen (widerrufen? abgelaufen?). 2. Neuen Key erzeugen, `VOIP_KEY_CONTENT`/`VOIP_KEY_ID`/`VOIP_TEAM_ID` auf Render und die EAS-Credentials aktualisieren. 3. Redeploy, `GET /api/push-health` muss `voipConfigured:true` zeigen. |
+| `sms_failures` | error | Twilio hat heute mehr als 20 % der Anmelde-SMS abgelehnt (ab 5 Starts; Zähler `smsStarted`/`smsFailed` in `lib/opsCounters.js`). Neue Nutzer kommen nicht in die App. Setzt den Störungs-Banner (unten), solange die Quote auch in der laufenden und der letzten Stunde (UTC) zusammen darüber liegt. | 1. Twilio-Konsole: Guthaben, Status des Verify-Service, Fraud Guard. 2. Viele Starts aus fremden Nummernkreisen → SMS-Pumping: Konsole → App → Betrieb `smsPaused` an oder `smsRegions` enger. 3. Konto gesperrt → Abschnitt "Twilio gesperrt". |
+| `push_failures` | warn | Von den in der letzten Stunde versuchten Pushes (`PushDecision` sent/failed, ab 20) sind über 10 % fehlgeschlagen oder mit Fehlerquittung zurück. Setzt den Störungs-Banner (unten). | 1. `GET /api/push-health` und Expo-Status prüfen. 2. Konsole → Fehler: häuft sich ein Build, Mindest-Build hochsetzen. 3. Bleibt es, APNs-/Expo-Zugangsdaten prüfen (siehe `push_credentials`). |
+| `push_credentials` | error | Apple oder Expo haben heute unsere Zugangsdaten abgelehnt (`InvalidProviderToken`, `TopicDisallowed` …, Zähler `pushCredentialErrors`). Niemand bekommt Pushes, Anrufe klingeln nicht im Hintergrund. Setzt den Störungs-Banner (unten), solange es auch in dieser oder der letzten Stunde (UTC) Ablehnungen gab. | 1. APNs-Key in Apple Developer prüfen (widerrufen? abgelaufen?). 2. Neuen Key erzeugen, `VOIP_KEY_CONTENT`/`VOIP_KEY_ID`/`VOIP_TEAM_ID` auf Render und die EAS-Credentials aktualisieren. 3. Redeploy, `GET /api/push-health` muss `voipConfigured:true` zeigen. |
+| `agora_tokens` | error | Heute (Berlin) sind mehr als 5 Agora-Tokens fehlgeschlagen und mehr als 20 % der ausgestellten (Tageszähler `rtcTokenFailed`/`rtcTokenIssued` aus `POST /rtcToken`; fehlgeschlagen heißt: `AGORA_APP_CERTIFICATE` fehlt oder der Token-Builder wirft). Ohne Token kommt kein Anruf zustande. Setzt den Störungs-Banner „Anrufe sind gerade gestört. Wir arbeiten dran.“, solange die Schwelle auch in der laufenden und der letzten Stunde (UTC) zusammen gilt. | 1. Render → Environment: `AGORA_APP_ID` und `AGORA_APP_CERTIFICATE` gesetzt und passend zum Projekt in der Agora-Konsole (Zertifikat aktiv, nicht ohne Redeploy gedreht). 2. Agora-Statusseite prüfen. 3. Render-Logs nach „Fehler beim Erstellen des Tokens“ durchsuchen. 4. Kam es mit einem Deploy, zurückrollen (Abschnitt "Rollback"). Danach Postmortem (Abschnitt "Störungs-Banner"). |
 | `tick_late` | error | Der Minutentick (`tickAt` auf dem `jobs`-Lock) ist über 3 Minuten alt; nicht in den ersten 5 Minuten nach einem Start. Zeitpläne, Yap Moment und Rituale laufen nicht. | 1. `/healthz` und Render-Logs lesen (Fehler im Tick?). 2. Render → Manual Deploy → "Restart service", der Leader-Lease geht an die neue Instanz. 3. Kommt es wieder, letzten Deploy zurückrollen (Abschnitt "Rollback"). |
 | `moment_missing` | warn | Nach 21:30 Berlin hat der heutige `DailyMoment` für Europe/Berlin kein `sentAt`. | 1. Render-Logs nach `tickDailyMoments` durchsuchen. 2. Hängt der Tick, siehe `tick_late`. 3. Nichts nachholen; morgen kommt der nächste Moment von selbst. |
 | `client_errors` | warn | Neuer fataler `ClientError` in der letzten Stunde, oder heute mehr als dreimal so viele App-Fehler wie gestern (ab 10). | 1. Konsole → Fehler: Nachricht, Stack, Versionen. 2. Nur ein Build betroffen → Mindest-Build hochsetzen und Banner. 3. Hotfix nach [`RELEASE.md`](RELEASE.md). |
@@ -61,11 +63,70 @@ Keine Alarme, sondern Arbeitshinweise über eigene Push-Kinds: `approvals`
 Eingriff im Betrieb.
 
 **Geplant, noch ohne Tag** (kommen mit ihrer Regel und ihrer Zeile hier,
-Plan 1.10): Phase 2: KI-Modell deprecated, nutzersichtbares Banner aktiv.
-Phase 3: Bewertung ≤ 3, Moderations-SLA, Reconciliation-Abweichung > 5 %,
+Plan 1.10): Phase 2: KI-Modell deprecated. Das nutzersichtbare Banner
+braucht keinen eigenen Tag: die Alarme mit Nutzerwirkung setzen es selbst
+(Abschnitt "Störungs-Banner"). Phase 3: Bewertung ≤ 3, Moderations-SLA, Reconciliation-Abweichung > 5 %,
 VoIP-Push ohne Register binnen 10 s. Kauf-Fehler (`purchase_failures`),
 neuer nativer Crash-Typ (`sentry_fatal`) und der abgelaufene Demo-Login
 (`review_login`) haben ihre Zeile oben.
+
+## Störungs-Banner
+
+Nutzer erfahren eine Störung von uns, nicht aus einem Fehlerdialog
+(Plan 2.15, Leitprinzip 9). Vier Alarmregeln haben Nutzerwirkung
+(`userFacing` in `lib/alerts.js`) und schalten `AppConfig.banner` selbst
+an und wieder aus (`lib/statusBanner.js`, Einzelheiten in der README des
+Backends, Abschnitt "Outage banner"):
+
+| Alarm-Tag | Bannertext |
+|---|---|
+| `sms_failures` | Die Anmeldung per SMS ist gerade gestört. Wir arbeiten dran. |
+| `push_failures`, `push_credentials` | Mitteilungen kommen gerade verzögert an. Wir arbeiten dran. |
+| `agora_tokens` | Anrufe sind gerade gestört. Wir arbeiten dran. |
+
+- **An:** Die Regeln laufen mit den Alarmen alle 30 Minuten und, nur für
+  den Banner, im Leader-Job `banner` alle 5 Minuten. Feuert eine, gilt
+  `banner = { enabled: true, text, level: "warning", until: null, source:
+  "alert:<tag>" }`. Offene Apps bekommen ihn sofort über das Socket-Event
+  `appConfig` (oben auf dem Home-Screen, `components/NoticeBanner.tsx`),
+  andere beim nächsten Start oder Wechsel in den Vordergrund; wannayap.app
+  zeigt ihn als Statuszeile oben (`GET /app-config`, ohne Cookie). Bei
+  `sms_failures`, `push_credentials` und `agora_tokens` muss die Schwelle
+  zusätzlich in der laufenden und der letzten Stunde (UTC) zusammen gelten
+  (beide Stunden addiert, `opsCounters.countsOfRecent`), damit ein Fehler
+  vom Morgen abends keinen Banner mehr setzt.
+- **Aus:** Der erste Lauf, in dem die Regel nicht mehr feuert, schaltet
+  den Banner ab, solange er noch `alert:<tag>` gehört. Du musst nichts tun.
+  Wer ihn in der App geschlossen hatte, sieht ihn bei der nächsten Störung
+  wieder: Das Schließen gilt nur, bis die App einmal einen Stand ohne
+  diesen Banner geladen hat (live über den Socket oder beim nächsten Start
+  bzw. Wechsel in den Vordergrund).
+- **Hand gewinnt:** Ein Banner, den du in der Konsole (App → Hinweis-Banner)
+  gesetzt hast, wird nie überschrieben. Änderst du einen automatischen
+  Banner (Text, Schalter, Stufe, Ende) und speicherst, gehört er dir
+  (`source: null`) und bleibt, bis du ihn abschaltest; die Automatik bringt
+  denselben Text für diese Störung nicht zurück (`banner.muted`). Hat ein
+  Alarm den Banner geändert, während die Konsole offen war, lehnt das
+  Speichern mit einem Hinweis ab (`banner_changed`) und lädt den aktuellen
+  Stand.
+- **Abschalten:** Konsole → App: bei einem automatischen Banner steht
+  "Automatisch (Alarm `<tag>`)" mit dem Knopf **"Banner jetzt abschalten"**
+  (nur Owner). Er bleibt aus, bis der Alarm vorbei ist; die nächste Störung
+  setzt ihn wieder. Nötig etwa, wenn der Alarm falsch liegt (Zählerfehler)
+  oder du einen genaueren Text von Hand setzen willst.
+- **Support-Auto-Antwort:** Ein Ticket, das während eines automatischen
+  Banners angelegt wird, bekommt sofort die Antwort „Danke für deine
+  Nachricht! Gerade gibt es eine bekannte Störung: <Bannertext> Wir melden
+  uns, sobald sie behoben ist.“ Das Ticket bleibt offen und zählt weiter
+  für `support_overdue` und den Morgen-Push; die Konsole markiert die
+  Antwort "Automatisch". Nach der Störung jedem dieser Tickets kurz von
+  Hand antworten.
+- **Postmortem-Pflicht:** Jeder dieser Alarme bekommt binnen 5 Werktagen
+  ein Postmortem in [`incidents/`](incidents/README.md) nach
+  [`POSTMORTEM-TEMPLATE.md`](POSTMORTEM-TEMPLATE.md), Dateiname
+  `JJJJ-MM-TT-<tag>.md`, je Maßnahme ein GitHub-Issue. Eine Datenpanne
+  läuft nicht hierüber, sondern nach dem Abschnitt "Datenpanne (72
+  Stunden)" unten.
 
 ## Quittung und Vertretung
 
@@ -184,7 +245,9 @@ in dem du es weißt.
    (z. B. nichts, oder Kontakte prüfen). Mail nur an Adressen, die wir
    haben (Warteliste, Admins).
 5. **Nacharbeit:** Ursache beheben, Test dafür, Eintrag hier, falls eine
-   Regel oder ein Alarm gefehlt hat.
+   Regel oder ein Alarm gefehlt hat. Dieser Abschnitt bleibt der eine Ort
+   für Datenpannen; ein Postmortem in [`incidents/`](incidents/README.md)
+   kommt höchstens zusätzlich und ohne personenbezogene Einzelheiten.
 
 ## Backup und Restore
 

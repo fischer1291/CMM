@@ -103,6 +103,10 @@ p { margin: 0; }
 .eyebrow { font-family: var(--mono); font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cyan); }
 .muted { color: var(--text-2); }
 
+/* Status line: an active notice or outage banner from GET /app-config (statusScript) */
+.status { padding: max(10px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) 10px max(24px, env(safe-area-inset-left, 0px)); text-align: center; font-size: 15px; line-height: 1.4; color: var(--cyan); background: rgba(0,229,255,0.08); border-bottom: 1px solid rgba(0,229,255,0.25); }
+.status[data-level="warning"] { color: var(--warning); background: rgba(255,181,71,0.10); border-bottom-color: rgba(255,181,71,0.35); }
+
 /* Nav */
 .nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; backdrop-filter: blur(18px); background: rgba(11,11,18,0.72); border-bottom: 1px solid var(--border); }
 .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; }
@@ -282,6 +286,7 @@ dialog.wl-dialog::backdrop { background: rgba(5,5,10,0.78); backdrop-filter: blu
 </style>
 </head>
 <body>
+<div class="status" id="wy-status" role="status" hidden></div>
 <header class="nav">
   <div class="wrap">
     <a class="logo" href="#top" aria-label="Wanna yap?">${logoSvg}<span>Wanna yap?</span></a>
@@ -394,11 +399,56 @@ dialog.wl-dialog::backdrop { background: rgba(5,5,10,0.78); backdrop-filter: blu
     <span>Gemacht für echte Gespräche.</span>
   </div>
 </footer>
+${statusScript({ apiUrl })}
 ${visitScript({ apiUrl, siteUrl })}
 ${waiting ? waitlistScript({ apiUrl, siteUrl }) : ''}
 </body>
 </html>`;
 };
+
+/**
+ * The line an active banner shows, from the body of GET /app-config (plan
+ * 2.15): { text, level } or null (no banner, no text, already over). Runs in
+ * the browser as written (statusScript inlines it), so it stays plain ES2017
+ * without outside names; tests call it directly.
+ */
+function bannerLine(data, now) {
+  const banner = data && typeof data === 'object' ? data.banner : null;
+  if (!banner || typeof banner.text !== 'string') return null;
+  const text = banner.text.trim();
+  if (!text) return null;
+  const until = banner.until ? Date.parse(banner.until) : NaN;
+  if (!Number.isNaN(until) && until <= now) return null;
+  return { text, level: banner.level === 'warning' ? 'warning' : 'info' };
+}
+
+/**
+ * Outage and notice banner (plan 2.15): the same banner the app shows, read
+ * from the public GET /app-config (alerts with user impact switch it on and
+ * off by themselves, CMM/docs/RUNBOOK.md "Störungs-Banner"). One plain GET
+ * per page view: no cookie, nothing stored, no counting. The text only ever
+ * goes in as textContent; without a banner, or when the request fails, the
+ * line stays hidden and nothing else happens.
+ */
+function statusScript({ apiUrl }) {
+  return `<script>
+(() => {
+  ${bannerLine.toString().replace(/\n/g, '\n  ')}
+  const box = document.getElementById('wy-status');
+  if (!box || typeof fetch !== 'function') return;
+  fetch(${JSON.stringify(apiUrl)} + '/app-config', { credentials: 'omit', cache: 'no-store' })
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data) => {
+      const line = bannerLine(data, Date.now());
+      if (!line) return;
+      box.textContent = line.text;
+      box.setAttribute('data-level', line.level);
+      box.hidden = false;
+    })
+    .catch(() => {});
+})();
+</script>`;
+}
 
 /**
  * Counts the visit (Admin console → Warteliste → Landing Page): one POST with
@@ -644,3 +694,6 @@ function waitlistScript({ apiUrl, siteUrl }) {
 })();
 </script>`;
 }
+
+module.exports.bannerLine = bannerLine;
+module.exports.statusScript = statusScript;

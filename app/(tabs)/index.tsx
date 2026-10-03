@@ -60,7 +60,7 @@ export default function StatusScreen() {
   const { received, dismiss: dismissNudges, reload: reloadNudges } = useNudges();
   const { daily, join: joinDaily } = useDailyMoment();
   const { album, celebrate, check: checkBadges, celebrated } = useBadgeAlbum();
-  const { config: appConfig } = useAppConfig();
+  const { config: appConfig, loaded: appConfigLoaded } = useAppConfig();
   // The research card: "Termin wählen" opens the calendar first and reports
   // booked only once the page opened (otherwise the card stays and nobody has
   // booked); a failed request must not stop a booking, so it is only reported.
@@ -256,7 +256,7 @@ export default function StatusScreen() {
         onOpenStats={() => router.push('/stats')}
         missedCalls={missed.count}
         onOpenCalls={() => router.push('/calls')}
-        notice={<NoticeBanner banner={appConfig.banner} />}
+        notice={<NoticeBanner banner={appConfig.banner} loaded={appConfigLoaded} />}
         nextUp={album?.nextUp ?? null}
         onOpenAlbum={() => router.push('/album')}
         scheduleLabel={scheduleLabel}

@@ -21,17 +21,22 @@ export type AppConfig = {
 
 const EMPTY: AppConfig = { minVersion: null, minBuild: null, updateUrl: null, banner: null, flags: {} };
 
-type Value = { config: AppConfig; outdated: boolean; flag: (key: string) => boolean };
-const AppConfigContext = createContext<Value>({ config: EMPTY, outdated: false, flag: () => false });
+/** loaded: a real config arrived (a successful /app-config or the socket event), not just the empty start value. */
+type Value = { config: AppConfig; loaded: boolean; outdated: boolean; flag: (key: string) => boolean };
+const AppConfigContext = createContext<Value>({ config: EMPTY, loaded: false, outdated: false, flag: () => false });
 
 export function AppConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<AppConfig>(EMPTY);
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const res = await fetchWithTimeout(`${API_BASE_URL}/app-config`, { headers: appHeaders }, 8000);
       const data = await res.json();
-      if (data?.success) setConfig({ ...EMPTY, ...data, flags: data.flags || {} });
+      if (data?.success) {
+        setConfig({ ...EMPTY, ...data, flags: data.flags || {} });
+        setLoaded(true);
+      }
     } catch {
       // Offline: keep what we had
     }
@@ -40,7 +45,10 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     load();
     const sub = AppState.addEventListener('change', (state) => state === 'active' && load());
-    const onLive = (data: AppConfig) => setConfig({ ...EMPTY, ...data, flags: data.flags || {} });
+    const onLive = (data: AppConfig) => {
+      setConfig({ ...EMPTY, ...data, flags: data.flags || {} });
+      setLoaded(true);
+    };
     socket.on('appConfig', onLive);
     return () => {
       sub.remove();
@@ -49,7 +57,7 @@ export function AppConfigProvider({ children }: { children: React.ReactNode }) {
   }, [load]);
 
   const flag = useCallback((key: string) => !!config.flags[key], [config.flags]);
-  return <AppConfigContext.Provider value={{ config, outdated: isOutdated(config), flag }}>{children}</AppConfigContext.Provider>;
+  return <AppConfigContext.Provider value={{ config, loaded, outdated: isOutdated(config), flag }}>{children}</AppConfigContext.Provider>;
 }
 
 export const useAppConfig = () => useContext(AppConfigContext);

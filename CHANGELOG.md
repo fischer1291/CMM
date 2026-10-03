@@ -48,6 +48,11 @@ wann als OTA und was als Store-Build rausgeht: `docs/RELEASE.md`.
   Beides ist freiwillig, „Überspringen“ speichert nichts; kommst du über
   einen Einladungslink, ist „Freund·in“ schon ausgewählt. Die
   Datenschutzerklärung erklärt das im neuen Abschnitt „Woher du uns kennst“.
+- Gibt es eine Störung (Anmeldung per SMS, Mitteilungen, Anrufe), sagt dir
+  ein ruhiger Hinweis oben in der App Bescheid, und er verschwindet von
+  selbst, sobald alles wieder läuft. Hast du ihn geschlossen, siehst du ihn
+  bei der nächsten Störung wieder. Schreibst du uns in der Zeit, bekommst
+  du gleich eine Antwort, dass wir dran sind.
 
 ### Geändert
 
