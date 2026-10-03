@@ -8,7 +8,7 @@ Preises alles nachgezogen werden muss. Unit Economics und Break-even stehen in
 [`FINANCE.md`](FINANCE.md), die Rechenregeln des Backends in der
 Backend-README (Abschnitte "Subscriptions" und "Unit economics").
 
-**Zuletzt geprüft:** 2026-10-02
+**Zuletzt geprüft:** 2026-10-03
 
 ## Produkte und Entitlement
 
@@ -52,9 +52,118 @@ Listenpreise aus `AppConfig.prices.plusMonthlyEurCents` und
   `REVENUECAT_WEBHOOK_SECRET` auf Render. Nach Kauf und Wiederherstellen fragt
   die App zusätzlich `POST /me/plus/sync`, damit Plus vor dem Webhook da ist.
   Nachts gleicht `lib/plusReconcile.js` jedes Store-Plus mit RevenueCat ab.
-- **Apple App Store Server Notifications V2 → `POST /webhooks/apple`:**
-  folgt mit Plan 2.6b (JWS-Prüfung gegen die Apple Root CA, REFUND,
-  CONSUMPTION_REQUEST). Bis dahin ist RevenueCat die einzige Quelle.
+- **Apple App Store Server Notifications V2 → `POST /webhooks/apple`**
+  (Backend `routes/webhooks.js`, `lib/appleNotifications.js`, seit Plan
+  2.6b): zweite Quelle neben RevenueCat, speichert jede geprüfte
+  Benachrichtigung als `SubscriptionEvent` mit `source` apple; ändert Plus
+  nur bei REFUND. Einrichtung und Regeln im Abschnitt "App Store Server
+  Notifications" unten. RevenueCat bleibt die primäre Quelle für Plus.
+
+## App Store Server Notifications
+
+Apple meldet Abo-Ereignisse (Kauf, Verlängerung, Zahlungsproblem,
+Erstattung, Erstattungsanfrage) signiert an eine URL je Umgebung. Unser
+Empfänger ist **`https://api.wannayap.app/webhooks/apple`**, **Version 2**,
+für **Produktion und Sandbox** dieselbe URL (das Backend liest die Umgebung
+aus der Benachrichtigung).
+
+**Einrichtung (Owner, einmalig).** App Store Connect nimmt nur **eine** URL
+je Umgebung, und RevenueCat will Apples Benachrichtigungen auch (sonst
+erfährt es Erstattungen und Zahlungsprobleme erst beim nächsten Abgleich).
+Deshalb zuerst nachsehen: App Store Connect → App → App-Informationen →
+App Store Server Notifications.
+
+- [ ] **Dort steht die URL von RevenueCat** (der Normalfall): stehen
+      lassen. Unsere URL in RevenueCat eintragen: Project → App-Store-App →
+      "Apple Server Notification Forwarding URL" →
+      `https://api.wannayap.app/webhooks/apple`. RevenueCat reicht Apples
+      signierte Nachricht unverändert weiter, die Prüfung unten gilt also
+      genauso.
+- [ ] **Dort steht keine URL:** unsere direkt eintragen, Version 2, für
+      Production und Sandbox.
+- [ ] Danach einen Sandbox-Kauf machen und in der Konsole → Plus, CSV
+      `plus`, prüfen, dass eine Zeile mit `quelle` apple ankommt (Typ
+      `SUBSCRIBED:INITIAL_BUY`, Umgebung Sandbox).
+
+Die URL von RevenueCat **nie** durch unsere ersetzen: Dann bekäme die
+primäre Quelle für Plus Apples Meldungen nicht mehr.
+
+**Was das Backend prüft.** Jede Benachrichtigung ist ein JWS. Das Backend
+prüft ohne zusätzliche Bibliothek: Algorithmus ES256, die Zertifikatskette
+im Header (Leaf → Intermediate → Apple Root CA - G3; die Root ist im
+Backend eingebettet und per SHA-256-Fingerabdruck festgenagelt), Gültigkeit
+jedes Zertifikats zum Zeitpunkt der Meldung, Apples Kennzeichen an Leaf und
+Intermediate, die Signatur, dann Bundle-ID (`APPLE_BUNDLE_ID`, Standard
+`com.schly21.kontaktlisteapp`) und Umgebung (Production oder Sandbox).
+Transaktion und Verlängerungsinfo darin werden genauso geprüft. Stimmt
+etwas nicht: 401, Tageszähler `appleUnverified`, Alarm
+`apple_notifications`. Was gar kein JWS ist (Scanner, leere Bodies), zählt
+als `appleMalformed` und alarmiert nie.
+
+**Was das Backend speichert.** Jede geprüfte Meldung wird ein
+`SubscriptionEvent` mit `source` apple, `rcEventId`
+`apple:<notificationUUID>` (Apples Wiederholungen sind harmlose Duplikate),
+`type` = notificationType mit Subtyp nach Doppelpunkt (`REFUND`,
+`SUBSCRIBED:INITIAL_BUY`), `originalTransactionId`, Produkt, Umgebung,
+Preis in der Kaufwährung, Ablauf und Zeitpunkt. RevenueCat-Events speichern
+die `originalTransactionId` seit Plan 2.6b ebenfalls. Darüber findet das
+Backend die Person: das jüngste Ereignis mit derselben
+`originalTransactionId`; sonst das `appAccountToken` der Transaktion, falls
+es unsere User-ID trägt (die App setzt heute keins); sonst bleibt die
+Meldung `unknown_user` (Tageszähler `appleUnknownUser`). Apple ist oft
+Sekunden schneller als RevenueCat; kommt RevenueCats Ereignis derselben
+Transaktion, bekommt die wartende Meldung die Person nachträglich. Der
+Alarm zählt nur Meldungen, die 30 Minuten nach Eingang noch niemandem
+gehören. In der CSV `plus` (Konsole → Plus) zeigt die Spalte `quelle`
+revenuecat oder apple.
+
+**Was das Backend tut, je Typ:**
+
+- **`REFUND`** (Apple hat erstattet): beendet ein Store-Plus (bei einer
+  Sandbox-Erstattung ein Sandbox-Plus) desselben Produkts, wenn die
+  erstattete Transaktion der laufende Zeitraum ist: `plus.active` false,
+  Status abgelaufen, Ende = Erstattungsdatum; die App bekommt `planChanged`
+  über den Socket. Geschenktes Plus (Einladung, Warteliste, Konsole) bleibt
+  unberührt.
+- **`CONSUMPTION_REQUEST`** (jemand hat bei Apple eine Erstattung
+  beantragt; Apple fragt, wie viel genutzt wurde): wird gespeichert und
+  gezählt (`appleConsumptionRequest`). Beantwortet wird sie nur, wenn
+  `ASC_ISSUER_ID`, `ASC_KEY_ID` und `ASC_PRIVATE_KEY` auf Render gesetzt
+  sind **und** das Flag `apple_consumption` an ist (Konsole → App →
+  Feature-Flags, Standard **aus**). Die Antwort nennt die Gesprächsminuten
+  seit dem Kauf und das Kontoalter. **Warum aus:** Apple verlangt in der
+  Antwort `customerConsented: true`, also die Einwilligung der Person, dass
+  wir Nutzungsdaten an Apple geben. Die App fragt heute niemanden danach,
+  und die Datenschutzerklärung deckt es nicht. Einschalten erst, wenn beides
+  steht ([`PRIVACY-CHANGE.md`](PRIVACY-CHANGE.md)). Ohne Antwort entscheidet
+  Apple allein; nichts geht kaputt. Scheitert eine Antwort, zählt
+  `appleConsumptionFailed` und der Alarm meldet es (Apple wartet zwölf
+  Stunden, es lässt sich also von Hand nachholen).
+- **Alle anderen Typen** (`DID_RENEW`, `DID_FAIL_TO_RENEW`, `EXPIRED`,
+  `SUBSCRIBED` …) werden nur gespeichert. Plus, Verlängerungen, Kündigungen
+  und alle anderen `plus.*`-Zahlen kommen weiter nur aus RevenueCat.
+
+**Erstattungen zählen einmal.** `MetricsDaily.plus.refunds` zählt
+RevenueCats `CANCELLATION` mit Grund `CUSTOMER_SUPPORT` **und** Apples
+`REFUND`, denn beide melden dieselbe Erstattung. Regel: Eine Meldung zählt
+an ihrem Tag, außer die andere Quelle hat dieselbe `originalTransactionId`
+in den 7 Tagen davor schon als Erstattung gemeldet; kommen beide im selben
+Augenblick, zählt Apples. So zählt die erste Meldung, und ein
+abgeschlossener Tag ändert sich nicht, wenn die zweite kommt.
+RevenueCat-Ereignisse ohne `originalTransactionId` (vor Plan 2.6b) zählen
+immer. Nur Produktion, wie alles in `plus.*`.
+
+**Umgebungsvariablen** (Render, Tabelle "Environment" in der
+Backend-README):
+
+| Variable | Pflicht | Wofür |
+|---|---|---|
+| `APPLE_BUNDLE_ID` | nein | Bundle-ID, die eine Meldung nennen muss; Standard `com.schly21.kontaktlisteapp` |
+| `ASC_ISSUER_ID`, `ASC_KEY_ID`, `ASC_PRIVATE_KEY` | nein | Schlüssel der App Store Server API (App Store Connect → Benutzer und Zugriff → Integrationen → In-App-Kauf: Issuer-ID, Key-ID, Inhalt der `.p8` mit `\n` für Zeilenumbrüche); nur für die Antwort auf `CONSUMPTION_REQUEST` und nur mit Flag `apple_consumption`. Ohne sie wird gespeichert und gezählt, nie geantwortet |
+
+Alarm `apple_notifications` (warn) und was dann zu tun ist:
+[`RUNBOOK.md`](RUNBOOK.md), Tabelle "Alarme". Technische Einzelheiten:
+Backend-README, Abschnitt "App Store Server Notifications (plan 2.6b)".
 
 ## Einrichtung in App Store Connect und RevenueCat (Checkliste)
 

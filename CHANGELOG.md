@@ -53,6 +53,18 @@ wann als OTA und was als Store-Build rausgeht: `docs/RELEASE.md`.
   selbst, sobald alles wieder läuft. Hast du ihn geschlossen, siehst du ihn
   bei der nächsten Störung wieder. Schreibst du uns in der Zeit, bekommst
   du gleich eine Antwort, dass wir dran sind.
+- Hast du schon Kontakte in der App, aber noch kein Gespräch geführt, zeigt
+  dir der Home-Screen die Karte „Dein erstes Gespräch“ mit einem Kontakt,
+  „Anstupsen“ und „Beim Yap Moment treffen“. Vor dem Yap Moment
+  siehst du, wann er heute startet.
+- Nutzt noch niemand aus deinen Kontakten Wanna yap?, schlägt dir die
+  Kontaktliste bis zu drei Menschen zum Einladen vor.
+- Neuer, freiwilliger Schalter unter Mitteilungen: „Sag mir, wenn jemand aus
+  meinem Adressbuch dazukommt“. Dafür behalten wir zu den Kontakten,
+  die die App noch nicht nutzen, 90 Tage lang Prüfwerte (keine Nummern,
+  keine Namen);
+  Ausschalten löscht sie sofort. Die Datenschutzerklärung erklärt das im
+  Abschnitt „Kontakte“.
 - Eigene Nutzungsbedingungen statt Apples Standard-EULA, kurz und auf
   Deutsch: unter Profil, beim Start und auf wannayap.app/nutzungsbedingungen
   (Stand 3. Oktober 2026).
@@ -68,7 +80,6 @@ wann als OTA und was als Store-Build rausgeht: `docs/RELEASE.md`.
 - Das Impressum nennt unsere Kontaktstelle nach dem Digital Services Act;
   die Datenschutzerklärung erklärt im neuen Abschnitt „Melden ohne Konto“,
   was wir bei einer Meldung speichern.
-
 - Ohne App-Store-Angebot zeigt die Plus-Seite nur „Plus kommt bald.“; die
   Umfrage „Interesse zeigen“ gibt es nur noch, wenn wir sie einschalten.
 - Hast du bei einer Grenze schon alles, was Plus erlaubt, sagt der Hinweis

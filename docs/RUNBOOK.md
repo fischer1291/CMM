@@ -12,7 +12,8 @@ Das Gerüst stammt aus Plan-Punkt 1.9, die Alarmliste aus 1.10, Quittung,
 Kill-Switch, Phased Release, Twilio und Datenpanne aus 1.8; die Zeilen
 `gift_days` (2.12), `pepper_changed` (2.8), `sentry_fatal` und
 `review_login` (2.1b), `purchase_failures` (2.6a), `weekly_silent`
-(2.11) und `agora_tokens` (2.15) sowie der Störungs-Banner (2.15) aus
+(2.11), `agora_tokens` (2.15), `agent_failed` (2.14) und
+`apple_notifications` (2.6b) sowie der Störungs-Banner (2.15) aus
 Phase 2.
 
 **Zuletzt geprüft:** 2026-10-03
@@ -41,7 +42,9 @@ Schlüssel in `lib/alerts.js` `RULES` (Titel der Mitteilung = `title` dort).
 | `client_errors` | warn | Neuer fataler `ClientError` in der letzten Stunde, oder heute mehr als dreimal so viele App-Fehler wie gestern (ab 10). | 1. Konsole → Fehler: Nachricht, Stack, Versionen. 2. Nur ein Build betroffen → Mindest-Build hochsetzen und Banner. 3. Hotfix nach [`RELEASE.md`](RELEASE.md). |
 | `revenuecat` | error | RevenueCat-Webhook heute abgelehnt (`rcUnauthorized`, Secret stimmt nicht) oder mit unbekanntem Nutzer (`rcUnknownUser`). Zahlende Kunden könnten ohne Plus dastehen. | 1. `REVENUECAT_WEBHOOK_SECRET` auf Render mit dem Authorization-Wert im RevenueCat-Webhook vergleichen. 2. Unbekannte Nutzer: Kauf in RevenueCat suchen (App-User-ID = unsere User-ID), in der Konsole Plus von Hand gewähren. 3. In der App "Plus wiederherstellen" (`POST /me/plus/sync`) empfehlen. |
 | `purchase_failures` | warn | Heute (Berlin) sind Kaufen, Wiederherstellen oder das Laden des Angebots in der App zusammen mehr als dreimal gescheitert (Tageszähler `purchaseError` + `restoreError` + `offeringEmpty` aus `POST /me/plus/funnel`, `lib/paywall.js`; ein abgebrochener Kauf ist eine Entscheidung und zählt nicht). Der Text nennt die drei Zahlen. | 1. Konsole → Plus, Zeile Paywall: welcher Fehler überwiegt? 2. Vor allem „kein Angebot geladen“: App Store Connect (Vereinbarungen, Steuer, Bankdaten, Produkte freigegeben) und RevenueCat (Offering `default` aktuell, Produkte zugeordnet, App-Store-Schlüssel gültig), Einrichtung in [`PLUS.md`](PLUS.md). 3. Kauf-Fehler: Konsole → Fehler („Purchase failed: <Code>“); nur ein Build betroffen → Hotfix nach [`RELEASE.md`](RELEASE.md). „no_entitlement“ heißt bezahlt, aber ohne Plus: Produkt dem Entitlement `plus` zuordnen, Betroffenen „Plus wiederherstellen“ empfehlen, sonst Plus in der Konsole von Hand gewähren (wie bei `revenuecat`). |
+| `apple_notifications` | warn | App Store Server Notifications (`POST /webhooks/apple`, `lib/appleNotifications.js`, [`PLUS.md`](PLUS.md)) haken: heute (Berlin) wurde eine Meldung als nicht prüfbar abgelehnt (`appleUnverified`: Zertifikatskette, Signatur, Bundle-ID oder Umgebung stimmt nicht; reine Nicht-JWS-Bodies zählen als `appleMalformed` und alarmieren nie), oder eine geprüfte Meldung der letzten 24 Stunden gehört 30 Minuten nach Eingang noch niemandem (`unknown_user`), oder heute ist eine Antwort auf `CONSUMPTION_REQUEST` gescheitert (`appleConsumptionFailed`). Der Text nennt die drei Zahlen. Plus selbst kommt weiter aus RevenueCat. | 1. Abgelehnt: Render-Logs nach „Apple notification refused: <Grund>“ durchsuchen. Viele Ablehnungen ohne passende Käufe sind Abtasten von außen: nichts tun. Grund `bundle_id` oder `environment` nach einer Änderung in App Store Connect: `APPLE_BUNDLE_ID` auf Render und die URLs prüfen (RevenueCats URL bleibt in App Store Connect, unsere steht in RevenueCats Forwarding-Feld, [`PLUS.md`](PLUS.md)). 2. Niemandem zugeordnet: Transaktion in der CSV `plus` (Konsole → Plus, `quelle` apple) und in RevenueCat suchen; kam RevenueCats Webhook überhaupt an (Alarm `revenuecat`)? Meist geht nichts verloren, weil RevenueCat die Quelle für Plus ist. 3. Antwort gescheitert: die Logs nennen Apples Status; `ASC_ISSUER_ID`/`ASC_KEY_ID`/`ASC_PRIVATE_KEY` prüfen (Schlüssel widerrufen?) oder das Flag `apple_consumption` ausschalten (Konsole → App → Feature-Flags). Apple wartet zwölf Stunden auf eine Antwort. |
 | `agent_silent` | warn | Der neueste `AdDraft` ist über 36 Stunden alt (nur, wenn es je einen gab). GitHub pausiert den Cron nach 60 Tagen ohne Commit. | 1. GitHub → CMM → Actions → marketing-agent: pausiert → "Enable workflow". 2. Fehlgeschlagener Lauf → Log lesen (meist ein Schlüssel oder das Budget). 3. Kein Handlungsdruck für Nutzer; nichts wird ohne Freigabe gepostet. |
+| `agent_failed` | warn | Keine Regel in `RULES`, sondern `POST /marketing/notify { failed: true, step, runUrl }` (`lib/marketing.js` reportRun): Der Workflow `marketing-agent` ist in einem Schritt abgebrochen; sein `if: failure()`-Schritt meldet das (auch ein Lauf, der nach 55 Minuten abbricht). Titel „Marketing-Agent fehlgeschlagen“, der Text nennt den Schritt und den Link zum Lauf, nie die Fehlermeldung (die bleibt im GitHub-Log). Tageszähler `agentRunsFailed`. | 1. Link öffnen (GitHub → CMM → Actions → marketing-agent) und das Log lesen. 2. Ausfall eines Anbieters (Anthropic, Google, Cloudinary): nichts tun, der nächste geplante Lauf versucht es wieder. 3. Schlüssel abgelehnt oder Spend Limit erreicht: Schlüssel bzw. Limit beim Anbieter erneuern und das Secret im CMM-Repo setzen. 4. Code-Fehler: in `marketing/agent` im CMM-Repo beheben. Kein Handlungsdruck für Nutzer; nichts wird ohne Freigabe gepostet. Läuft der Agent gar nicht mehr (Cron pausiert), meldet das `agent_silent`. |
 | `support_overdue` | warn | Ein offenes Ticket wartet seit über 24 Stunden auf eine Antwort (`overdueTickets`, dieselbe Zahl wie im Morgen-Push). | 1. Konsole → Support: antworten (der Nutzer bekommt einen Push). 2. Bei Vertretung: Antwortzeit im Banner nennen. |
 | `social_token` | warn | Der Token eines verbundenen Kanals (Instagram; TikTok: Refresh-Token) läuft in unter 7 Tagen ab. | 1. Konsole → Freigabe → Kanäle → neu verbinden. 2. Läuft er ab, scheitern Posts mit `post-…` (unten); nichts geht verloren, Entwürfe bleiben. |
 | `no_talks` | error | Gestern über 20 aktive Nutzer, aber kein einziges Gespräch (`talks.count == 0`). Die Anrufzustellung ist wahrscheinlich kaputt. | 1. `GET /api/push-health`: `voipConfigured` und `authRequired` müssen `true` sein. 2. Testanruf zwischen zwei Geräten (Testmatrix in [`RELEASE.md`](RELEASE.md)). 3. Agora-Zertifikat und `AGORA_*` auf Render prüfen; bei neuem Deploy zurückrollen. |
@@ -63,12 +66,9 @@ Keine Alarme, sondern Arbeitshinweise über eigene Push-Kinds: `approvals`
 Eingriff im Betrieb.
 
 **Geplant, noch ohne Tag** (kommen mit ihrer Regel und ihrer Zeile hier,
-Plan 1.10): Phase 2: KI-Modell deprecated. Das nutzersichtbare Banner
-braucht keinen eigenen Tag: die Alarme mit Nutzerwirkung setzen es selbst
-(Abschnitt "Störungs-Banner"). Phase 3: Bewertung ≤ 3, Moderations-SLA, Reconciliation-Abweichung > 5 %,
-VoIP-Push ohne Register binnen 10 s. Kauf-Fehler (`purchase_failures`),
-neuer nativer Crash-Typ (`sentry_fatal`) und der abgelaufene Demo-Login
-(`review_login`) haben ihre Zeile oben.
+Plan 1.10): KI-Modell deprecated; Phase 3: Bewertung ≤ 3,
+Moderations-SLA, Reconciliation-Abweichung > 5 %, VoIP-Push ohne Register
+binnen 10 s.
 
 ## Störungs-Banner
 
