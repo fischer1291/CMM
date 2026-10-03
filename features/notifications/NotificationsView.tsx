@@ -15,6 +15,9 @@ type Props = {
   recent: RecentPush[];
   /** Display name for a phone number */
   nameOf: (phone: string | null) => string;
+  /** Re-match opt-in (plan 2.13); undefined on older servers: no switch */
+  rematch?: boolean;
+  onRematchChange?: (optIn: boolean) => void;
 };
 
 const TYPE_TEXT: Record<string, (name: string) => string> = {
@@ -118,7 +121,18 @@ function PermissionCard({ permission, onAllow, onOpenSettings }: Pick<Props, 'pe
 }
 
 /** What reaches the user, and when not. */
-export function NotificationsView({ permission, prefs, onBack, onAllow, onOpenSettings, onChange, recent, nameOf }: Props) {
+export function NotificationsView({
+  permission,
+  prefs,
+  onBack,
+  onAllow,
+  onOpenSettings,
+  onChange,
+  recent,
+  nameOf,
+  rematch,
+  onRematchChange,
+}: Props) {
   return (
     <Screen scroll>
       <PageHeader title="Mitteilungen" onBack={onBack} />
@@ -161,6 +175,14 @@ export function NotificationsView({ permission, prefs, onBack, onAllow, onOpenSe
                 value={prefs.lifecycle !== false}
                 onChange={(lifecycle) => onChange({ lifecycle })}
               />
+              {rematch !== undefined && onRematchChange ? (
+                <Toggle
+                  label="Sag mir, wenn jemand aus meinem Adressbuch dazukommt"
+                  description="Dafür bleibt eine verschlüsselte Liste deiner Kontakte, die Wanna yap? noch nicht nutzen, 90 Tage bei uns. Ausschalten löscht sie sofort."
+                  value={rematch}
+                  onChange={onRematchChange}
+                />
+              ) : null}
             </View>
           </GlassCard>
           <AppText variant="caption" color={colors.textMuted} style={styles.note}>

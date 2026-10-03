@@ -15,6 +15,7 @@ import {
   TAB_BAR_SPACE,
 } from '../../ui';
 import { DailyMomentCard } from './DailyMomentCard';
+import { FirstTalkCard } from './FirstTalkCard';
 import { NextUpCard } from '../album/AlbumView';
 import type { Album } from '../../services/badgesApi';
 
@@ -50,6 +51,8 @@ type Props = {
   onOpenProfile?: () => void;
   /** "Deine Kreise" (features/circles/CirclesStrip) */
   circlesStrip?: React.ReactNode;
+  /** "Dein erstes Gespräch": registered contacts, no talk yet (./firstTalk.ts) */
+  firstTalk?: React.ComponentProps<typeof FirstTalkCard> | null;
   /** The daily Yap Moment while it runs */
   daily?: React.ComponentProps<typeof DailyMomentCard> | null;
   /** "Nicht jetzt" on the nudge card */
@@ -185,6 +188,7 @@ export function StatusView({
   research,
   circlesStrip,
   daily,
+  firstTalk,
   showNotificationPrompt,
   onAllowNotifications,
   onDismissNotifications,
@@ -245,6 +249,8 @@ export function StatusView({
           </View>
         )}
       </View>
+
+      {firstTalk ? <FirstTalkCard {...firstTalk} /> : null}
 
       {circlesStrip}
 

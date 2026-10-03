@@ -373,7 +373,12 @@ Keine Daten werden zum Tracking verwendet. Anzugeben (alle „mit der
 Identität verknüpft“, Zweck „App-Funktionalität“):
 
 - **Kontaktinformationen:** Telefonnummer, Name
-- **Kontakte:** Abgleich per Hash; gespeichert werden nur Treffer mit registrierten Nutzern
+- **Kontakte:** Abgleich per Hash; gespeichert werden nur Treffer mit
+  registrierten Nutzern. Seit Plan 2.13 mit Opt-in („Sag mir, wenn jemand aus
+  meinem Adressbuch dazukommt“, standardmäßig aus) zusätzlich die gepfefferten
+  Hashes der Nummern ohne Konto, 90 Tage (Re-Match). Die Kategorie bleibt
+  „Kontakte“, Zweck „App-Funktionalität“; prüfen, dass sie in App Store
+  Connect eingetragen ist
 - **Nutzerinhalte:** Fotos (Profilbild, Moments)
 - **Kennungen:** Geräte-ID (Push-Tokens; seit Plan 2.9 außerdem die
   Gerätekennung des Herstellers für Apps eines Anbieters, IDFV, mit Modell
@@ -432,5 +437,14 @@ meldet sich der Alarm `review_login` (RUNBOOK, Alarmliste).
    „Weiter“ öffnet die App, beim nächsten Start (oder Profil-Setup) fragt sie
    nicht noch einmal. Ein zweites neues Konto ohne Einladung: nichts ist
    vorausgewählt, „Überspringen“ öffnet die App ohne Antwort.
+   Seit Plan 2.13: Gerät A schaltet unter „Mitteilungen“ „Sag mir, wenn
+   jemand aus meinem Adressbuch dazukommt“ ein (danach läuft ein
+   Kontakt-Abgleich); eine Nummer aus As Adressbuch ohne Konto meldet sich
+   auf Gerät B neu an und trägt ihren Namen ein: A bekommt „… ist jetzt
+   dabei 🎉“, der Tipp öffnet das Profil. Auf B (ein registrierter Kontakt,
+   noch kein Gespräch) zeigt der Startbildschirm „Dein erstes Gespräch“ mit
+   „Anstupsen“ und dem Countdown zum Yap Moment; nach dem ersten Gespräch
+   verschwindet die Karte. Ein Konto, dessen Kontakte alle noch nicht dabei
+   sind, sieht im Kontakte-Tab „Vorschläge zum Einladen“.
 3. Nach dem Deploy `/api/push-health` prüfen, ob `version` stimmt, und
    `/healthz` muss 200 antworten (Backend-README, Abschnitt Health check).

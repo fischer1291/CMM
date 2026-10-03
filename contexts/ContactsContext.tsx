@@ -23,6 +23,9 @@ export type Contact = {
   registered: boolean;
   isAvailable: boolean;
   lastOnline: string | null;
+  /** Address book entry has a picture / first and last name (invite suggestions); unknown on old syncs */
+  hasImage?: boolean;
+  hasFullName?: boolean;
 };
 
 type ContactsContextType = {
@@ -73,7 +76,7 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
       loadingRef.current = true;
       setLoading(true);
       try {
-        const [{ deviceNames, matched }, blocked] = await Promise.all([
+        const [{ deviceNames, deviceDetails, matched }, blocked] = await Promise.all([
           matchContacts(userPhone, { askPermission }),
           fetchBlocked().catch(() => null),
         ]);
@@ -90,6 +93,8 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
             registered: !!user,
             isAvailable: !!user?.isAvailable,
             lastOnline: user?.lastOnline ?? null,
+            hasImage: deviceDetails.get(phone)?.hasImage ?? false,
+            hasFullName: deviceDetails.get(phone)?.hasFullName ?? false,
           };
         });
         setContacts(sortContacts(list));

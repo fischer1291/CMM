@@ -27,6 +27,11 @@ export type UserProfile = {
   acquisition?: Acquisition | null;
   /** Joined through someone's invite link (preselects "Freund·in") */
   joinedViaInvite?: boolean;
+  /**
+   * Re-match opt-in (plan 2.13, PUT /me/rematch): tell me when someone from
+   * my address book joins. undefined on older servers (no switch then)
+   */
+  rematchOptIn?: boolean;
 };
 
 type AuthContextType = {
@@ -121,6 +126,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               research: data.user.research || null,
               acquisition: data.user.acquisition,
               joinedViaInvite: data.user.joinedViaInvite === true,
+              rematchOptIn: typeof data.user.rematchOptIn === 'boolean' ? data.user.rematchOptIn : undefined,
             }
           : EMPTY_PROFILE
       );

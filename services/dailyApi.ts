@@ -4,9 +4,18 @@
  */
 import { apiFetch, apiPostJson } from '../utils/api';
 
-export type DailyState =
-  | { active: false }
-  | { active: true; startedAt: string; endsAt: string; joined: boolean; participants: string[] };
+/**
+ * Today's Yap Moment in the user's time zone while it is still ahead (plan
+ * 2.13): null once it runs or is over, and on days whose moment was set after
+ * 21:00. Missing on older servers.
+ */
+export type NextMoment = { nextAt?: string | null; nextEndsAt?: string | null };
+
+export type DailyState = NextMoment &
+  (
+    | { active: false }
+    | { active: true; startedAt: string; endsAt: string; joined: boolean; participants: string[] }
+  );
 
 async function ok<T = any>(res: Response): Promise<T> {
   const data = await res.json().catch(() => ({}));

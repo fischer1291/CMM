@@ -90,3 +90,14 @@ test('the policy names the question where people heard of us (plan 2.10)', () =>
   }
   expect(section).toContain('kein Tracking-SDK');
 });
+
+test('the policy names the re-match lists: opt-in, peppered, 90 days, deleted when switched off (plan 2.13)', () => {
+  const contacts = PRIVACY_SECTIONS.find((s) => s.title === 'Kontakte')!.paragraphs.join(' ');
+  // the switch as the app labels it (features/notifications/NotificationsView.tsx)
+  expect(contacts).toContain('Sag mir, wenn jemand aus meinem Adressbuch dazukommt');
+  for (const named of ['standardmäßig aus', 'HMAC-SHA256', '5.000 Einträge', '90 Tage', 'Ausschalten löscht deine Liste sofort', 'Art. 6 Abs. 1 lit. a', 'Art. 6 Abs. 1 lit. f']) {
+    expect(contacts).toContain(named);
+  }
+  // the old absolute "never stored" must not stand without the exception
+  expect(contacts).not.toContain('Prüfwerte von Nummern ohne Konto speichern wir nicht.');
+});

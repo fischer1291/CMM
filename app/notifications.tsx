@@ -11,16 +11,20 @@ import {
   NotificationPrefs,
   RecentPush,
   saveNotificationPrefs,
+  saveRematch,
 } from '../services/notificationPrefs';
 import PushTokenService, { PermissionState } from '../services/PushTokenService';
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { userPhone } = useAuth();
+  const { userPhone, userProfile, reloadProfile } = useAuth();
   const [permission, setPermission] = useState<PermissionState | null>(null);
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
   const [recent, setRecent] = useState<RecentPush[]>([]);
-  const { find } = useContacts();
+  const { find, refresh: refreshContacts } = useContacts();
+  // Re-match (plan 2.13): shown as saved, the profile is the source
+  const [rematch, setRematch] = useState<boolean | undefined>(userProfile?.rematchOptIn);
+  useEffect(() => setRematch(userProfile?.rematchOptIn), [userProfile?.rematchOptIn]);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Also after returning from the system settings
@@ -66,6 +70,21 @@ export default function NotificationsScreen() {
     }, 500);
   };
 
+  const changeRematch = async (optIn: boolean) => {
+    const previous = rematch;
+    setRematch(optIn);
+    try {
+      setRematch(await saveRematch(optIn));
+      // The hashes are stored with the next sync: run it now (asks for the
+      // contacts permission if it was never asked)
+      if (optIn) refreshContacts({ askPermission: true }).catch(() => {});
+      reloadProfile();
+    } catch {
+      setRematch(previous);
+      Alert.alert('Nicht gespeichert', 'Deine Einstellung konnte nicht gespeichert werden.');
+    }
+  };
+
   const allow = async () => {
     if (!userPhone) return;
     setPermission(await PushTokenService.requestAndRegister(userPhone));
@@ -81,6 +100,8 @@ export default function NotificationsScreen() {
       onChange={change}
       recent={recent}
       nameOf={(phone) => find(phone)?.name.split(' ')[0] || 'Jemand'}
+      rematch={rematch}
+      onRematchChange={changeRematch}
     />
   );
 }
