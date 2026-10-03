@@ -83,14 +83,21 @@ jobs:
           eas build "${args[@]}" > "$RUNNER_TEMP/build.json"
           status=$?
           set -e
-          node scripts/ios-build-summary.js "$RUNNER_TEMP/build.json" | tee -a "$GITHUB_STEP_SUMMARY"
+          # eas exits 0 only once the build (and the upload) are done; its JSON
+          # still shows the state from before it waited (scripts/ios-build-summary.js)
+          ok=()
+          if [ "$status" = "0" ]; then ok=(--eas-ok); touch "$RUNNER_TEMP/eas-ok"; fi
+          node scripts/ios-build-summary.js "$RUNNER_TEMP/build.json" "${ok[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
           exit $status
       # Also when only the upload failed: a finished build exists at EAS, can be
       # uploaded by hand later and still gets its tag (empty when none finished)
       - name: Version und Build-Nummer
         id: result
         if: always()
-        run: node scripts/ios-build-summary.js "$RUNNER_TEMP/build.json" --outputs >> "$GITHUB_OUTPUT"
+        run: |
+          ok=()
+          if [ -f "$RUNNER_TEMP/eas-ok" ]; then ok=(--eas-ok); fi
+          node scripts/ios-build-summary.js "$RUNNER_TEMP/build.json" "${ok[@]}" --outputs >> "$GITHUB_OUTPUT"
 
   # Only this job may write: the tag and the release (docs/RELEASE.md, "Tags")
   tag:
