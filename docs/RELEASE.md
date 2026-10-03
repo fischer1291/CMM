@@ -11,7 +11,7 @@ fehlt dort.
 | Anbieterangaben (Name, Anschrift, E-Mail) | `content/legal.ts` → `OPERATOR` | erledigt (E-Mail muss ankommen) |
 | Datenschutzerklärung juristisch prüfen lassen | `content/legal.ts` → `PRIVACY_SECTIONS` | ergänzt um Abo, E-Mail, Hash-Verfahren, Mindestalter (1. Oktober 2026); anwaltliche Prüfung offen (Anwaltspaket, Plan 1.6). Änderungen laufen über `docs/PRIVACY-CHANGE.md` |
 | App-Eintrag in App Store Connect (Bundle-ID `com.schly21.kontaktlisteapp`) | App Store Connect | erledigt |
-| Demo-Zugang für App Review: `REVIEW_PHONE` und `REVIEW_CODE` (6–10 Ziffern) | Render → Environment | erledigt (nach der Freigabe entfernen) |
+| Demo-Zugang für App Review: `REVIEW_PHONE` und `REVIEW_CODE` (6–10 Ziffern), dazu `REVIEW_UNTIL` (letzter Tag) | Render → Environment | erledigt; bei jeder Einreichung `REVIEW_UNTIL` neu setzen, nach der Freigabe alle drei entfernen (Abschnitt 4) |
 | Datenschutz-URL: `https://wannayap.app/datenschutz` | App Store Connect → App-Informationen | erledigt |
 | Store-Texte und Screenshots | `docs/APPSTORE.md`, Bilder aus `marketing/` (`npm run build` → `dist/kit/appstore/`) | erledigt (1.0 mit Build 22 in der Prüfung) |
 
@@ -23,7 +23,10 @@ Muss gesetzt sein:
 `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`,
 `VOIP_KEY_CONTENT`, `VOIP_KEY_ID`, `VOIP_TEAM_ID`.
 
-Optional: `EXPO_ACCESS_TOKEN` (empfohlen) und `REVIEW_PHONE`/`REVIEW_CODE`.
+Optional: `EXPO_ACCESS_TOKEN` (empfohlen), `REVIEW_PHONE`/`REVIEW_CODE` mit
+`REVIEW_UNTIL` (Abschnitt 4), `SENTRY_DSN` und `SENTRY_WEBHOOK_SECRET`
+(Abschnitt 2b). Die vollständige Liste steht in der Backend-README,
+Abschnitt "Environment".
 
 Prüfen: `https://api.wannayap.app/api/push-health` sollte
 `authRequired`, `voipConfigured` und `agoraCertificateFromEnv` jeweils mit
@@ -187,13 +190,19 @@ also den Abschnitt `[Unreleased]` in `CHANGELOG.md` zur Version machen.
 OTA-Updates bekommen keinen Tag; ihre Gruppe steht in der Zusammenfassung
 des Laufs. Der Tag entsteht für jeden fertigen Build, auch wenn nur der
 Upload zu App Store Connect scheiterte (der Build liegt dann bei EAS und
-lässt sich von Hand hochladen). Geplant (Plan 2.16, Batch 2, Backend-Repo
-`test.yml`): grüne Läufe auf `main` als `api/<datum>-<sha>` taggen.
+lässt sich von Hand hochladen). Das Backend taggt ebenso: Nach jedem
+grünen Testlauf auf `main` setzt der Job `tag` in
+`CMM-backend-new/.github/workflows/test.yml` ein annotiertes Tag
+`api/<JJJJ-MM-TT>-<sha>` (Datum Europe/Berlin, 7 Zeichen des Commits,
+Plan 2.1b). Das sind die Rollback-Ziele auf Render (RUNBOOK, Abschnitt
+"Rollback"); Sentry-Releases des Backends tragen denselben Commit.
 
-**Demo-Zugang für App Review:** `REVIEW_PHONE`/`REVIEW_CODE` bekommen im
-Backend ein Ablaufdatum `REVIEW_UNTIL`; danach gilt der Zugang nicht mehr
-und ein Alarm erinnert daran, ihn zu entfernen oder zu verlängern (Backend,
-`routes/verify.js`; Alarmliste im RUNBOOK).
+**Demo-Zugang für App Review:** `REVIEW_PHONE`/`REVIEW_CODE` gelten nur
+bis einschließlich `REVIEW_UNTIL` (`JJJJ-MM-TT`, Europe/Berlin; Backend
+`routes/verify.js`, Plan 2.1b). Ohne `REVIEW_UNTIL` bleibt der Zugang an
+und der Alarm `review_login` erinnert daran; nach dem Datum ist er aus und
+der Alarm erinnert, die Variablen zu entfernen. Ablauf bei jeder
+Einreichung in Abschnitt 4.
 
 ## 2b. Crash-Telemetrie (Sentry)
 
@@ -317,9 +326,33 @@ eigener Handler, unser Handler schickt sie nur ans Backend (keine Doppel).
    unsymbolisiert; die Konsole (Fehler) zeigt sie weiterhin, native
    Abstürze bleiben lesbar. Vor dem Patch: Sentry Auth-Token nur als
    EAS-Secret (`SENTRY_AUTH_TOKEN`), nie in `ios/`.
-5. **Alarm:** Sentry → Alerts → "New issue" für Level fatal → Webhook an
-   `POST /webhooks/sentry` (Backend, Plan 2.1b; Alarm-Tag `sentry_fatal`
-   in der RUNBOOK-Alarmliste). Bis dahin: Mail-Alert an den Owner in Sentry.
+5. **Alarm aufs Handy** (Backend, Plan 2.1b; Schritte im Detail in der
+   Backend-README, Abschnitt "Error tracking (Sentry)"):
+   - Sentry → Settings → Custom Integrations → Create New Integration →
+     **Internal Integration** "Wanna yap? Alarme", Webhook URL
+     `https://api.wannayap.app/webhooks/sentry`, "Alert Rule Action" an,
+     **keine** Webhook-Subscriptions (`issue`, `error`, `comment` aus,
+     sonst wird jeder neue behandelte Fehler der App eine SMS),
+     Berechtigung Issue & Event "Read". Das **Client Secret** der
+     Integration auf Render als `SENTRY_WEBHOOK_SECRET` eintragen; ohne
+     es lehnt das Backend jeden Aufruf mit 401 ab (Tageszähler
+     `sentryUnauthorized`).
+   - Je Projekt eine Alarmregel: Alerts → Create Alert → Issues, "A new
+     issue is created", Filter "The event's level is equal to fatal",
+     Aktion "Send a notification via Wanna yap? Alarme". App-Projekt: nur
+     diese Regel (die App meldet jeden behandelten Fehler als `error`);
+     Backend-Projekt: eine zweite Regel für Level `error`.
+   - Ergebnis: Alarm `sentry_fatal` (Stufe error: Push, Mail, SMS) mit
+     Projekt, Release und Sentry-Link, nie mit der Fehlermeldung;
+     Gegenmaßnahmen in der RUNBOOK-Alarmliste. Den Mail-Alert in Sentry
+     kannst du danach als zweiten Weg behalten.
+   - **Backend-Sentry:** eigenes Projekt "Node.js" in derselben
+     EU-Organisation; dessen DSN auf Render als `SENTRY_DSN` (optional
+     `SENTRY_ENVIRONMENT`, Standard `production`). Release ist der Commit
+     (`RENDER_GIT_COMMIT`). Das Backend schickt keinen Nutzer, keinen
+     Request-Body und keine Query, Nummern und E-Mail-Adressen werden
+     ersetzt (`lib/sentry.js`). Ohne `SENTRY_DSN` läuft das Backend wie
+     bisher.
 6. **Datenschutz:** Abschnitt „Absturzberichte“ in `content/legal.ts`
    (`PRIVACY_SECTIONS`, Stand 2. Oktober 2026) ist der Text; App-Datenschutz
    in App Store Connect um **Diagnose → Absturzdaten** und **Sonstige
@@ -363,6 +396,13 @@ bevor der nächste Build in die Prüfung geht (Wanna yap+ speichert Abo-Ereignis
 je Konto; Sentry bekommt Absturzberichte, sobald der DSN im Build ist).
 
 ## 4. Hinweise für App Review
+
+Vor jeder Einreichung: auf Render `REVIEW_PHONE` und `REVIEW_CODE` setzen
+(falls entfernt) und `REVIEW_UNTIL` auf den letzten Tag, den die Prüfung
+braucht (`JJJJ-MM-TT`; eine Woche nach dem Einreichen reicht, bei
+Rückfragen verlängern). `GET /api/push-health` zeigt unter `reviewLogin`
+`on`. Nach der Freigabe alle drei Variablen entfernen; vergisst du es,
+meldet sich der Alarm `review_login` (RUNBOOK, Alarmliste).
 
 > Wanna yap? zeigt, wann Kontakte Zeit für einen Videoanruf haben.
 > Anmeldung per SMS-Code. Demo-Zugang: Telefonnummer `<REVIEW_PHONE>`,

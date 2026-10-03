@@ -6,6 +6,7 @@ const { SCREENS, LIMITS } = require('../src/templates');
 const trends = require('./trends');
 const soundtrack = require('./soundtrack');
 const { CAPTION_RULES, HASHTAG_RULES } = require('./texts');
+const { notesSection } = require('./notes');
 
 /** What a person changed in the texts before posting: a strong signal for the next captions. */
 const editedNote = (d) => {
@@ -118,7 +119,7 @@ function user({ count, today, context, trendNotes }) {
 
   return `Heute ist ${today}. Entwirf ${count} neue Videos (je 25–30 Sekunden).
 
-# Landing Page, letzte 30 Tage
+${notesSection(context.notes)}# Landing Page, letzte 30 Tage
 Besuche: ${visits?.last30Days ?? 0}, davon in den letzten 7 Tagen: ${visits?.last7Days ?? 0}. Bestätigte Anmeldungen: ${visits?.signups30Days ?? 0}.
 Besuche pro Tag: ${days || '–'}
 

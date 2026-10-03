@@ -10,9 +10,11 @@ Ausfall des Gründers in [`EMERGENCY.md`](EMERGENCY.md).
 
 Das Gerüst stammt aus Plan-Punkt 1.9, die Alarmliste aus 1.10, Quittung,
 Kill-Switch, Phased Release, Twilio und Datenpanne aus 1.8; die Zeilen
-`gift_days` (2.12) und `pepper_changed` (2.8) aus Phase 2.
+`gift_days` (2.12), `pepper_changed` (2.8), `sentry_fatal` und
+`review_login` (2.1b), `purchase_failures` (2.6a) und `weekly_silent`
+(2.11) aus Phase 2.
 
-**Zuletzt geprüft:** 2026-10-02
+**Zuletzt geprüft:** 2026-10-03
 
 ## Alarme
 
@@ -36,6 +38,7 @@ Schlüssel in `lib/alerts.js` `RULES` (Titel der Mitteilung = `title` dort).
 | `moment_missing` | warn | Nach 21:30 Berlin hat der heutige `DailyMoment` für Europe/Berlin kein `sentAt`. | 1. Render-Logs nach `tickDailyMoments` durchsuchen. 2. Hängt der Tick, siehe `tick_late`. 3. Nichts nachholen; morgen kommt der nächste Moment von selbst. |
 | `client_errors` | warn | Neuer fataler `ClientError` in der letzten Stunde, oder heute mehr als dreimal so viele App-Fehler wie gestern (ab 10). | 1. Konsole → Fehler: Nachricht, Stack, Versionen. 2. Nur ein Build betroffen → Mindest-Build hochsetzen und Banner. 3. Hotfix nach [`RELEASE.md`](RELEASE.md). |
 | `revenuecat` | error | RevenueCat-Webhook heute abgelehnt (`rcUnauthorized`, Secret stimmt nicht) oder mit unbekanntem Nutzer (`rcUnknownUser`). Zahlende Kunden könnten ohne Plus dastehen. | 1. `REVENUECAT_WEBHOOK_SECRET` auf Render mit dem Authorization-Wert im RevenueCat-Webhook vergleichen. 2. Unbekannte Nutzer: Kauf in RevenueCat suchen (App-User-ID = unsere User-ID), in der Konsole Plus von Hand gewähren. 3. In der App "Plus wiederherstellen" (`POST /me/plus/sync`) empfehlen. |
+| `purchase_failures` | warn | Heute (Berlin) sind Kaufen, Wiederherstellen oder das Laden des Angebots in der App zusammen mehr als dreimal gescheitert (Tageszähler `purchaseError` + `restoreError` + `offeringEmpty` aus `POST /me/plus/funnel`, `lib/paywall.js`; ein abgebrochener Kauf ist eine Entscheidung und zählt nicht). Der Text nennt die drei Zahlen. | 1. Konsole → Plus, Zeile Paywall: welcher Fehler überwiegt? 2. Vor allem „kein Angebot geladen“: App Store Connect (Vereinbarungen, Steuer, Bankdaten, Produkte freigegeben) und RevenueCat (Offering `default` aktuell, Produkte zugeordnet, App-Store-Schlüssel gültig), Einrichtung in [`PLUS.md`](PLUS.md). 3. Kauf-Fehler: Konsole → Fehler („Purchase failed: <Code>“); nur ein Build betroffen → Hotfix nach [`RELEASE.md`](RELEASE.md). „no_entitlement“ heißt bezahlt, aber ohne Plus: Produkt dem Entitlement `plus` zuordnen, Betroffenen „Plus wiederherstellen“ empfehlen, sonst Plus in der Konsole von Hand gewähren (wie bei `revenuecat`). |
 | `agent_silent` | warn | Der neueste `AdDraft` ist über 36 Stunden alt (nur, wenn es je einen gab). GitHub pausiert den Cron nach 60 Tagen ohne Commit. | 1. GitHub → CMM → Actions → marketing-agent: pausiert → "Enable workflow". 2. Fehlgeschlagener Lauf → Log lesen (meist ein Schlüssel oder das Budget). 3. Kein Handlungsdruck für Nutzer; nichts wird ohne Freigabe gepostet. |
 | `support_overdue` | warn | Ein offenes Ticket wartet seit über 24 Stunden auf eine Antwort (`overdueTickets`, dieselbe Zahl wie im Morgen-Push). | 1. Konsole → Support: antworten (der Nutzer bekommt einen Push). 2. Bei Vertretung: Antwortzeit im Banner nennen. |
 | `social_token` | warn | Der Token eines verbundenen Kanals (Instagram; TikTok: Refresh-Token) läuft in unter 7 Tagen ab. | 1. Konsole → Freigabe → Kanäle → neu verbinden. 2. Läuft er ab, scheitern Posts mit `post-…` (unten); nichts geht verloren, Entwürfe bleiben. |
@@ -44,22 +47,25 @@ Schlüssel in `lib/alerts.js` `RULES` (Titel der Mitteilung = `title` dort).
 | `sms_cap` | warn | Heute sind 80 % des SMS-Tagesdeckels (`ops.smsPerDay`) erreicht. | 1. Echter Andrang (Konsole → Heute, Anmeldungen passen dazu) → Deckel unter App → Betrieb erhöhen. 2. Sonst SMS-Pumping: `smsRegions` enger oder `smsPaused`. 3. Twilio Fraud Guard prüfen. |
 | `gift_days` | warn | Verschenkte Plus-Tage der letzten 7 Tage (heute und die sechs davor; Tageszähler `giftDays_referral`, `giftDays_waitlist`, `giftDays_admin`: Einladungen, Warteliste, Konsolen-Grants mit Enddatum) liegen über `AppConfig.goals.giftDaysPerWeek` (Standard 200, Annahme; Faustregel: Geschenk-Plus unter 20 % der MRR). Der Text nennt die Tage je Quelle. | 1. Konsole → Plus, Kachel "Geschenk-Tage 7 Tage": aus welcher Quelle kommen die Tage? 2. Echte Einladungswelle → Budget anheben (Konsole → App → Ziele, "Geschenk-Plus-Tage je Woche"). 3. Eine Quelle läuft davon (ein Einladender, Konsolen-Grants) → ansehen, bei Missbrauch Plus entziehen. 4. Versuch `referral_two_sided` zu teuer → Flag aus (Konsole → App → Feature-Flags). |
 | `pepper_changed` | warn | Keine Regel in `RULES`, sondern `lib/pseudonyms.js` beim Start: gespeicherte `User.phoneHmac` passten nicht zum aktuellen Pepper (`PHONE_HASH_PEPPER`, ohne ihn ein Wert aus `JWT_SECRET`) und wurden samt ihrer `ActiveDay`-Zeilen umgeschlüsselt. Einmal, und nur wenn sich der Pepper geändert hat. | 1. Erwartet genau einmal: direkt nachdem `PHONE_HASH_PEPPER` auf Render gesetzt wurde (erster Deploy lief noch ohne). Dann nichts tun. 2. Sonst wurde die Variable oder `JWT_SECRET` geändert, oder etwas lief mit fremder Umgebung gegen die Produktions-DB: alten Wert auf Render wiederherstellen, der nächste Start schlüsselt zurück. 3. Den Pepper nie drehen, ohne das zu wollen (Backend-README "Pseudonymous data"). |
+| `review_login` | warn | Der Demo-Zugang für App Review (`REVIEW_PHONE`/`REVIEW_CODE`, Anmeldung ohne SMS, `routes/verify.js`) ist an, aber ohne `REVIEW_UNTIL` („Demo-Zugang ohne Ablaufdatum aktiv“); oder `REVIEW_UNTIL` ist vorbei und die Variablen stehen noch auf Render („Demo-Zugang abgelaufen“, der Zugang ist schon aus); oder `REVIEW_UNTIL` ist kein Datum (der Zugang ist dann aus). | 1. Läuft gerade eine Prüfung: Render → Environment → `REVIEW_UNTIL` auf den letzten Tag setzen, den die Prüfung braucht (`JJJJ-MM-TT`, Europe/Berlin; eine Woche nach dem Einreichen reicht). 2. Prüfung durch: `REVIEW_PHONE`, `REVIEW_CODE` und `REVIEW_UNTIL` entfernen. 3. Bei jeder Einreichung neu setzen ([`RELEASE.md`](RELEASE.md), Abschnitt 4). `GET /api/push-health` zeigt den Stand unter `reviewLogin` (`off`, `on`, `expired`, `invalid_until` …). |
+| `sentry_fatal` | error | Keine Regel in `RULES`, sondern `POST /webhooks/sentry` (`routes/webhooks.js`, signiert mit `SENTRY_WEBHOOK_SECRET`): eine Sentry-Alarmregel mit der Aktion „Send a notification via Wanna yap? Alarme“ hat ausgelöst (App: neuer fataler Absturz; Backend: fatal oder error), oder, nur falls die `issue`-Webhooks der Integration an sind, ein neues Issue mit Level fatal. Der Text nennt Projekt, Level, Release, Issue-Kurz-ID und den Sentry-Link, nie die Fehlermeldung. Höchstens einmal pro Stunde: ein zweiter neuer Absturz in der Stunde steht nur in Sentry. | 1. Link öffnen: welcher Build, Commit oder welches OTA-Update, wie viele Nutzer. 2. App, JS-Fehler: OTA-Hotfix oder OTA-Rollback; nativ: Phased Release pausieren (unten), Mindest-Build hochsetzen, Banner; Regeln in [`RELEASE.md`](RELEASE.md), Abschnitt 2a. 3. Backend: Render auf das letzte grüne `api/…`-Tag zurückrollen (Abschnitt "Rollback"), dann Ursache. 4. Kommen 401 statt Alarmen (Tageszähler `sentryUnauthorized`): Client Secret der Integration und `SENTRY_WEBHOOK_SECRET` vergleichen. |
 | `owner_silent` | warn | Keine Regel in `lib/alerts.js`, sondern die Dead-Man-Prüfung in `lib/adminPush.js` (stündlich): 7 Tage lang hat kein Owner den Morgen-Push quittiert oder sich angemeldet. Mail an den Notfallkontakt, sonst Push an die Owner; einmal je 7 Tage. | Owner: Konsole öffnen, Morgen-Push quittieren (unten). Notfallkontakt: [`EMERGENCY.md`](EMERGENCY.md). |
+| `weekly_silent` | warn | Keine Regel in `lib/alerts.js`, sondern dieselbe Dead-Man-Prüfung in `lib/adminPush.js` (stündlich): Der Wochenreport geht seit mindestens 14 Tagen raus (`AppConfig.ops.weeklyReportFirstAt`), aber kein aktiver Owner hat in den letzten 14 Tagen einen quittiert (`WeeklyReview.ackAt`; Quittungen von Support zählen nicht). Nur, solange `owner_silent` nicht gilt (nie zwei Mails zu derselben Stille). Mail an den Notfallkontakt mit dem Grund, sonst Push „Wochenreport seit 14 Tagen offen“ an die Owner (`#weekly`); einmal je 7 Tage. | Owner: Konsole → Woche, Stunden eintragen und quittieren, Entscheidungen in [`DECISIONS.md`](DECISIONS.md) nachtragen. Notfallkontakt: nachfragen, ob alles in Ordnung ist; sonst [`EMERGENCY.md`](EMERGENCY.md). |
 | `mail-failing` | – (Push, keine Stufe) | Push-Kind `alerts` direkt aus `lib/waitlist.js`: der Mail-Anbieter lehnt Wartelisten-Mails ab (höchstens einmal pro Stunde). Anmeldungen bleiben gespeichert. | 1. Status und Guthaben beim Mail-Anbieter prüfen. 2. `SMTP_URL` und `MAIL_FROM` auf Render prüfen. 3. Sobald das Senden klappt, schickt `resendMissing()` die offenen Mails alle 10 Minuten von selbst. |
 | `post-<kampagne>-<kanal>` | – (Push, keine Stufe) | Push-Kind `posting` aus `lib/socialPosting.js` mit `urgency: high`: Auto-Posting auf Instagram oder TikTok ist nach dem letzten Versuch fehlgeschlagen; der Text nennt den Fehler. Gleicher Tag ohne `high` ist nur ein Hinweis (gepostet, TikTok-Entwurf wartet). | 1. Konsole → Freigabe → Kanäle: Token prüfen, bei Ablauf neu verbinden. 2. Entwurf von Hand posten oder verwerfen. |
 
 Keine Alarme, sondern Arbeitshinweise über eigene Push-Kinds: `approvals`
 (neuer Werbe-Entwurf wartet auf Freigabe), `support` (neues Ticket),
-`reports` (Meldung eines Nutzers). Sie brauchen eine Hand in der Konsole,
-aber keinen Eingriff im Betrieb.
+`reports` (Meldung eines Nutzers), `weekly` (Wochenreport, Montag ab
+08:00, unten). Sie brauchen eine Hand in der Konsole, aber keinen
+Eingriff im Betrieb.
 
 **Geplant, noch ohne Tag** (kommen mit ihrer Regel und ihrer Zeile hier,
-Plan 1.10): Phase 2: Kauf-Fehler > 3/Tag, neuer nativer Crash-Typ
-(Sentry-Webhook, Tag `sentry_fatal`, Plan 2.1b; bis dahin Mail-Alert in
-Sentry, siehe [`RELEASE.md`](RELEASE.md)), Demo-Login nach `REVIEW_UNTIL`
-abgelaufen (2.16), KI-Modell deprecated, nutzersichtbares Banner aktiv.
+Plan 1.10): Phase 2: KI-Modell deprecated, nutzersichtbares Banner aktiv.
 Phase 3: Bewertung ≤ 3, Moderations-SLA, Reconciliation-Abweichung > 5 %,
-VoIP-Push ohne Register binnen 10 s.
+VoIP-Push ohne Register binnen 10 s. Kauf-Fehler (`purchase_failures`),
+neuer nativer Crash-Typ (`sentry_fatal`) und der abgelaufene Demo-Login
+(`review_login`) haben ihre Zeile oben.
 
 ## Quittung und Vertretung
 
@@ -76,6 +82,25 @@ VoIP-Push ohne Register binnen 10 s.
   wenn die Mail nicht rausgeht (`SMTP_URL` fehlt, SMTP-Fehler), bekommen
   die Owner stattdessen den Push "Quittung fehlt seit 7 Tagen"
   (`owner_silent` in der Alarmliste). Höchstens einmal je 7 Tage.
+- **Wochenreport quittieren (Plan 2.11):** Montag ab 08:00 kommen Mail
+  ("Wanna yap? Woche <KW>: <Kernzahl>", an jeden aktiven Owner) und Push
+  "Wochenreport KW <n>" (Kind `weekly`, Owner, Support, Viewer; je
+  Person in den Push-Einstellungen abschaltbar). Konsole → Woche
+  (`#weekly`) zeigt den Report der letzten vollen Woche; quittieren mit
+  den Stunden Betrieb in drei Pflichtfeldern (Alarme, Support, Freigaben;
+  0 ist erlaubt) und bis zu drei Entscheidungen (`POST /admin/weekly/ack`,
+  Owner und Support). Die Entscheidungen und das Hook-Thema trägst du
+  zusätzlich in [`DECISIONS.md`](DECISIONS.md) und unter Konsole → App →
+  "Marketing-Hinweise für den Agenten" ein. Der tägliche Morgen-Push
+  bleibt daneben bestehen; der Wochenreport ersetzt ihn nicht.
+- **Wochenreport offen (`weekly_silent`):** Geht der Report seit
+  mindestens 14 Tagen raus und hat in den letzten 14 Tagen kein aktiver
+  Owner einen quittiert, bekommt der Notfallkontakt eine Mail mit dem
+  Grund (sonst die Owner den Push "Wochenreport seit 14 Tagen offen").
+  Das fängt den Fall, dass die Konsole noch geöffnet wird, die
+  wöchentliche Durchsicht aber fehlt. Gilt schon `owner_silent`, bleibt
+  `weekly_silent` still; höchstens einmal je 7 Tage. Quittungen von
+  Support zählen nicht, eine Vertretung braucht deshalb die Rolle `owner`.
 - **Vertretung vor Urlaub oder Ausfall:** zweiter Owner mit funktionierendem
   Passkey oder TOTP (Konsole → Team, Rolle `owner`); Notfallkontakt
   eingetragen und der Person gesagt, wo `EMERGENCY.md` liegt;
@@ -217,6 +242,11 @@ Restore-Test ≤ 90.
   "Rollback to this deploy". Dauert eine Minute, danach `/healthz` und
   `/api/push-health` prüfen (`version` muss der alte Stand sein). Deploys
   laufen automatisch von `main`; ein Revert-Commit ist der dauerhafte Weg.
+  Ziel ist der letzte grüne Stand vor dem Fehler: Jeder Commit auf `main`,
+  dessen Tests grün waren, trägt das Tag `api/<JJJJ-MM-TT>-<sha>`
+  (Datum Europe/Berlin, Plan 2.1b); `git tag -l 'api/*' --sort=-creatordate`
+  im Backend-Repo listet sie, der Commit dazu steht in Render unter Deploys.
+  Sentry-Releases des Backends heißen wie der Commit (`RENDER_GIT_COMMIT`).
 - **App:** Einen Store-Build nimmst du nicht zurück. Was geht: in der
   Konsole unter "App" ein Hinweis-Banner für alle setzen und, falls ein
   Build gefährlich ist, den Mindest-Build hochsetzen; die App zeigt dann den Update-Hinweis

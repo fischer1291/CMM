@@ -8,6 +8,7 @@ const { CAPTION_RULES, HASHTAG_RULES } = require('./texts');
 const trends = require('./trends');
 const soundtrack = require('./soundtrack');
 const { CHARACTERS, byKey } = require('./characters');
+const { notesSection } = require('./notes');
 
 // The parts around the scenes (agent/cut.js), and the longest episode
 const APP_SECONDS = 3.6;
@@ -136,7 +137,7 @@ ${lines.length ? lines.join('\n') : 'Noch keine Folge: Stell die Figur und ihre 
 
 Figuren mit Referenzbild (nur diese dürfen erkennbar im Bild sein): ${available.map((c) => `${c.name} („${c.key}“)`).join(', ')}.
 
-# Die Serien bisher (älteste Folge zuerst; verworfene Folgen wurden nie gezeigt und zählen nicht zur Geschichte, ihre Begründungen aber schon)
+${notesSection(context.notes)}# Die Serien bisher (älteste Folge zuerst; verworfene Folgen wurden nie gezeigt und zählen nicht zur Geschichte, ihre Begründungen aber schon)
 ${series}
 
 # Die letzten App-Videos und was die Person dazu gesagt hat

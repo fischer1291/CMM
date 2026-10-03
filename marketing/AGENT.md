@@ -23,7 +23,12 @@ Mail an die Owner               →  POST /marketing/notify                 Grun
 ```
 
 Der Grund beim Verwerfen, was gepostet wurde, die Besuche pro Kampagne und die bisherige
-Geschichte der Hero-Videos gehen beim nächsten Lauf an den Agenten zurück.
+Geschichte der Hero-Videos gehen beim nächsten Lauf an den Agenten zurück. Dazu kommen die
+Hinweise aus der Wochenreview am Montag (Konsole → App → „Marketing-Hinweise für den
+Agenten“, `AppConfig.marketingNotes`, höchstens 1.000 Zeichen, Plan 2.11): `context.notes`
+steht in App- und Hero-Läufen als Abschnitt „Hinweise des Owners für diese Woche“ im Prompt
+(`agent/notes.js`) und hat Vorrang vor eigenen Themenideen. Leeres Feld = kein Abschnitt.
+Welche Entscheidung dahintersteht, steht in [`../docs/DECISIONS.md`](../docs/DECISIONS.md).
 
 ## Budget
 
