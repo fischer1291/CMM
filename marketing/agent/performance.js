@@ -60,7 +60,7 @@ Gepostete Videos mit gemessenen Zahlen: Views (Instagram-Plays und TikTok-Views 
   ];
   if (flop.length) parts.push(`Hinten (wenigste Views je Euro):\n${flop.map(row).join('\n')}`);
   if (byActivation.length) parts.push(`Nach Aktivierung (wer über das Video kam und wirklich telefoniert hat):\n${byActivation.map(row).join('\n')}`);
-  if (aiCost != null) parts.push(`KI-Kosten je tatsächlich gepostetes Video: ${eur(aiCost)} (alle Ausgaben des Agenten in 30 Tagen geteilt durch die geposteten Videos; verworfene Entwürfe kosten mit).`);
+  if (aiCost != null) parts.push(`KI-Kosten je tatsächlich gepostetes Video: ${eur(aiCost)} (alle KI-Ausgaben des Agenten in 30 Tagen, ohne bezahlte Reichweite, geteilt durch die geposteten Videos; verworfene Entwürfe kosten mit).`);
   parts.push(`Bewerte Formate nach Aktivierung, nicht nach Views: Ein Video, das wenige Leute bringt, die dann wirklich telefonieren, schlägt eines mit vielen Views und niemandem, der bleibt. Views je Euro zeigen, was Aufmerksamkeit bekommt, Aktivierte, was wirkt. Bei wenigen Neunutzern ist das eine Tendenz, kein Beweis. Sag in deiner Analyse, welches Format, welchen Hook und welche Figur du deshalb wiederholst, abwandelst oder fallen lässt.`);
   return `${parts.join('\n\n')}\n\n`;
 }

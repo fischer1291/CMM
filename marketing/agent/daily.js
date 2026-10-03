@@ -96,7 +96,9 @@ async function main() {
     await browser.close();
   }
 
-  if (!DRY && done.length) {
+  // Every finished run reports in, also one without a new draft (all names taken): the
+  // backend's runs.lastOkAt is the agent's heartbeat (plan 2.14); mails go out only for drafts
+  if (!DRY) {
     const { pending, mailed } = await reportRun(STARTED);
     console.log(`\n${done.length} Entwürfe hochgeladen, ${pending} warten auf Freigabe, ${mailed} Mail(s) verschickt. Kosten dieses Laufs: ${spent().toFixed(2)} €`);
   } else {
@@ -108,8 +110,8 @@ main().catch((err) => {
   // Budget used up: not an error, just nothing more today (a note in the GitHub run)
   if (err instanceof BudgetExceeded) {
     console.log(`::warning::${err.message}`);
-    // What went up before the budget ran out still waits for approval
-    if (!DRY && done.length) {
+    // What went up before the budget ran out still waits for approval; the run counts as done
+    if (!DRY) {
       return reportRun(STARTED).then(
         ({ pending, mailed }) => console.log(`${done.length} Entwürfe hochgeladen, ${pending} warten auf Freigabe, ${mailed} Mail(s) verschickt.`),
         (e) => console.log(`::warning::Meldung an das Backend fehlgeschlagen: ${e.message}`),
